@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Gestor de Proyectos</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f5f7;
+            color: #222;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* =========================
+           LOGIN
+        ========================= */
+
+        #login-screen {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,.08);
+        }
+
+        .login-card h1 {
+            margin-bottom: 8px;
+        }
+
+        .login-card > p {
+            color: #777;
+            margin-bottom: 25px;
+        }
+
+        #login-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #111;
+        }
+
+        button {
+            border: 0;
+            padding: 12px 16px;
+            border-radius: 8px;
+            background: #111;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            opacity: .85;
+        }
+
+        .message {
+            margin-top: 15px;
+            color: #d33;
+            font-size: 14px;
+        }
+
+        /* =========================
+           APP
+        ========================= */
+
+        #app-screen {
+            min-height: 100vh;
+        }
+
+        header {
+            background: white;
+            border-bottom: 1px solid #ddd;
+            padding: 18px 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            margin-bottom: 5px;
+        }
+
+        #user-info {
+            color: #777;
+            font-size: 14px;
+        }
+
+        .logout {
+            background: #e9e9e9;
+            color: #222;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        section {
+            background: white;
+            border-radius: 14px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 22px;
+        }
+
+        .admin-button {
+            display: none;
+        }
+
+        body.is-admin .admin-button {
+            display: block;
+        }
+
+        /* =========================
+           CARDS
+        ========================= */
+
+        .item {
+            border: 1px solid #e2e2e2;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 12px;
+        }
+
+        .item:last-child {
+            margin-bottom: 0;
+        }
+
+        .item h3 {
+            margin-bottom: 8px;
+        }
+
+        .item p {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .empty {
+            color: #888;
+            padding: 10px 0;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #eee;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 600px) {
+
+            header {
+                padding: 15px 20px;
+            }
+
+            header {
+                gap: 15px;
+            }
+
+            main {
+                margin-top: 20px;
+            }
+
+            section {
+                padding: 18px;
+            }
+
+            .section-header {
+                gap: 10px;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================
+         LOGIN
+    ========================== -->
+
+    <div id="login-screen">
+
+        <div class="login-card">
+
+            <h1>Mi Gestor</h1>
+
+            <p>Inicia sesión para continuar.</p>
+
+            <form id="login-form">
+
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Correo electrónico"
+                    required
+                >
+
+                <input
+                    type="password"
+                    id="password"
+                    placeholder="Contraseña"
+                    required
+                >
+
+                <button type="submit">
+                    Iniciar sesión
+                </button>
+
+            </form>
+
+            <div id="login-message" class="message"></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         APP
+    ========================== -->
+
+    <div id="app-screen" class="hidden">
+
+        <header>
+
+            <div>
+                <h1>Mi Gestor</h1>
+                <div id="user-info"></div>
+            </div>
+
+            <button
+                id="logout-button"
+                class="logout"
+            >
+                Cerrar sesión
+            </button>
+
+        </header>
+
+
+        <main>
+
+            <!-- PROYECTOS -->
+
+            <section>
+
+                <div class="section-header">
+
+                    <h2>Proyectos</h2>
+
+                    <button
+                        id="new-project-button"
+                        class="admin-button"
+                    >
+                        + Nuevo proyecto
+                    </button>
+
+                </div>
+
+                <div id="projects-container">
+                    <p class="empty">
+                        Cargando proyectos...
+                    </p>
+                </div>
+
+            </section>
+
+
+            <!-- TAREAS -->
+
+            <section>
+
+                <div class="section-header">
+
+                    <h2>Tareas</h2>
+
+                    <button
+                        id="new-task-button"
+                        class="admin-button"
+                    >
+                        + Nueva tarea
+                    </button>
+
+                </div>
+
+                <div id="tasks-container">
+                    <p class="empty">
+                        Cargando tareas...
+                    </p>
+                </div>
+
+            </section>
+
+        </main>
+
+    </div>
+
+
+    <script>
+
+        // =====================================================
+        // SUPABASE
+        // =====================================================
+
+        const SUPABASE_URL =
+            "https://ijnetiyxrxxfhurlsnbc.supabase.co";
+
+        const SUPABASE_KEY =
+            "sb_publishable_dnjsWgsrPMUQov5JTJuthw_KEAqjMfK";
+
+
+        const supabaseClient =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_KEY
+            );
+
+
+        // =====================================================
+        // ELEMENTOS
+        // =====================================================
+
+        const loginScreen =
+            document.getElementById("login-screen");
+
+        const appScreen =
+            document.getElementById("app-screen");
+
+        const loginForm =
+            document.getElementById("login-form");
+
+        const loginMessage =
+            document.getElementById("login-message");
+
+        const userInfo =
+            document.getElementById("user-info");
+
+        const logoutButton =
+            document.getElementById("logout-button");
+
+        const projectsContainer =
+            document.getElementById("projects-container");
+
+        const tasksContainer =
+            document.getElementById("tasks-container");
+
+
+        // =====================================================
+        // LOGIN
+        // =====================================================
+
+        loginForm.addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+                loginMessage.textContent =
+                    "Iniciando sesión...";
+
+                const email =
+                    document.getElementById("email").value;
+
+                const password =
+                    document.getElementById("password").value;
+
+
+                const { error } =
+                    await supabaseClient.auth.signInWithPassword({
+
+                        email: email,
+
+                        password: password
+
+                    });
+
+
+                if (error) {
+
+                    loginMessage.textContent =
+                        "Error: " + error.message;
+
+                    return;
+                }
+
+
+                loginMessage.textContent = "";
+
+            }
+        );
+
+
+        // =====================================================
+        // LOGOUT
+        // =====================================================
+
+        logoutButton.addEventListener(
+            "click",
+            async function() {
+
+                await supabaseClient.auth.signOut();
+
+            }
+        );
+
+
+        // =====================================================
+        // CARGAR USUARIO
+        // =====================================================
+
+        async function loadUser(user) {
+
+            const {
+                data: profile,
+                error
+            } = await supabaseClient
+                .from("profiles")
+                .select("*")
+                .eq("id", user.id)
+                .single();
+
+
+            if (error) {
+
+                console.error(
+                    "Error obteniendo perfil:",
+                    error
+                );
+
+                userInfo.textContent =
+                    user.email;
+
+                return;
+            }
+
+
+            userInfo.textContent =
+                profile.name +
+                " · " +
+                profile.role;
+
+
+            // Si es admin mostramos botones de admin
+
+            if (profile.role === "admin") {
+
+                document.body.classList.add("is-admin");
+
+            } else {
+
+                document.body.classList.remove("is-admin");
+
+            }
+
+
+            await loadProjects();
+
+            await loadTasks();
+
+        }
+
+
+        // =====================================================
+        // PROYECTOS
+        // =====================================================
+
+        async function loadProjects() {
+
+            projectsContainer.innerHTML =
+                '<p class="empty">Cargando...</p>';
+
+
+            const {
+                data,
+                error
+            } = await supabaseClient
+                .from("projects")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
+
+            if (error) {
+
+                console.error(error);
+
+                projectsContainer.innerHTML =
+                    '<p class="empty">No se pudieron cargar los proyectos.</p>';
+
+                return;
+            }
+
+
+            if (!data || data.length === 0) {
+
+                projectsContainer.innerHTML =
+                    '<p class="empty">No hay proyectos.</p>';
+
+                return;
+            }
+
+
+            projectsContainer.innerHTML =
+                data.map(function(project) {
+
+                    return `
+
+                        <div class="item">
+
+                            <h3>
+                                ${escapeHTML(project.name)}
+                            </h3>
+
+                            <p>
+                                Cliente:
+                                ${escapeHTML(project.client)}
+                            </p>
+
+                            <p>
+                                Estado:
+                                ${escapeHTML(project.status)}
+                            </p>
+
+                            ${
+                                project.description
+                                ? `
+                                    <p>
+                                        ${escapeHTML(
+                                            project.description
+                                        )}
+                                    </p>
+                                  `
+                                : ""
+                            }
+
+                            ${
+                                project.deadline
+                                ? `
+                                    <span class="badge">
+                                        Fecha:
+                                        ${escapeHTML(
+                                            project.deadline
+                                        )}
+                                    </span>
+                                  `
+                                : ""
+                            }
+
+                        </div>
+
+                    `;
+
+                }).join("");
+
+        }
+
+
+        // =====================================================
+        // TAREAS
+        // =====================================================
+
+        async function loadTasks() {
+
+            tasksContainer.innerHTML =
+                '<p class="empty">Cargando...</p>';
+
+
+            const {
+                data,
+                error
+            } = await supabaseClient
+                .from("tasks")
+                .select("*")
+                .order(
+                    "created_at",
+                    {
+                        ascending: false
+                    }
+                );
+
+
+            if (error) {
+
+                console.error(error);
+
+                tasksContainer.innerHTML =
+                    '<p class="empty">No se pudieron cargar las tareas.</p>';
+
+                return;
+            }
+
+
+            if (!data || data.length === 0) {
+
+                tasksContainer.innerHTML =
+                    '<p class="empty">No hay tareas.</p>';
+
+                return;
+            }
+
+
+            tasksContainer.innerHTML =
+                data.map(function(task) {
+
+                    return `
+
+                        <div class="item">
+
+                            <h3>
+                                ${escapeHTML(task.title)}
+                            </h3>
+
+                            ${
+                                task.description
+                                ? `
+                                    <p>
+                                        ${escapeHTML(
+                                            task.description
+                                        )}
+                                    </p>
+                                  `
+                                : ""
+                            }
+
+                            <p>
+                                Estado:
+                                ${escapeHTML(task.status)}
+                            </p>
+
+                            <p>
+                                Prioridad:
+                                ${escapeHTML(task.priority)}
+                            </p>
+
+                            ${
+                                task.deadline
+                                ? `
+                                    <span class="badge">
+                                        Fecha:
+                                        ${escapeHTML(
+                                            task.deadline
+                                        )}
+                                    </span>
+                                  `
+                                : ""
+                            }
+
+                        </div>
+
+                    `;
+
+                }).join("");
+
+        }
+
+
+        // =====================================================
+        // MOSTRAR LOGIN / APP
+        // =====================================================
+
+        function showLogin() {
+
+            loginScreen.classList.remove("hidden");
+
+            appScreen.classList.add("hidden");
+
+            document.body.classList.remove("is-admin");
+
+        }
+
+
+        // =====================================================
+        // SEGURIDAD
+        // =====================================================
+
+        function escapeHTML(value) {
+
+            if (
+                value === null ||
+                value === undefined
+            ) {
+                return "";
+            }
+
+
+            return String(value)
+
+                .replaceAll("&", "&amp;")
+
+                .replaceAll("<", "&lt;")
+
+                .replaceAll(">", "&gt;")
+
+                .replaceAll('"', "&quot;")
+
+                .replaceAll("'", "&#039;");
+
+        }
+
+
+        // =====================================================
+        // SESIÓN ACTUAL
+        // =====================================================
+
+        async function checkSession() {
+
+            const {
+                data: {
+                    session
+                }
+            } =
+                await supabaseClient.auth.getSession();
+
+
+            if (session) {
+
+                loginScreen.classList.add("hidden");
+
+                appScreen.classList.remove("hidden");
+
+                await loadUser(session.user);
+
+            } else {
+
+                showLogin();
+
+            }
+
+        }
+
+
+        // =====================================================
+        // CAMBIOS DE SESIÓN
+        // =====================================================
+
+        supabaseClient.auth.onAuthStateChange(
+            async function(event, session) {
+
+                if (session) {
+
+                    loginScreen.classList.add("hidden");
+
+                    appScreen.classList.remove("hidden");
+
+                    await loadUser(session.user);
+
+                } else {
+
+                    showLogin();
+
+                }
+
+            }
+        );
+
+
+        // =====================================================
+        // ARRANCAR
+        // =====================================================
+
+        checkSession();
+
+    </script>
+
+</body>
+</html>
