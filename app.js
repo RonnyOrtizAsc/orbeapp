@@ -8,7 +8,6 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
     "sb_publishable_dnjsWgsrPMUQov5JTJuthw_KEAqjMfK";
 
-
 const supabaseClient =
     window.supabase.createClient(
         SUPABASE_URL,
@@ -71,12 +70,38 @@ const closeModal =
 // =====================================================
 
 let currentUser = null;
-
 let currentProfile = null;
 
 let editingProject = null;
-
 let editingTask = null;
+
+
+// =====================================================
+// MOSTRAR LOGIN
+// =====================================================
+
+function showLogin() {
+
+    appScreen.classList.add("hidden");
+
+    loginScreen.classList.remove("hidden");
+
+    document.body.classList.remove("is-admin");
+
+}
+
+
+// =====================================================
+// MOSTRAR APP
+// =====================================================
+
+function showApp() {
+
+    loginScreen.classList.add("hidden");
+
+    appScreen.classList.remove("hidden");
+
+}
 
 
 // =====================================================
@@ -101,22 +126,24 @@ loginForm.addEventListener(
 
 
         const { error } =
-            await supabaseClient.auth
-                .signInWithPassword({
+            await supabaseClient.auth.signInWithPassword({
 
-                    email: email,
+                email: email,
 
-                    password: password
+                password: password
 
-                });
+            });
 
 
         if (error) {
 
+            console.error(error);
+
             loginMessage.textContent =
-                error.message;
+                "Correo o contraseña incorrectos.";
 
             return;
+
         }
 
 
@@ -136,12 +163,14 @@ logoutButton.addEventListener(
 
         await supabaseClient.auth.signOut();
 
+        showLogin();
+
     }
 );
 
 
 // =====================================================
-// SESSION
+// COMPROBAR SESIÓN
 // =====================================================
 
 async function checkSession() {
@@ -168,7 +197,7 @@ async function checkSession() {
 
 
 // =====================================================
-// AUTH STATE
+// CAMBIOS DE SESIÓN
 // =====================================================
 
 supabaseClient.auth.onAuthStateChange(
@@ -189,7 +218,7 @@ supabaseClient.auth.onAuthStateChange(
 
 
 // =====================================================
-// LOAD USER
+// CARGAR USUARIO
 // =====================================================
 
 async function loadUser(user) {
@@ -216,15 +245,14 @@ async function loadUser(user) {
         );
 
         return;
+
     }
 
 
     currentProfile = profile;
 
 
-    loginScreen.classList.add("hidden");
-
-    appScreen.classList.remove("hidden");
+    showApp();
 
 
     userInfo.textContent =
@@ -250,7 +278,7 @@ async function loadUser(user) {
 
 
 // =====================================================
-// PROJECTS
+// CARGAR PROYECTOS
 // =====================================================
 
 async function loadProjects() {
@@ -285,6 +313,7 @@ async function loadProjects() {
             "<p>Error cargando proyectos.</p>";
 
         return;
+
     }
 
 
@@ -294,6 +323,7 @@ async function loadProjects() {
             "<p>No hay proyectos todavía.</p>";
 
         return;
+
     }
 
 
@@ -388,7 +418,7 @@ async function loadProjects() {
 
 
 // =====================================================
-// NEW PROJECT
+// NUEVO PROYECTO
 // =====================================================
 
 newProjectButton.addEventListener(
@@ -482,7 +512,7 @@ newProjectButton.addEventListener(
 
 
 // =====================================================
-// EDIT PROJECT
+// EDITAR PROYECTO
 // =====================================================
 
 window.editProject =
@@ -501,11 +531,14 @@ async function(projectId) {
 
     if (error) {
 
+        console.error(error);
+
         alert(
             "No se pudo cargar el proyecto."
         );
 
         return;
+
     }
 
 
@@ -550,7 +583,9 @@ async function(projectId) {
 
             <textarea
                 id="project-description"
-            >${escapeHTML(project.description || "")}</textarea>
+            >${escapeHTML(
+                project.description || ""
+            )}</textarea>
 
         </div>
 
@@ -561,18 +596,15 @@ async function(projectId) {
 
             <select id="project-status">
 
-                <option value="pending"
-                    ${project.status === "pending" ? "selected" : ""}>
+                <option value="pending">
                     Pendiente
                 </option>
 
-                <option value="active"
-                    ${project.status === "active" ? "selected" : ""}>
+                <option value="active">
                     Activo
                 </option>
 
-                <option value="completed"
-                    ${project.status === "completed" ? "selected" : ""}>
+                <option value="completed">
                     Completado
                 </option>
 
@@ -596,13 +628,18 @@ async function(projectId) {
     `;
 
 
+    document.getElementById(
+        "project-status"
+    ).value = project.status;
+
+
     openModal();
 
 };
 
 
 // =====================================================
-// SAVE PROJECT
+// GUARDAR PROYECTO
 // =====================================================
 
 async function saveProject() {
@@ -670,13 +707,17 @@ async function saveProject() {
 
     if (result.error) {
 
-        console.error(result.error);
+        console.error(
+            "Error guardando proyecto:",
+            result.error
+        );
 
         alert(
-            "No se pudo guardar el proyecto."
+            result.error.message
         );
 
         return;
+
     }
 
 
@@ -688,20 +729,20 @@ async function saveProject() {
 
 
 // =====================================================
-// DELETE PROJECT
+// ELIMINAR PROYECTO
 // =====================================================
 
 window.deleteProject =
 async function(projectId) {
 
-    const confirmed =
-        confirm(
+    if (
+        !confirm(
             "¿Eliminar este proyecto?"
-        );
+        )
+    ) {
 
-
-    if (!confirmed) {
         return;
+
     }
 
 
@@ -711,7 +752,10 @@ async function(projectId) {
         await supabaseClient
             .from("projects")
             .delete()
-            .eq("id", projectId);
+            .eq(
+                "id",
+                projectId
+            );
 
 
     if (error) {
@@ -719,10 +763,11 @@ async function(projectId) {
         console.error(error);
 
         alert(
-            "No se pudo eliminar el proyecto."
+            error.message
         );
 
         return;
+
     }
 
 
@@ -732,7 +777,7 @@ async function(projectId) {
 
 
 // =====================================================
-// TASKS
+// CARGAR TAREAS
 // =====================================================
 
 async function loadTasks() {
@@ -767,6 +812,7 @@ async function loadTasks() {
             "<p>Error cargando tareas.</p>";
 
         return;
+
     }
 
 
@@ -776,6 +822,7 @@ async function loadTasks() {
             "<p>No hay tareas todavía.</p>";
 
         return;
+
     }
 
 
@@ -857,7 +904,7 @@ async function loadTasks() {
 
 
 // =====================================================
-// NEW TASK
+// NUEVA TAREA
 // =====================================================
 
 newTaskButton.addEventListener(
@@ -873,12 +920,13 @@ newTaskButton.addEventListener(
 
 
 // =====================================================
-// TASK FORM
+// FORMULARIO DE TAREA
 // =====================================================
 
 async function showTaskForm(task = null) {
 
     editingTask = task;
+
 
     modalTitle.textContent =
         task
@@ -898,11 +946,14 @@ async function showTaskForm(task = null) {
 
     if (error) {
 
+        console.error(error);
+
         alert(
             "No se pudieron cargar los proyectos."
         );
 
         return;
+
     }
 
 
@@ -961,7 +1012,9 @@ async function showTaskForm(task = null) {
                 id="task-description"
             >${
                 task
-                ? escapeHTML(task.description || "")
+                ? escapeHTML(
+                    task.description || ""
+                )
                 : ""
             }</textarea>
 
@@ -1056,6 +1109,7 @@ async function showTaskForm(task = null) {
             "task-status"
         ).value = task.status;
 
+
         document.getElementById(
             "task-priority"
         ).value = task.priority;
@@ -1069,7 +1123,7 @@ async function showTaskForm(task = null) {
 
 
 // =====================================================
-// EDIT TASK
+// EDITAR TAREA
 // =====================================================
 
 window.editTask =
@@ -1082,17 +1136,23 @@ async function(taskId) {
         await supabaseClient
             .from("tasks")
             .select("*")
-            .eq("id", taskId)
+            .eq(
+                "id",
+                taskId
+            )
             .single();
 
 
     if (error) {
+
+        console.error(error);
 
         alert(
             "No se pudo cargar la tarea."
         );
 
         return;
+
     }
 
 
@@ -1102,7 +1162,7 @@ async function(taskId) {
 
 
 // =====================================================
-// SAVE TASK
+// GUARDAR TAREA
 // =====================================================
 
 async function saveTask() {
@@ -1175,13 +1235,17 @@ async function saveTask() {
 
     if (result.error) {
 
-        console.error(result.error);
+        console.error(
+            "Error guardando tarea:",
+            result.error
+        );
 
         alert(
-            "No se pudo guardar la tarea."
+            result.error.message
         );
 
         return;
+
     }
 
 
@@ -1193,20 +1257,20 @@ async function saveTask() {
 
 
 // =====================================================
-// DELETE TASK
+// ELIMINAR TAREA
 // =====================================================
 
 window.deleteTask =
 async function(taskId) {
 
-    const confirmed =
-        confirm(
+    if (
+        !confirm(
             "¿Eliminar esta tarea?"
-        );
+        )
+    ) {
 
-
-    if (!confirmed) {
         return;
+
     }
 
 
@@ -1216,7 +1280,10 @@ async function(taskId) {
         await supabaseClient
             .from("tasks")
             .delete()
-            .eq("id", taskId);
+            .eq(
+                "id",
+                taskId
+            );
 
 
     if (error) {
@@ -1224,10 +1291,11 @@ async function(taskId) {
         console.error(error);
 
         alert(
-            "No se pudo eliminar la tarea."
+            error.message
         );
 
         return;
+
     }
 
 
@@ -1268,7 +1336,9 @@ modal.addEventListener(
     "click",
     function(event) {
 
-        if (event.target === modal) {
+        if (
+            event.target === modal
+        ) {
 
             closeModalWindow();
 
@@ -1279,7 +1349,7 @@ modal.addEventListener(
 
 
 // =====================================================
-// SAVE FORM
+// GUARDAR FORMULARIO
 // =====================================================
 
 modalForm.addEventListener(
@@ -1291,7 +1361,8 @@ modalForm.addEventListener(
 
         if (
             editingTask ||
-            modalTitle.textContent === "Nueva tarea"
+            modalTitle.textContent ===
+            "Nueva tarea"
         ) {
 
             await saveTask();
@@ -1307,7 +1378,7 @@ modalForm.addEventListener(
 
 
 // =====================================================
-// ESCAPE HTML
+// SEGURIDAD VISUAL
 // =====================================================
 
 function escapeHTML(value) {
@@ -1324,13 +1395,25 @@ function escapeHTML(value) {
 
     return String(value)
 
-        .replaceAll("&", "&amp;")
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
 
-        .replaceAll("<", "&lt;")
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
 
-        .replaceAll(">", "&gt;")
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
 
-        .replaceAll('"', "&quot;")
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
 
         .replaceAll(
             "'",
@@ -1348,7 +1431,7 @@ function escapeAttribute(value) {
 
 
 // =====================================================
-// START
+// INICIAR APP
 // =====================================================
 
 checkSession();
