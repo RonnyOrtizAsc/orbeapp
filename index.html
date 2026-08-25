@@ -4,58 +4,91 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Orbe App</title>
+    <title>Orbe — Gestión</title>
 
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<!-- ================= LOGIN ================= -->
+<!-- =====================================================
+     LOGIN
+===================================================== -->
 
 <div id="loginScreen" class="login-screen">
 
-    <div class="login-card">
+    <div class="login-box">
 
-        <div class="logo">ORBE</div>
+        <div class="brand">
+            ORBE
+            <span>CINEMATOGRÁFICA</span>
+        </div>
 
-        <h1>Bienvenido</h1>
-        <p>Inicia sesión en tu espacio de trabajo.</p>
+        <div class="login-content">
 
-        <form id="loginForm">
+            <p class="eyebrow">WORKSPACE</p>
 
-            <label>Correo electrónico</label>
-            <input
-                id="loginEmail"
-                type="email"
-                placeholder="correo@ejemplo.com"
-                required
-            >
+            <h1>Bienvenido.</h1>
 
-            <label>Contraseña</label>
-            <input
-                id="loginPassword"
-                type="password"
-                placeholder="••••••••"
-                required
-            >
+            <p class="login-description">
+                Ingresa a tu espacio de trabajo.
+            </p>
 
-            <button type="submit" class="primary-button">
-                Iniciar sesión
-            </button>
+            <form id="loginForm">
 
-            <p id="loginError" class="error"></p>
+                <div class="field">
 
-        </form>
+                    <label for="loginEmail">
+                        Correo
+                    </label>
+
+                    <input
+                        id="loginEmail"
+                        type="email"
+                        autocomplete="email"
+                        required
+                    >
+
+                </div>
+
+                <div class="field">
+
+                    <label for="loginPassword">
+                        Contraseña
+                    </label>
+
+                    <input
+                        id="loginPassword"
+                        type="password"
+                        autocomplete="current-password"
+                        required
+                    >
+
+                </div>
+
+                <button
+                    type="submit"
+                    class="button button-dark full"
+                >
+                    Entrar
+                </button>
+
+                <p id="loginError" class="error"></p>
+
+            </form>
+
+        </div>
 
     </div>
 
 </div>
 
 
-<!-- ================= APP ================= -->
+<!-- =====================================================
+     APP
+===================================================== -->
 
 <div id="app" class="app hidden">
 
@@ -63,70 +96,90 @@
 
     <aside class="sidebar">
 
-        <div class="sidebar-logo">
-            ORBE
-            <span>CINEMATOGRÁFICA</span>
+        <div>
+
+            <div class="sidebar-brand">
+                ORBE
+                <small>
+                    CINEMATOGRÁFICA
+                </small>
+            </div>
+
+            <div class="sidebar-section">
+
+                <span class="sidebar-label">
+                    ESPACIO
+                </span>
+
+                <nav>
+
+                    <button
+                        class="nav-item active"
+                        data-page="dashboard"
+                    >
+                        <span class="nav-icon">⌂</span>
+                        Dashboard
+                    </button>
+
+                    <button
+                        class="nav-item"
+                        data-page="projects"
+                    >
+                        <span class="nav-icon">▣</span>
+                        Proyectos
+                    </button>
+
+                    <button
+                        class="nav-item"
+                        data-page="tasks"
+                    >
+                        <span class="nav-icon">✓</span>
+                        Tareas
+                    </button>
+
+                    <button
+                        class="nav-item"
+                        data-page="team"
+                    >
+                        <span class="nav-icon">○</span>
+                        Equipo
+                    </button>
+
+                </nav>
+
+            </div>
+
         </div>
 
-        <nav>
-
-            <button
-                class="nav-button active"
-                data-page="dashboard"
-            >
-                <span>⌂</span>
-                Dashboard
-            </button>
-
-            <button
-                class="nav-button"
-                data-page="projects"
-            >
-                <span>▣</span>
-                Proyectos
-            </button>
-
-            <button
-                class="nav-button"
-                data-page="tasks"
-            >
-                <span>✓</span>
-                Tareas
-            </button>
-
-            <button
-                class="nav-button admin-nav"
-                data-page="team"
-            >
-                <span>♙</span>
-                Equipo
-            </button>
-
-        </nav>
 
         <div class="sidebar-bottom">
 
-            <div class="current-user">
+            <div class="profile-mini">
 
-                <div class="avatar" id="userAvatar">
+                <div
+                    id="userAvatar"
+                    class="avatar"
+                >
                     R
                 </div>
 
-                <div>
+                <div class="profile-mini-info">
+
                     <strong id="sidebarUser">
                         Usuario
                     </strong>
 
-                    <small id="sidebarRole">
+                    <span id="sidebarRole">
                         Miembro
-                    </small>
+                    </span>
+
                 </div>
 
             </div>
 
             <button
                 id="logoutButton"
-                class="logout-button"
+                class="logout"
             >
                 Cerrar sesión
             </button>
@@ -136,27 +189,34 @@
     </aside>
 
 
-    <!-- CONTENT -->
+    <!-- MAIN -->
 
     <main class="main">
+
+        <!-- TOPBAR -->
 
         <header class="topbar">
 
             <div>
+
+                <p
+                    id="pageEyebrow"
+                    class="eyebrow"
+                >
+                    ORBE WORKSPACE
+                </p>
+
                 <h2 id="pageTitle">
                     Dashboard
                 </h2>
 
-                <p id="pageSubtitle">
-                    Resumen de tu trabajo
-                </p>
             </div>
 
-            <div class="topbar-user">
+            <div class="top-user">
 
                 <div
-                    class="avatar small"
                     id="topAvatar"
+                    class="avatar avatar-small"
                 >
                     R
                 </div>
@@ -170,109 +230,106 @@
         </header>
 
 
-        <!-- ================= DASHBOARD ================= -->
+        <!-- =================================================
+             DASHBOARD
+        ================================================== -->
 
         <section
             id="page-dashboard"
             class="page"
         >
 
-            <div class="welcome">
+            <div class="hero">
 
                 <div>
-                    <span class="eyebrow">
-                        ESPACIO DE TRABAJO
-                    </span>
+
+                    <p class="eyebrow">
+                        MARTES · 25 AGOSTO
+                    </p>
 
                     <h1>
-                        Hola, <span id="welcomeName">Ronny</span> 👋
+                        Hola,
+                        <span id="welcomeName">
+                            Ronny
+                        </span>.
                     </h1>
 
                     <p>
-                        Aquí tienes el estado actual de Orbe.
+                        Esto es lo que está pasando
+                        con Orbe hoy.
                     </p>
+
                 </div>
 
             </div>
 
 
-            <div class="stats-grid">
+            <div class="stats">
 
-                <div class="stat-card">
+                <div class="stat">
 
-                    <span>Proyectos</span>
+                    <span>PROYECTOS</span>
 
                     <strong id="statProjects">
                         0
                     </strong>
 
-                    <small>
-                        Total
-                    </small>
-
                 </div>
 
-                <div class="stat-card">
+                <div class="stat">
 
-                    <span>Proyectos activos</span>
+                    <span>ACTIVOS</span>
 
                     <strong id="statActive">
                         0
                     </strong>
 
-                    <small>
-                        En producción
-                    </small>
-
                 </div>
 
-                <div class="stat-card">
+                <div class="stat">
 
-                    <span>Tareas pendientes</span>
+                    <span>TAREAS PENDIENTES</span>
 
                     <strong id="statPending">
                         0
                     </strong>
 
-                    <small>
-                        Por completar
-                    </small>
-
                 </div>
 
-                <div class="stat-card">
+                <div class="stat">
 
-                    <span>Tareas completadas</span>
+                    <span>COMPLETADAS</span>
 
                     <strong id="statCompleted">
                         0
                     </strong>
-
-                    <small>
-                        Finalizadas
-                    </small>
 
                 </div>
 
             </div>
 
 
-            <div class="dashboard-grid">
+            <div class="dashboard-columns">
 
-                <div class="panel">
+                <div class="section-card">
 
-                    <div class="panel-header">
+                    <div class="section-header">
 
                         <div>
-                            <h3>Proyectos recientes</h3>
-                            <p>Últimos proyectos creados</p>
+                            <p class="eyebrow">
+                                PRODUCCIÓN
+                            </p>
+
+                            <h3>
+                                Proyectos activos
+                            </h3>
                         </div>
 
                         <button
-                            class="text-button"
+                            class="link-button"
                             data-page-link="projects"
                         >
-                            Ver todos
+                            Ver todos →
                         </button>
 
                     </div>
@@ -282,20 +339,25 @@
                 </div>
 
 
-                <div class="panel">
+                <div class="section-card">
 
-                    <div class="panel-header">
+                    <div class="section-header">
 
                         <div>
-                            <h3>Tareas recientes</h3>
-                            <p>Trabajo pendiente</p>
+                            <p class="eyebrow">
+                                TRABAJO
+                            </p>
+
+                            <h3>
+                                Próximas tareas
+                            </h3>
                         </div>
 
                         <button
-                            class="text-button"
+                            class="link-button"
                             data-page-link="tasks"
                         >
-                            Ver todas
+                            Ver todas →
                         </button>
 
                     </div>
@@ -309,30 +371,36 @@
         </section>
 
 
-        <!-- ================= PROJECTS ================= -->
+        <!-- =================================================
+             PROJECTS
+        ================================================== -->
 
         <section
             id="page-projects"
             class="page hidden"
         >
 
-            <div class="page-heading">
+            <div class="page-header">
 
                 <div>
-                    <span class="eyebrow">
-                        PRODUCCIÓN
-                    </span>
 
-                    <h1>Proyectos</h1>
+                    <p class="eyebrow">
+                        PRODUCCIÓN
+                    </p>
+
+                    <h1>
+                        Proyectos
+                    </h1>
 
                     <p>
-                        Administra los proyectos de Orbe.
+                        Todo lo que está creando Orbe.
                     </p>
+
                 </div>
 
                 <button
                     id="newProjectButton"
-                    class="primary-button admin-only"
+                    class="button button-dark admin-only"
                 >
                     + Nuevo proyecto
                 </button>
@@ -340,17 +408,20 @@
             </div>
 
 
-            <div class="filters">
+            <div class="toolbar">
 
                 <input
                     id="projectSearch"
-                    placeholder="Buscar proyecto..."
+                    class="search"
+                    placeholder="Buscar proyectos..."
                 >
 
-                <select id="projectFilter">
-
+                <select
+                    id="projectFilter"
+                    class="select"
+                >
                     <option value="all">
-                        Todos los estados
+                        Todos
                     </option>
 
                     <option value="pending">
@@ -364,7 +435,6 @@
                     <option value="completed">
                         Completados
                     </option>
-
                 </select>
 
             </div>
@@ -372,36 +442,42 @@
 
             <div
                 id="projectsList"
-                class="cards-grid"
+                class="projects-grid"
             ></div>
 
         </section>
 
 
-        <!-- ================= TASKS ================= -->
+        <!-- =================================================
+             TASKS
+        ================================================== -->
 
         <section
             id="page-tasks"
             class="page hidden"
         >
 
-            <div class="page-heading">
+            <div class="page-header">
 
                 <div>
-                    <span class="eyebrow">
-                        PRODUCCIÓN
-                    </span>
 
-                    <h1>Tareas</h1>
+                    <p class="eyebrow">
+                        PRODUCCIÓN
+                    </p>
+
+                    <h1>
+                        Tareas
+                    </h1>
 
                     <p>
                         Organiza el trabajo del equipo.
                     </p>
+
                 </div>
 
                 <button
                     id="newTaskButton"
-                    class="primary-button admin-only"
+                    class="button button-dark admin-only"
                 >
                     + Nueva tarea
                 </button>
@@ -409,17 +485,20 @@
             </div>
 
 
-            <div class="filters">
+            <div class="toolbar">
 
                 <input
                     id="taskSearch"
-                    placeholder="Buscar tarea..."
+                    class="search"
+                    placeholder="Buscar tareas..."
                 >
 
-                <select id="taskStatusFilter">
-
+                <select
+                    id="taskStatusFilter"
+                    class="select"
+                >
                     <option value="all">
-                        Todos los estados
+                        Todos
                     </option>
 
                     <option value="pending">
@@ -433,67 +512,137 @@
                     <option value="completed">
                         Completadas
                     </option>
-
                 </select>
 
-
-                <select id="taskPriorityFilter">
-
+                <select
+                    id="taskPriorityFilter"
+                    class="select"
+                >
                     <option value="all">
-                        Todas las prioridades
-                    </option>
-
-                    <option value="low">
-                        Baja
-                    </option>
-
-                    <option value="medium">
-                        Media
+                        Prioridad
                     </option>
 
                     <option value="high">
                         Alta
                     </option>
 
+                    <option value="medium">
+                        Media
+                    </option>
+
+                    <option value="low">
+                        Baja
+                    </option>
                 </select>
 
             </div>
 
 
-            <div
-                id="tasksList"
-                class="tasks-list"
-            ></div>
+            <div class="kanban">
+
+                <div class="kanban-column">
+
+                    <div class="kanban-title">
+
+                        <span>
+                            Pendientes
+                        </span>
+
+                        <strong id="pendingCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                    <div
+                        id="tasksPending"
+                        class="kanban-tasks"
+                    ></div>
+
+                </div>
+
+
+                <div class="kanban-column">
+
+                    <div class="kanban-title">
+
+                        <span>
+                            En progreso
+                        </span>
+
+                        <strong id="progressCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                    <div
+                        id="tasksProgress"
+                        class="kanban-tasks"
+                    ></div>
+
+                </div>
+
+
+                <div class="kanban-column">
+
+                    <div class="kanban-title">
+
+                        <span>
+                            Completadas
+                        </span>
+
+                        <strong id="completedCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                    <div
+                        id="tasksCompleted"
+                        class="kanban-tasks"
+                    ></div>
+
+                </div>
+
+            </div>
 
         </section>
 
 
-        <!-- ================= TEAM ================= -->
+        <!-- =================================================
+             TEAM
+        ================================================== -->
 
         <section
             id="page-team"
             class="page hidden"
         >
 
-            <div class="page-heading">
+            <div class="page-header">
 
                 <div>
-                    <span class="eyebrow">
-                        EQUIPO
-                    </span>
 
-                    <h1>Equipo</h1>
+                    <p class="eyebrow">
+                        ORBE
+                    </p>
+
+                    <h1>
+                        Equipo
+                    </h1>
 
                     <p>
-                        Personas que forman parte de Orbe.
+                        Las personas detrás de los proyectos.
                     </p>
+
                 </div>
 
             </div>
 
+
             <div
                 id="teamList"
-                class="cards-grid"
+                class="team-grid"
             ></div>
 
         </section>
@@ -503,14 +652,16 @@
 </div>
 
 
-<!-- ================= MODAL ================= -->
+<!-- =====================================================
+     MODAL
+===================================================== -->
 
 <div
     id="modal"
     class="modal hidden"
 >
 
-    <div class="modal-card">
+    <div class="modal-box">
 
         <button
             id="closeModal"
@@ -518,6 +669,13 @@
         >
             ×
         </button>
+
+        <p
+            id="modalEyebrow"
+            class="eyebrow"
+        >
+            ORBE
+        </p>
 
         <h2 id="modalTitle">
             Nuevo
@@ -527,19 +685,19 @@
 
             <div id="modalFields"></div>
 
-            <div class="modal-actions">
+            <div class="modal-buttons">
 
                 <button
                     type="button"
                     id="cancelModal"
-                    class="secondary-button"
+                    class="button button-light"
                 >
                     Cancelar
                 </button>
 
                 <button
                     type="submit"
-                    class="primary-button"
+                    class="button button-dark"
                 >
                     Guardar
                 </button>
@@ -559,7 +717,7 @@
 ></div>
 
 
-<script src="app.js"></script>
+<script src="./app.js"></script>
 
 </body>
 </html>
