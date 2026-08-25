@@ -1,5 +1,5 @@
 // =====================================================
-// SUPABASE
+// CONFIGURACIÓN SUPABASE
 // =====================================================
 
 const SUPABASE_URL =
@@ -8,7 +8,7 @@ const SUPABASE_URL =
 const SUPABASE_KEY =
     "sb_publishable_dnjsWgsrPMUQov5JTJuthw_KEAqjMfK";
 
-const supabaseClient =
+const db =
     window.supabase.createClient(
         SUPABASE_URL,
         SUPABASE_KEY
@@ -16,90 +16,105 @@ const supabaseClient =
 
 
 // =====================================================
-// ELEMENTOS
-// =====================================================
-
-const loginScreen =
-    document.getElementById("login-screen");
-
-const appScreen =
-    document.getElementById("app-screen");
-
-const loginForm =
-    document.getElementById("login-form");
-
-const loginMessage =
-    document.getElementById("login-message");
-
-const userInfo =
-    document.getElementById("user-info");
-
-const logoutButton =
-    document.getElementById("logout-button");
-
-const projectsContainer =
-    document.getElementById("projects-container");
-
-const tasksContainer =
-    document.getElementById("tasks-container");
-
-const newProjectButton =
-    document.getElementById("new-project-button");
-
-const newTaskButton =
-    document.getElementById("new-task-button");
-
-const modal =
-    document.getElementById("modal");
-
-const modalTitle =
-    document.getElementById("modal-title");
-
-const modalFields =
-    document.getElementById("modal-fields");
-
-const modalForm =
-    document.getElementById("modal-form");
-
-const closeModal =
-    document.getElementById("close-modal");
-
-
-// =====================================================
-// VARIABLES
+// ESTADO DE LA APLICACIÓN
 // =====================================================
 
 let currentUser = null;
 let currentProfile = null;
+
+let projects = [];
+let tasks = [];
+let profiles = [];
 
 let editingProject = null;
 let editingTask = null;
 
 
 // =====================================================
-// MOSTRAR LOGIN
+// ELEMENTOS
 // =====================================================
 
-function showLogin() {
+const loginScreen =
+    document.getElementById("loginScreen");
 
-    appScreen.classList.add("hidden");
+const app =
+    document.getElementById("app");
 
-    loginScreen.classList.remove("hidden");
+const loginForm =
+    document.getElementById("loginForm");
 
-    document.body.classList.remove("is-admin");
+const loginError =
+    document.getElementById("loginError");
 
+const logoutButton =
+    document.getElementById("logoutButton");
+
+const modal =
+    document.getElementById("modal");
+
+const modalTitle =
+    document.getElementById("modalTitle");
+
+const modalFields =
+    document.getElementById("modalFields");
+
+const modalForm =
+    document.getElementById("modalForm");
+
+const closeModal =
+    document.getElementById("closeModal");
+
+const cancelModal =
+    document.getElementById("cancelModal");
+
+
+// =====================================================
+// UTILIDADES
+// =====================================================
+
+function escapeHTML(value) {
+
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 
-// =====================================================
-// MOSTRAR APP
-// =====================================================
+function initials(name) {
 
-function showApp() {
+    if (!name) return "?";
 
-    loginScreen.classList.add("hidden");
+    return name
+        .trim()
+        .charAt(0)
+        .toUpperCase();
+}
 
-    appScreen.classList.remove("hidden");
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById("toast");
+
+    toast.textContent = message;
+
+    toast.classList.add("show");
+
+    setTimeout(() => {
+
+        toast.classList.remove("show");
+
+    }, 2500);
 
 }
 
@@ -110,27 +125,32 @@ function showApp() {
 
 loginForm.addEventListener(
     "submit",
-    async function(event) {
+    async event => {
 
         event.preventDefault();
 
-        loginMessage.textContent =
+        loginError.textContent =
             "Iniciando sesión...";
 
 
         const email =
-            document.getElementById("email").value;
+            document.getElementById(
+                "loginEmail"
+            ).value;
 
         const password =
-            document.getElementById("password").value;
+            document.getElementById(
+                "loginPassword"
+            ).value;
 
 
-        const { error } =
-            await supabaseClient.auth.signInWithPassword({
+        const {
+            error
+        } =
+            await db.auth.signInWithPassword({
 
-                email: email,
-
-                password: password
+                email,
+                password
 
             });
 
@@ -139,53 +159,45 @@ loginForm.addEventListener(
 
             console.error(error);
 
-            loginMessage.textContent =
+            loginError.textContent =
                 "Correo o contraseña incorrectos.";
 
             return;
-
         }
 
 
-        loginMessage.textContent = "";
+        loginError.textContent = "";
 
     }
 );
 
 
 // =====================================================
-// LOGOUT
-// =====================================================
-
-logoutButton.addEventListener(
-    "click",
-    async function() {
-
-        await supabaseClient.auth.signOut();
-
-        showLogin();
-
-    }
-);
-
-
-// =====================================================
-// COMPROBAR SESIÓN
+// SESIÓN
 // =====================================================
 
 async function checkSession() {
 
     const {
-        data: {
-            session
-        }
+        data,
+        error
     } =
-        await supabaseClient.auth.getSession();
+        await db.auth.getSession();
 
 
-    if (session) {
+    if (error) {
 
-        await loadUser(session.user);
+        console.error(error);
+
+        return;
+    }
+
+
+    if (data.session) {
+
+        await loadUser(
+            data.session.user
+        );
 
     } else {
 
@@ -196,16 +208,14 @@ async function checkSession() {
 }
 
 
-// =====================================================
-// CAMBIOS DE SESIÓN
-// =====================================================
-
-supabaseClient.auth.onAuthStateChange(
-    async function(event, session) {
+db.auth.onAuthStateChange(
+    async (event, session) => {
 
         if (session) {
 
-            await loadUser(session.user);
+            await loadUser(
+                session.user
+            );
 
         } else {
 
@@ -215,6 +225,32 @@ supabaseClient.auth.onAuthStateChange(
 
     }
 );
+
+
+function showLogin() {
+
+    app.classList.add("hidden");
+
+    loginScreen.classList.remove("hidden");
+
+    currentUser = null;
+
+    currentProfile = null;
+
+    document.body.classList.remove(
+        "is-admin"
+    );
+
+}
+
+
+function showApp() {
+
+    loginScreen.classList.add("hidden");
+
+    app.classList.remove("hidden");
+
+}
 
 
 // =====================================================
@@ -230,7 +266,7 @@ async function loadUser(user) {
         data: profile,
         error
     } =
-        await supabaseClient
+        await db
             .from("profiles")
             .select("*")
             .eq("id", user.id)
@@ -245,7 +281,6 @@ async function loadUser(user) {
         );
 
         return;
-
     }
 
 
@@ -255,43 +290,241 @@ async function loadUser(user) {
     showApp();
 
 
-    userInfo.textContent =
-        `${profile.name} · ${profile.role}`;
+    updateUserInterface();
 
 
-    if (profile.role === "admin") {
+    await Promise.all([
 
-        document.body.classList.add("is-admin");
+        loadProjects(),
+
+        loadTasks(),
+
+        loadProfiles()
+
+    ]);
+
+
+    updateDashboard();
+
+}
+
+
+function updateUserInterface() {
+
+    const name =
+        currentProfile.name;
+
+    const role =
+        currentProfile.role;
+
+
+    document.getElementById(
+        "sidebarUser"
+    ).textContent = name;
+
+
+    document.getElementById(
+        "sidebarRole"
+    ).textContent =
+        role === "admin"
+        ? "Administrador"
+        : "Miembro";
+
+
+    document.getElementById(
+        "topUser"
+    ).textContent = name;
+
+
+    document.getElementById(
+        "welcomeName"
+    ).textContent = name;
+
+
+    document.getElementById(
+        "userAvatar"
+    ).textContent =
+        initials(name);
+
+
+    document.getElementById(
+        "topAvatar"
+    ).textContent =
+        initials(name);
+
+
+    if (role === "admin") {
+
+        document.body.classList.add(
+            "is-admin"
+        );
 
     } else {
 
-        document.body.classList.remove("is-admin");
+        document.body.classList.remove(
+            "is-admin"
+        );
 
     }
-
-
-    await loadProjects();
-
-    await loadTasks();
 
 }
 
 
 // =====================================================
-// CARGAR PROYECTOS
+// LOGOUT
+// =====================================================
+
+logoutButton.addEventListener(
+    "click",
+    async () => {
+
+        await db.auth.signOut();
+
+    }
+);
+
+
+// =====================================================
+// NAVEGACIÓN
+// =====================================================
+
+document
+    .querySelectorAll(".nav-button")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                showPage(
+                    button.dataset.page
+                );
+
+            }
+        );
+
+    });
+
+
+document
+    .querySelectorAll("[data-page-link]")
+    .forEach(button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                showPage(
+                    button.dataset.pageLink
+                );
+
+            }
+        );
+
+    });
+
+
+function showPage(page) {
+
+    document
+        .querySelectorAll(".page")
+        .forEach(section => {
+
+            section.classList.add(
+                "hidden"
+            );
+
+        });
+
+
+    const target =
+        document.getElementById(
+            `page-${page}`
+        );
+
+
+    if (target) {
+
+        target.classList.remove(
+            "hidden"
+        );
+
+    }
+
+
+    document
+        .querySelectorAll(".nav-button")
+        .forEach(button => {
+
+            button.classList.toggle(
+                "active",
+                button.dataset.page === page
+            );
+
+        });
+
+
+    const titles = {
+
+        dashboard: [
+            "Dashboard",
+            "Resumen de tu trabajo"
+        ],
+
+        projects: [
+            "Proyectos",
+            "Gestión de producción"
+        ],
+
+        tasks: [
+            "Tareas",
+            "Trabajo del equipo"
+        ],
+
+        team: [
+            "Equipo",
+            "Personas de Orbe"
+        ]
+
+    };
+
+
+    if (titles[page]) {
+
+        document.getElementById(
+            "pageTitle"
+        ).textContent =
+            titles[page][0];
+
+
+        document.getElementById(
+            "pageSubtitle"
+        ).textContent =
+            titles[page][1];
+
+    }
+
+
+    if (page === "team") {
+
+        renderTeam();
+
+    }
+
+}
+
+
+// =====================================================
+// PROYECTOS
 // =====================================================
 
 async function loadProjects() {
-
-    projectsContainer.innerHTML =
-        "<p>Cargando proyectos...</p>";
-
 
     const {
         data,
         error
     } =
-        await supabaseClient
+        await db
             .from("projects")
             .select("*")
             .order(
@@ -309,206 +542,314 @@ async function loadProjects() {
             error
         );
 
-        projectsContainer.innerHTML =
-            "<p>Error cargando proyectos.</p>";
-
         return;
-
     }
 
 
-    if (!data || data.length === 0) {
+    projects = data || [];
 
-        projectsContainer.innerHTML =
-            "<p>No hay proyectos todavía.</p>";
-
-        return;
-
-    }
-
-
-    projectsContainer.innerHTML =
-        data.map(project => {
-
-            return `
-
-                <div class="item">
-
-                    <h3>
-                        ${escapeHTML(project.name)}
-                    </h3>
-
-                    <p>
-                        Cliente:
-                        ${escapeHTML(project.client)}
-                    </p>
-
-                    <p>
-                        Estado:
-                        ${escapeHTML(project.status)}
-                    </p>
-
-                    ${
-                        project.description
-                        ? `
-                            <p>
-                                ${escapeHTML(
-                                    project.description
-                                )}
-                            </p>
-                          `
-                        : ""
-                    }
-
-                    ${
-                        project.deadline
-                        ? `
-                            <span class="badge">
-                                Fecha:
-                                ${escapeHTML(
-                                    project.deadline
-                                )}
-                            </span>
-                          `
-                        : ""
-                    }
-
-
-                    ${
-                        currentProfile &&
-                        currentProfile.role === "admin"
-
-                        ?
-
-                        `
-
-                        <div class="item-actions">
-
-                            <button
-                                class="edit-button"
-                                onclick="editProject('${project.id}')"
-                            >
-                                Editar
-                            </button>
-
-                            <button
-                                class="delete-button"
-                                onclick="deleteProject('${project.id}')"
-                            >
-                                Eliminar
-                            </button>
-
-                        </div>
-
-                        `
-
-                        :
-
-                        ""
-
-                    }
-
-                </div>
-
-            `;
-
-        }).join("");
+    renderProjects();
 
 }
 
 
-// =====================================================
-// NUEVO PROYECTO
-// =====================================================
+function renderProjects() {
 
-newProjectButton.addEventListener(
-    "click",
-    function() {
-
-        editingProject = null;
-
-        modalTitle.textContent =
-            "Nuevo proyecto";
+    const container =
+        document.getElementById(
+            "projectsList"
+        );
 
 
-        modalFields.innerHTML = `
-
-            <div class="field">
-
-                <label>Nombre</label>
-
-                <input
-                    id="project-name"
-                    required
-                >
-
-            </div>
+    const search =
+        document.getElementById(
+            "projectSearch"
+        ).value
+        .toLowerCase();
 
 
-            <div class="field">
-
-                <label>Cliente</label>
-
-                <input
-                    id="project-client"
-                    required
-                >
-
-            </div>
+    const filter =
+        document.getElementById(
+            "projectFilter"
+        ).value;
 
 
-            <div class="field">
+    const filtered =
+        projects.filter(project => {
 
-                <label>Descripción</label>
+            const matchesSearch =
+                project.name
+                    .toLowerCase()
+                    .includes(search) ||
 
-                <textarea
-                    id="project-description"
-                ></textarea>
-
-            </div>
-
-
-            <div class="field">
-
-                <label>Estado</label>
-
-                <select id="project-status">
-
-                    <option value="pending">
-                        Pendiente
-                    </option>
-
-                    <option value="active">
-                        Activo
-                    </option>
-
-                    <option value="completed">
-                        Completado
-                    </option>
-
-                </select>
-
-            </div>
+                project.client
+                    .toLowerCase()
+                    .includes(search);
 
 
-            <div class="field">
+            const matchesFilter =
+                filter === "all" ||
+                project.status === filter;
 
-                <label>Fecha límite</label>
 
-                <input
-                    type="date"
-                    id="project-deadline"
-                >
+            return (
+                matchesSearch &&
+                matchesFilter
+            );
+
+        });
+
+
+    if (filtered.length === 0) {
+
+        container.innerHTML = `
+
+            <div class="panel">
+
+                <h3>No hay proyectos</h3>
+
+                <p>
+                    Todavía no hay proyectos que mostrar.
+                </p>
 
             </div>
 
         `;
 
-
-        openModal();
-
+        return;
     }
-);
+
+
+    container.innerHTML =
+        filtered
+            .map(renderProjectCard)
+            .join("");
+
+}
+
+
+function renderProjectCard(project) {
+
+    const statusText = {
+
+        pending: "Pendiente",
+
+        active: "Activo",
+
+        completed: "Completado"
+
+    };
+
+
+    return `
+
+        <article class="project-card">
+
+            <div class="card-top">
+
+                <div>
+
+                    <h3>
+                        ${escapeHTML(project.name)}
+                    </h3>
+
+                    <span class="project-client">
+                        ${escapeHTML(project.client)}
+                    </span>
+
+                </div>
+
+                <span class="badge ${project.status}">
+                    ${statusText[project.status] || project.status}
+                </span>
+
+            </div>
+
+
+            <p class="card-description">
+
+                ${
+                    escapeHTML(
+                        project.description ||
+                        "Sin descripción."
+                    )
+                }
+
+            </p>
+
+
+            <div class="card-footer">
+
+                <small>
+
+                    ${
+                        project.deadline
+                        ? `Entrega: ${project.deadline}`
+                        : "Sin fecha límite"
+                    }
+
+                </small>
+
+
+                ${
+                    currentProfile?.role === "admin"
+
+                    ?
+
+                    `
+
+                    <div class="card-actions">
+
+                        <button
+                            class="edit-button"
+                            onclick="editProject('${project.id}')"
+                        >
+                            Editar
+                        </button>
+
+                        <button
+                            class="danger-button"
+                            onclick="deleteProject('${project.id}')"
+                        >
+                            Eliminar
+                        </button>
+
+                    </div>
+
+                    `
+
+                    : ""
+
+                }
+
+            </div>
+
+        </article>
+
+    `;
+
+}
+
+
+document
+    .getElementById("projectSearch")
+    .addEventListener(
+        "input",
+        renderProjects
+    );
+
+
+document
+    .getElementById("projectFilter")
+    .addEventListener(
+        "change",
+        renderProjects
+    );
+
+
+// =====================================================
+// CREAR PROYECTO
+// =====================================================
+
+document
+    .getElementById(
+        "newProjectButton"
+    )
+    .addEventListener(
+        "click",
+        () => {
+
+            if (
+                currentProfile?.role !== "admin"
+            ) {
+                return;
+            }
+
+
+            editingProject = null;
+
+            modalTitle.textContent =
+                "Nuevo proyecto";
+
+
+            modalFields.innerHTML = `
+
+                <div class="modal-field">
+
+                    <label>Nombre</label>
+
+                    <input
+                        id="projectName"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Cliente</label>
+
+                    <input
+                        id="projectClient"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Descripción</label>
+
+                    <textarea
+                        id="projectDescription"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Estado</label>
+
+                    <select id="projectStatus">
+
+                        <option value="pending">
+                            Pendiente
+                        </option>
+
+                        <option value="active">
+                            Activo
+                        </option>
+
+                        <option value="completed">
+                            Completado
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Fecha límite</label>
+
+                    <input
+                        type="date"
+                        id="projectDeadline"
+                    >
+
+                </div>
+
+            `;
+
+
+            openModal();
+
+        }
+    );
 
 
 // =====================================================
@@ -516,30 +857,15 @@ newProjectButton.addEventListener(
 // =====================================================
 
 window.editProject =
-async function(projectId) {
+async function(id) {
 
-    const {
-        data: project,
-        error
-    } =
-        await supabaseClient
-            .from("projects")
-            .select("*")
-            .eq("id", projectId)
-            .single();
-
-
-    if (error) {
-
-        console.error(error);
-
-        alert(
-            "No se pudo cargar el proyecto."
+    const project =
+        projects.find(
+            p => p.id === id
         );
 
-        return;
 
-    }
+    if (!project) return;
 
 
     editingProject = project;
@@ -551,50 +877,48 @@ async function(projectId) {
 
     modalFields.innerHTML = `
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Nombre</label>
 
             <input
-                id="project-name"
-                value="${escapeAttribute(project.name)}"
+                id="projectName"
+                value="${escapeHTML(project.name)}"
                 required
             >
 
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Cliente</label>
 
             <input
-                id="project-client"
-                value="${escapeAttribute(project.client)}"
+                id="projectClient"
+                value="${escapeHTML(project.client)}"
                 required
             >
 
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Descripción</label>
 
             <textarea
-                id="project-description"
-            >${escapeHTML(
-                project.description || ""
-            )}</textarea>
+                id="projectDescription"
+            >${escapeHTML(project.description || "")}</textarea>
 
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Estado</label>
 
-            <select id="project-status">
+            <select id="projectStatus">
 
                 <option value="pending">
                     Pendiente
@@ -613,13 +937,13 @@ async function(projectId) {
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Fecha límite</label>
 
             <input
                 type="date"
-                id="project-deadline"
+                id="projectDeadline"
                 value="${project.deadline || ""}"
             >
 
@@ -629,8 +953,9 @@ async function(projectId) {
 
 
     document.getElementById(
-        "project-status"
-    ).value = project.status;
+        "projectStatus"
+    ).value =
+        project.status;
 
 
     openModal();
@@ -644,31 +969,31 @@ async function(projectId) {
 
 async function saveProject() {
 
-    const project = {
+    const payload = {
 
         name:
             document.getElementById(
-                "project-name"
-            ).value,
+                "projectName"
+            ).value.trim(),
 
         client:
             document.getElementById(
-                "project-client"
-            ).value,
+                "projectClient"
+            ).value.trim(),
 
         description:
             document.getElementById(
-                "project-description"
-            ).value,
+                "projectDescription"
+            ).value.trim(),
 
         status:
             document.getElementById(
-                "project-status"
+                "projectStatus"
             ).value,
 
         deadline:
             document.getElementById(
-                "project-deadline"
+                "projectDeadline"
             ).value || null
 
     };
@@ -680,9 +1005,9 @@ async function saveProject() {
     if (editingProject) {
 
         result =
-            await supabaseClient
+            await db
                 .from("projects")
-                .update(project)
+                .update(payload)
                 .eq(
                     "id",
                     editingProject.id
@@ -691,11 +1016,11 @@ async function saveProject() {
     } else {
 
         result =
-            await supabaseClient
+            await db
                 .from("projects")
                 .insert({
 
-                    ...project,
+                    ...payload,
 
                     created_by:
                         currentUser.id
@@ -708,22 +1033,29 @@ async function saveProject() {
     if (result.error) {
 
         console.error(
-            "Error guardando proyecto:",
             result.error
         );
 
-        alert(
+        showToast(
             result.error.message
         );
 
         return;
-
     }
 
 
     closeModalWindow();
 
+    showToast(
+        editingProject
+        ? "Proyecto actualizado"
+        : "Proyecto creado"
+    );
+
+
     await loadProjects();
+
+    updateDashboard();
 
 }
 
@@ -733,28 +1065,26 @@ async function saveProject() {
 // =====================================================
 
 window.deleteProject =
-async function(projectId) {
+async function(id) {
 
     if (
         !confirm(
-            "¿Eliminar este proyecto?"
+            "¿Seguro que quieres eliminar este proyecto?"
         )
     ) {
-
         return;
-
     }
 
 
     const {
         error
     } =
-        await supabaseClient
+        await db
             .from("projects")
             .delete()
             .eq(
                 "id",
-                projectId
+                id
             );
 
 
@@ -762,35 +1092,39 @@ async function(projectId) {
 
         console.error(error);
 
-        alert(
+        showToast(
             error.message
         );
 
         return;
-
     }
 
 
+    showToast(
+        "Proyecto eliminado"
+    );
+
+
     await loadProjects();
+
+    await loadTasks();
+
+    updateDashboard();
 
 };
 
 
 // =====================================================
-// CARGAR TAREAS
+// TAREAS
 // =====================================================
 
 async function loadTasks() {
-
-    tasksContainer.innerHTML =
-        "<p>Cargando tareas...</p>";
-
 
     const {
         data,
         error
     } =
-        await supabaseClient
+        await db
             .from("tasks")
             .select("*")
             .order(
@@ -808,67 +1142,218 @@ async function loadTasks() {
             error
         );
 
-        tasksContainer.innerHTML =
-            "<p>Error cargando tareas.</p>";
-
         return;
-
     }
 
 
-    if (!data || data.length === 0) {
+    tasks = data || [];
 
-        tasksContainer.innerHTML =
-            "<p>No hay tareas todavía.</p>";
+    renderTasks();
+
+}
+
+
+function renderTasks() {
+
+    const container =
+        document.getElementById(
+            "tasksList"
+        );
+
+
+    const search =
+        document.getElementById(
+            "taskSearch"
+        ).value
+        .toLowerCase();
+
+
+    const status =
+        document.getElementById(
+            "taskStatusFilter"
+        ).value;
+
+
+    const priority =
+        document.getElementById(
+            "taskPriorityFilter"
+        ).value;
+
+
+    const filtered =
+        tasks.filter(task => {
+
+            const matchesSearch =
+                task.title
+                    .toLowerCase()
+                    .includes(search);
+
+
+            const matchesStatus =
+                status === "all" ||
+                task.status === status;
+
+
+            const matchesPriority =
+                priority === "all" ||
+                task.priority === priority;
+
+
+            return (
+                matchesSearch &&
+                matchesStatus &&
+                matchesPriority
+            );
+
+        });
+
+
+    if (filtered.length === 0) {
+
+        container.innerHTML = `
+
+            <div class="panel">
+
+                <h3>No hay tareas</h3>
+
+                <p>
+                    No hay tareas que coincidan con los filtros.
+                </p>
+
+            </div>
+
+        `;
 
         return;
-
     }
 
 
-    tasksContainer.innerHTML =
-        data.map(task => {
+    const statusText = {
+
+        pending: "Pendiente",
+
+        in_progress: "En progreso",
+
+        completed: "Completada"
+
+    };
+
+
+    const priorityText = {
+
+        low: "Baja",
+
+        medium: "Media",
+
+        high: "Alta"
+
+    };
+
+
+    container.innerHTML =
+        filtered.map(task => {
+
+            const project =
+                projects.find(
+                    p =>
+                        p.id ===
+                        task.project_id
+                );
+
+
+            const assigned =
+                profiles.find(
+                    p =>
+                        p.id ===
+                        task.assigned_to
+                );
+
 
             return `
 
-                <div class="item">
+                <article class="task-row">
 
-                    <h3>
-                        ${escapeHTML(task.title)}
-                    </h3>
+                    <div>
+
+                        <div class="task-title">
+
+                            ${escapeHTML(task.title)}
+
+                        </div>
+
+                        <div class="task-description">
+
+                            ${
+                                escapeHTML(
+                                    task.description || ""
+                                )
+                            }
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="task-meta">
+
+                        ${
+                            escapeHTML(
+                                project?.name ||
+                                "Sin proyecto"
+                            )
+                        }
+
+                    </div>
+
+
+                    <div>
+
+                        <span class="badge ${task.status === "in_progress" ? "active" : task.status}">
+
+                            ${
+                                statusText[
+                                    task.status
+                                ] ||
+                                task.status
+                            }
+
+                        </span>
+
+                    </div>
+
+
+                    <div>
+
+                        <span class="badge ${task.priority}">
+
+                            ${
+                                priorityText[
+                                    task.priority
+                                ] ||
+                                task.priority
+                            }
+
+                        </span>
+
+                        ${
+                            assigned
+                            ? `<div class="task-meta">
+                                ${escapeHTML(assigned.name)}
+                               </div>`
+                            : ""
+                        }
+
+                    </div>
+
 
                     ${
-                        task.description
-                        ? `
-                            <p>
-                                ${escapeHTML(
-                                    task.description
-                                )}
-                            </p>
-                          `
-                        : ""
-                    }
-
-                    <p>
-                        Estado:
-                        ${escapeHTML(task.status)}
-                    </p>
-
-                    <p>
-                        Prioridad:
-                        ${escapeHTML(task.priority)}
-                    </p>
-
-
-                    ${
-                        currentProfile &&
-                        currentProfile.role === "admin"
+                        currentProfile?.role === "admin"
 
                         ?
 
                         `
 
-                        <div class="item-actions">
+                        <div class="task-actions">
 
                             <button
                                 class="edit-button"
@@ -878,23 +1363,21 @@ async function loadTasks() {
                             </button>
 
                             <button
-                                class="delete-button"
+                                class="danger-button"
                                 onclick="deleteTask('${task.id}')"
                             >
-                                Eliminar
+                                ×
                             </button>
 
                         </div>
 
                         `
 
-                        :
-
-                        ""
+                        : ""
 
                     }
 
-                </div>
+                </article>
 
             `;
 
@@ -903,58 +1386,234 @@ async function loadTasks() {
 }
 
 
+document
+    .getElementById("taskSearch")
+    .addEventListener(
+        "input",
+        renderTasks
+    );
+
+
+document
+    .getElementById("taskStatusFilter")
+    .addEventListener(
+        "change",
+        renderTasks
+    );
+
+
+document
+    .getElementById("taskPriorityFilter")
+    .addEventListener(
+        "change",
+        renderTasks
+    );
+
+
 // =====================================================
 // NUEVA TAREA
 // =====================================================
 
-newTaskButton.addEventListener(
-    "click",
-    async function() {
+document
+    .getElementById(
+        "newTaskButton"
+    )
+    .addEventListener(
+        "click",
+        () => {
 
-        editingTask = null;
+            if (
+                currentProfile?.role !== "admin"
+            ) {
+                return;
+            }
 
-        await showTaskForm();
 
-    }
-);
+            editingTask = null;
+
+            modalTitle.textContent =
+                "Nueva tarea";
+
+
+            const projectOptions =
+                projects.map(project => {
+
+                    return `
+
+                        <option
+                            value="${project.id}"
+                        >
+                            ${escapeHTML(project.name)}
+                        </option>
+
+                    `;
+
+                }).join("");
+
+
+            const userOptions =
+                profiles.map(profile => {
+
+                    return `
+
+                        <option
+                            value="${profile.id}"
+                        >
+                            ${escapeHTML(profile.name)}
+                        </option>
+
+                    `;
+
+                }).join("");
+
+
+            modalFields.innerHTML = `
+
+                <div class="modal-field">
+
+                    <label>Título</label>
+
+                    <input
+                        id="taskTitle"
+                        required
+                    >
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Descripción</label>
+
+                    <textarea
+                        id="taskDescription"
+                    ></textarea>
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Proyecto</label>
+
+                    <select
+                        id="taskProject"
+                        required
+                    >
+
+                        <option value="">
+                            Seleccionar proyecto
+                        </option>
+
+                        ${projectOptions}
+
+                    </select>
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Asignar a</label>
+
+                    <select
+                        id="taskAssigned"
+                    >
+
+                        <option value="">
+                            Sin asignar
+                        </option>
+
+                        ${userOptions}
+
+                    </select>
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Estado</label>
+
+                    <select id="taskStatus">
+
+                        <option value="pending">
+                            Pendiente
+                        </option>
+
+                        <option value="in_progress">
+                            En progreso
+                        </option>
+
+                        <option value="completed">
+                            Completada
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Prioridad</label>
+
+                    <select id="taskPriority">
+
+                        <option value="low">
+                            Baja
+                        </option>
+
+                        <option value="medium" selected>
+                            Media
+                        </option>
+
+                        <option value="high">
+                            Alta
+                        </option>
+
+                    </select>
+
+                </div>
+
+
+                <div class="modal-field">
+
+                    <label>Fecha límite</label>
+
+                    <input
+                        type="date"
+                        id="taskDeadline"
+                    >
+
+                </div>
+
+            `;
+
+
+            openModal();
+
+        }
+    );
 
 
 // =====================================================
-// FORMULARIO DE TAREA
+// EDITAR TAREA
 // =====================================================
 
-async function showTaskForm(task = null) {
+window.editTask =
+async function(id) {
 
-    editingTask = task;
-
-
-    modalTitle.textContent =
-        task
-        ? "Editar tarea"
-        : "Nueva tarea";
-
-
-    const {
-        data: projects,
-        error
-    } =
-        await supabaseClient
-            .from("projects")
-            .select("id, name")
-            .order("name");
-
-
-    if (error) {
-
-        console.error(error);
-
-        alert(
-            "No se pudieron cargar los proyectos."
+    const task =
+        tasks.find(
+            t => t.id === id
         );
 
-        return;
 
-    }
+    if (!task) return;
+
+
+    editingTask = task;
 
 
     const projectOptions =
@@ -964,18 +1623,14 @@ async function showTaskForm(task = null) {
 
                 <option
                     value="${project.id}"
-
                     ${
-                        task &&
-                        task.project_id === project.id
+                        project.id ===
+                        task.project_id
                         ? "selected"
                         : ""
                     }
-
                 >
-
                     ${escapeHTML(project.name)}
-
                 </option>
 
             `;
@@ -983,50 +1638,64 @@ async function showTaskForm(task = null) {
         }).join("");
 
 
+    const userOptions =
+        profiles.map(profile => {
+
+            return `
+
+                <option
+                    value="${profile.id}"
+                    ${
+                        profile.id ===
+                        task.assigned_to
+                        ? "selected"
+                        : ""
+                    }
+                >
+                    ${escapeHTML(profile.name)}
+                </option>
+
+            `;
+
+        }).join("");
+
+
+    modalTitle.textContent =
+        "Editar tarea";
+
+
     modalFields.innerHTML = `
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Título</label>
 
             <input
-                id="task-title"
-
-                value="${
-                    task
-                    ? escapeAttribute(task.title)
-                    : ""
-                }"
-
+                id="taskTitle"
+                value="${escapeHTML(task.title)}"
                 required
             >
 
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Descripción</label>
 
             <textarea
-                id="task-description"
-            >${
-                task
-                ? escapeHTML(
-                    task.description || ""
-                )
-                : ""
-            }</textarea>
+                id="taskDescription"
+            >${escapeHTML(task.description || "")}</textarea>
 
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Proyecto</label>
 
             <select
-                id="task-project"
+                id="taskProject"
                 required
             >
 
@@ -1037,11 +1706,28 @@ async function showTaskForm(task = null) {
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
+
+            <label>Asignar a</label>
+
+            <select id="taskAssigned">
+
+                <option value="">
+                    Sin asignar
+                </option>
+
+                ${userOptions}
+
+            </select>
+
+        </div>
+
+
+        <div class="modal-field">
 
             <label>Estado</label>
 
-            <select id="task-status">
+            <select id="taskStatus">
 
                 <option value="pending">
                     Pendiente
@@ -1060,11 +1746,11 @@ async function showTaskForm(task = null) {
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Prioridad</label>
 
-            <select id="task-priority">
+            <select id="taskPriority">
 
                 <option value="low">
                     Baja
@@ -1083,19 +1769,14 @@ async function showTaskForm(task = null) {
         </div>
 
 
-        <div class="field">
+        <div class="modal-field">
 
             <label>Fecha límite</label>
 
             <input
                 type="date"
-                id="task-deadline"
-
-                value="${
-                    task
-                    ? task.deadline || ""
-                    : ""
-                }"
+                id="taskDeadline"
+                value="${task.deadline || ""}"
             >
 
         </div>
@@ -1103,60 +1784,19 @@ async function showTaskForm(task = null) {
     `;
 
 
-    if (task) {
+    document.getElementById(
+        "taskStatus"
+    ).value =
+        task.status;
 
-        document.getElementById(
-            "task-status"
-        ).value = task.status;
 
-
-        document.getElementById(
-            "task-priority"
-        ).value = task.priority;
-
-    }
+    document.getElementById(
+        "taskPriority"
+    ).value =
+        task.priority;
 
 
     openModal();
-
-}
-
-
-// =====================================================
-// EDITAR TAREA
-// =====================================================
-
-window.editTask =
-async function(taskId) {
-
-    const {
-        data: task,
-        error
-    } =
-        await supabaseClient
-            .from("tasks")
-            .select("*")
-            .eq(
-                "id",
-                taskId
-            )
-            .single();
-
-
-    if (error) {
-
-        console.error(error);
-
-        alert(
-            "No se pudo cargar la tarea."
-        );
-
-        return;
-
-    }
-
-
-    await showTaskForm(task);
 
 };
 
@@ -1167,36 +1807,45 @@ async function(taskId) {
 
 async function saveTask() {
 
-    const task = {
+    const assigned =
+        document.getElementById(
+            "taskAssigned"
+        ).value;
+
+
+    const payload = {
 
         title:
             document.getElementById(
-                "task-title"
-            ).value,
+                "taskTitle"
+            ).value.trim(),
 
         description:
             document.getElementById(
-                "task-description"
-            ).value,
+                "taskDescription"
+            ).value.trim(),
 
         project_id:
             document.getElementById(
-                "task-project"
+                "taskProject"
             ).value,
+
+        assigned_to:
+            assigned || null,
 
         status:
             document.getElementById(
-                "task-status"
+                "taskStatus"
             ).value,
 
         priority:
             document.getElementById(
-                "task-priority"
+                "taskPriority"
             ).value,
 
         deadline:
             document.getElementById(
-                "task-deadline"
+                "taskDeadline"
             ).value || null
 
     };
@@ -1208,9 +1857,9 @@ async function saveTask() {
     if (editingTask) {
 
         result =
-            await supabaseClient
+            await db
                 .from("tasks")
-                .update(task)
+                .update(payload)
                 .eq(
                     "id",
                     editingTask.id
@@ -1219,11 +1868,11 @@ async function saveTask() {
     } else {
 
         result =
-            await supabaseClient
+            await db
                 .from("tasks")
                 .insert({
 
-                    ...task,
+                    ...payload,
 
                     created_by:
                         currentUser.id
@@ -1236,22 +1885,29 @@ async function saveTask() {
     if (result.error) {
 
         console.error(
-            "Error guardando tarea:",
             result.error
         );
 
-        alert(
+        showToast(
             result.error.message
         );
 
         return;
-
     }
 
 
     closeModalWindow();
 
+    showToast(
+        editingTask
+        ? "Tarea actualizada"
+        : "Tarea creada"
+    );
+
+
     await loadTasks();
+
+    updateDashboard();
 
 }
 
@@ -1261,28 +1917,26 @@ async function saveTask() {
 // =====================================================
 
 window.deleteTask =
-async function(taskId) {
+async function(id) {
 
     if (
         !confirm(
             "¿Eliminar esta tarea?"
         )
     ) {
-
         return;
-
     }
 
 
     const {
         error
     } =
-        await supabaseClient
+        await db
             .from("tasks")
             .delete()
             .eq(
                 "id",
-                taskId
+                id
             );
 
 
@@ -1290,18 +1944,286 @@ async function(taskId) {
 
         console.error(error);
 
-        alert(
+        showToast(
             error.message
         );
+
+        return;
+    }
+
+
+    showToast(
+        "Tarea eliminada"
+    );
+
+
+    await loadTasks();
+
+    updateDashboard();
+
+};
+
+
+// =====================================================
+// USUARIOS
+// =====================================================
+
+async function loadProfiles() {
+
+    const {
+        data,
+        error
+    } =
+        await db
+            .from("profiles")
+            .select("id,name,role")
+            .order("name");
+
+
+    if (error) {
+
+        console.error(
+            "Error cargando usuarios:",
+            error
+        );
+
+        return;
+    }
+
+
+    profiles = data || [];
+
+}
+
+
+function renderTeam() {
+
+    const container =
+        document.getElementById(
+            "teamList"
+        );
+
+
+    if (!profiles.length) {
+
+        container.innerHTML =
+            "<p>No hay usuarios.</p>";
 
         return;
 
     }
 
 
-    await loadTasks();
+    container.innerHTML =
+        profiles.map(profile => {
 
-};
+            return `
+
+                <div class="team-card">
+
+                    <div class="avatar">
+
+                        ${initials(profile.name)}
+
+                    </div>
+
+                    <div>
+
+                        <h3>
+                            ${escapeHTML(profile.name)}
+                        </h3>
+
+                        <p>
+                            ${
+                                profile.role === "admin"
+                                ? "Administrador"
+                                : "Miembro"
+                            }
+                        </p>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+}
+
+
+// =====================================================
+// DASHBOARD
+// =====================================================
+
+function updateDashboard() {
+
+    const active =
+        projects.filter(
+            p => p.status === "active"
+        ).length;
+
+
+    const pending =
+        tasks.filter(
+            t => t.status !== "completed"
+        ).length;
+
+
+    const completed =
+        tasks.filter(
+            t => t.status === "completed"
+        ).length;
+
+
+    document.getElementById(
+        "statProjects"
+    ).textContent =
+        projects.length;
+
+
+    document.getElementById(
+        "statActive"
+    ).textContent =
+        active;
+
+
+    document.getElementById(
+        "statPending"
+    ).textContent =
+        pending;
+
+
+    document.getElementById(
+        "statCompleted"
+    ).textContent =
+        completed;
+
+
+    renderDashboardProjects();
+
+    renderDashboardTasks();
+
+}
+
+
+function renderDashboardProjects() {
+
+    const container =
+        document.getElementById(
+            "dashboardProjects"
+        );
+
+
+    const recent =
+        projects.slice(
+            0,
+            5
+        );
+
+
+    if (!recent.length) {
+
+        container.innerHTML =
+            "<p>No hay proyectos todavía.</p>";
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        recent.map(project => {
+
+            return `
+
+                <div class="project-card">
+
+                    <div class="card-top">
+
+                        <div>
+
+                            <h3>
+                                ${escapeHTML(project.name)}
+                            </h3>
+
+                            <span class="project-client">
+                                ${escapeHTML(project.client)}
+                            </span>
+
+                        </div>
+
+                        <span class="badge ${project.status}">
+                            ${project.status}
+                        </span>
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+}
+
+
+function renderDashboardTasks() {
+
+    const container =
+        document.getElementById(
+            "dashboardTasks"
+        );
+
+
+    const recent =
+        tasks
+            .filter(
+                t =>
+                    t.status !== "completed"
+            )
+            .slice(
+                0,
+                5
+            );
+
+
+    if (!recent.length) {
+
+        container.innerHTML =
+            "<p>No hay tareas pendientes.</p>";
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        recent.map(task => {
+
+            return `
+
+                <div class="task-row">
+
+                    <div>
+
+                        <div class="task-title">
+                            ${escapeHTML(task.title)}
+                        </div>
+
+                    </div>
+
+                    <span class="badge ${task.priority}">
+                        ${task.priority}
+                    </span>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+}
 
 
 // =====================================================
@@ -1310,14 +2232,18 @@ async function(taskId) {
 
 function openModal() {
 
-    modal.classList.remove("hidden");
+    modal.classList.remove(
+        "hidden"
+    );
 
 }
 
 
 function closeModalWindow() {
 
-    modal.classList.add("hidden");
+    modal.classList.add(
+        "hidden"
+    );
 
     editingProject = null;
 
@@ -1332,9 +2258,15 @@ closeModal.addEventListener(
 );
 
 
+cancelModal.addEventListener(
+    "click",
+    closeModalWindow
+);
+
+
 modal.addEventListener(
     "click",
-    function(event) {
+    event => {
 
         if (
             event.target === modal
@@ -1349,27 +2281,27 @@ modal.addEventListener(
 
 
 // =====================================================
-// GUARDAR FORMULARIO
+// GUARDAR MODAL
 // =====================================================
 
 modalForm.addEventListener(
     "submit",
-    async function(event) {
+    async event => {
 
         event.preventDefault();
 
 
         if (
-            editingTask ||
+            editingProject ||
             modalTitle.textContent ===
-            "Nueva tarea"
+            "Nuevo proyecto"
         ) {
 
-            await saveTask();
+            await saveProject();
 
         } else {
 
-            await saveProject();
+            await saveTask();
 
         }
 
@@ -1378,60 +2310,7 @@ modalForm.addEventListener(
 
 
 // =====================================================
-// SEGURIDAD VISUAL
-// =====================================================
-
-function escapeHTML(value) {
-
-    if (
-        value === null ||
-        value === undefined
-    ) {
-
-        return "";
-
-    }
-
-
-    return String(value)
-
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
-
-}
-
-
-function escapeAttribute(value) {
-
-    return escapeHTML(value);
-
-}
-
-
-// =====================================================
-// INICIAR APP
+// INICIAR
 // =====================================================
 
 checkSession();
