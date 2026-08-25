@@ -29,7 +29,6 @@ let editingProject = null;
 let editingTask = null;
 
 let activeModalMode = null;
-
 let selectedTeamProfile = null;
 
 const PAGES = [
@@ -69,6 +68,7 @@ const teamOverview = document.getElementById("teamOverview");
 const teamProfileView = document.getElementById("teamProfileView");
 const teamProfileContent = document.getElementById("teamProfileContent");
 const teamBackButton = document.getElementById("teamBackButton");
+const teamList = document.getElementById("teamList");
 
 
 // =====================================================
@@ -235,7 +235,11 @@ function getTaskMembers(task) {
 
 function assignedMembersHTML(memberList) {
   if (!memberList.length) {
-    return `<span class="no-members">Sin asignar</span>`;
+    return `
+      <span class="no-members">
+        Sin asignar
+      </span>
+    `;
   }
 
   return `
@@ -275,6 +279,7 @@ loginForm.addEventListener("submit", async event => {
 
   if (error) {
     console.error(error);
+
     loginError.textContent =
       "Correo o contraseña incorrectos.";
 
@@ -419,12 +424,17 @@ function updateUserInterface() {
   const name = currentProfile.name || "Usuario";
   const role = currentProfile.role;
 
-  document.getElementById("sidebarUser").textContent = name;
+  document.getElementById("sidebarUser").textContent =
+    name;
+
   document.getElementById("sidebarRole").textContent =
     roleLabel(role);
 
-  document.getElementById("topUser").textContent = name;
-  document.getElementById("welcomeName").textContent = name;
+  document.getElementById("topUser").textContent =
+    name;
+
+  document.getElementById("welcomeName").textContent =
+    name;
 
   document.getElementById("userAvatar").textContent =
     initials(name);
@@ -440,7 +450,8 @@ function updateUserInterface() {
 
 
 function setTodayLabel() {
-  const label = document.getElementById("todayLabel");
+  const label =
+    document.getElementById("todayLabel");
 
   if (!label) {
     return;
@@ -517,7 +528,8 @@ backButton.addEventListener("click", () => {
 
 
 window.addEventListener("hashchange", () => {
-  const page = location.hash.replace("#", "");
+  const page =
+    location.hash.replace("#", "");
 
   if (PAGES.includes(page)) {
     showPage(page, {
@@ -530,14 +542,22 @@ window.addEventListener("hashchange", () => {
 function openSidebar() {
   sidebar.classList.add("open");
   sidebarBackdrop.classList.add("show");
-  menuToggle.setAttribute("aria-expanded", "true");
+
+  menuToggle.setAttribute(
+    "aria-expanded",
+    "true"
+  );
 }
 
 
 function closeSidebar() {
   sidebar.classList.remove("open");
   sidebarBackdrop.classList.remove("show");
-  menuToggle.setAttribute("aria-expanded", "false");
+
+  menuToggle.setAttribute(
+    "aria-expanded",
+    "false"
+  );
 }
 
 
@@ -555,9 +575,10 @@ function showPage(
       section.classList.add("hidden");
     });
 
-  const target = document.getElementById(
-    `page-${page}`
-  );
+  const target =
+    document.getElementById(
+      `page-${page}`
+    );
 
   if (target) {
     target.classList.remove("hidden");
@@ -577,14 +598,17 @@ function showPage(
       "Dashboard",
       "Resumen de tu trabajo"
     ],
+
     projects: [
       "Proyectos",
       "Gestión de producción"
     ],
+
     tasks: [
       "Tareas",
       "Trabajo del equipo"
     ],
+
     team: [
       "Equipo",
       "Personas de Orbe"
@@ -619,7 +643,7 @@ function showPage(
 
 
 // =====================================================
-// PROJECTS — CARGAR
+// PROYECTOS — CARGAR
 // =====================================================
 
 async function loadProjects() {
@@ -668,12 +692,14 @@ async function loadProjectMembers() {
 
 
 // =====================================================
-// PROJECTS — RENDER
+// PROYECTOS — RENDER
 // =====================================================
 
 function renderProjects() {
   const container =
-    document.getElementById("projectsList");
+    document.getElementById(
+      "projectsList"
+    );
 
   if (!container) {
     return;
@@ -687,34 +713,39 @@ function renderProjects() {
       .trim();
 
   const filter =
-    document.getElementById("projectFilter")
+    document
+      .getElementById("projectFilter")
       .value;
 
-  const filtered = projects.filter(project => {
-    const matchesSearch =
-      (project.name || "")
-        .toLowerCase()
-        .includes(search) ||
+  const filtered =
+    projects.filter(project => {
 
-      (project.client || "")
-        .toLowerCase()
-        .includes(search);
+      const matchesSearch =
+        (project.name || "")
+          .toLowerCase()
+          .includes(search) ||
 
-    const matchesFilter =
-      filter === "all" ||
-      project.status === filter;
+        (project.client || "")
+          .toLowerCase()
+          .includes(search);
 
-    return (
-      matchesSearch &&
-      matchesFilter
-    );
-  });
+      const matchesFilter =
+        filter === "all" ||
+        project.status === filter;
+
+      return (
+        matchesSearch &&
+        matchesFilter
+      );
+    });
 
   if (!filtered.length) {
     container.innerHTML = `
       <div class="panel">
         <h3>No hay proyectos</h3>
-        <p>No hay proyectos que coincidan con la búsqueda.</p>
+        <p>
+          No hay proyectos que coincidan con la búsqueda.
+        </p>
       </div>
     `;
 
@@ -837,7 +868,7 @@ document
 
 
 // =====================================================
-// MEMBER PICKER
+// SELECTOR DE MIEMBROS
 // =====================================================
 
 function buildMemberPicker(
@@ -856,6 +887,7 @@ function buildMemberPicker(
     <div class="member-picker">
 
       ${profiles.map(profile => {
+
         const selected =
           selectedIds.includes(profile.id);
 
@@ -870,7 +902,8 @@ function buildMemberPicker(
               id="${checkboxId}"
               name="${inputName}"
               value="${profile.id}"
-              ${selected ? "checked" : ""}>
+              ${selected ? "checked" : ""}
+            >
 
             <label for="${checkboxId}">
 
@@ -917,108 +950,130 @@ function getSelectedMemberIds(inputName) {
 
 
 // =====================================================
-// PROJECTS — CREAR
+// PROYECTOS — CREAR
 // =====================================================
 
 document
   .getElementById("newProjectButton")
-  .addEventListener("click", () => {
+  .addEventListener(
+    "click",
+    () => {
 
-    if (!canManage(currentProfile)) {
-      return;
+      if (!canManage(currentProfile)) {
+        return;
+      }
+
+      editingProject = null;
+      activeModalMode = "project";
+
+      modalTitle.textContent =
+        "Nuevo proyecto";
+
+      modalFields.innerHTML = `
+        <div class="modal-field">
+
+          <label for="projectName">
+            Nombre
+          </label>
+
+          <input
+            id="projectName"
+            required
+          >
+
+        </div>
+
+
+        <div class="modal-field">
+
+          <label for="projectClient">
+            Cliente
+          </label>
+
+          <input
+            id="projectClient"
+            required
+          >
+
+        </div>
+
+
+        <div class="modal-field">
+
+          <label for="projectDescription">
+            Descripción
+          </label>
+
+          <textarea
+            id="projectDescription"
+          ></textarea>
+
+        </div>
+
+
+        <div class="modal-field">
+
+          <label for="projectStatus">
+            Estado
+          </label>
+
+          <select id="projectStatus">
+
+            <option value="pending">
+              Pendiente
+            </option>
+
+            <option value="active">
+              Activo
+            </option>
+
+            <option value="completed">
+              Completado
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="modal-field">
+
+          <label for="projectDeadline">
+            Fecha límite
+          </label>
+
+          <input
+            type="date"
+            id="projectDeadline"
+          >
+
+        </div>
+
+
+        <div class="modal-field">
+
+          <label>
+            Asignar miembros
+          </label>
+
+          ${buildMemberPicker(
+            "projectMembers"
+          )}
+
+        </div>
+      `;
+
+      openModal();
     }
-
-    editingProject = null;
-    activeModalMode = "project";
-
-    modalTitle.textContent =
-      "Nuevo proyecto";
-
-    modalFields.innerHTML = `
-      <div class="modal-field">
-        <label for="projectName">
-          Nombre
-        </label>
-
-        <input
-          id="projectName"
-          required>
-      </div>
-
-
-      <div class="modal-field">
-        <label for="projectClient">
-          Cliente
-        </label>
-
-        <input
-          id="projectClient"
-          required>
-      </div>
-
-
-      <div class="modal-field">
-        <label for="projectDescription">
-          Descripción
-        </label>
-
-        <textarea
-          id="projectDescription"></textarea>
-      </div>
-
-
-      <div class="modal-field">
-        <label for="projectStatus">
-          Estado
-        </label>
-
-        <select id="projectStatus">
-          <option value="pending">
-            Pendiente
-          </option>
-
-          <option value="active">
-            Activo
-          </option>
-
-          <option value="completed">
-            Completado
-          </option>
-        </select>
-      </div>
-
-
-      <div class="modal-field">
-        <label for="projectDeadline">
-          Fecha límite
-        </label>
-
-        <input
-          type="date"
-          id="projectDeadline">
-      </div>
-
-
-      <div class="modal-field">
-        <label>
-          Asignar miembros
-        </label>
-
-        ${buildMemberPicker(
-          "projectMembers"
-        )}
-      </div>
-    `;
-
-    openModal();
-  });
+  );
 
 
 // =====================================================
-// PROJECTS — EDITAR
+// PROYECTOS — EDITAR
 // =====================================================
 
 window.editProject = function(id) {
+
   const project =
     projects.find(
       item => item.id === id
@@ -1039,10 +1094,13 @@ window.editProject = function(id) {
     "Editar proyecto";
 
   const selectedMembers =
-    getProjectMemberIds(project.id);
+    getProjectMemberIds(
+      project.id
+    );
 
   modalFields.innerHTML = `
     <div class="modal-field">
+
       <label for="projectName">
         Nombre
       </label>
@@ -1050,11 +1108,14 @@ window.editProject = function(id) {
       <input
         id="projectName"
         value="${escapeHTML(project.name)}"
-        required>
+        required
+      >
+
     </div>
 
 
     <div class="modal-field">
+
       <label for="projectClient">
         Cliente
       </label>
@@ -1062,22 +1123,29 @@ window.editProject = function(id) {
       <input
         id="projectClient"
         value="${escapeHTML(project.client)}"
-        required>
+        required
+      >
+
     </div>
 
 
     <div class="modal-field">
+
       <label for="projectDescription">
         Descripción
       </label>
 
-      <textarea id="projectDescription">${escapeHTML(
+      <textarea
+        id="projectDescription"
+      >${escapeHTML(
         project.description || ""
       )}</textarea>
+
     </div>
 
 
     <div class="modal-field">
+
       <label for="projectStatus">
         Estado
       </label>
@@ -1097,10 +1165,12 @@ window.editProject = function(id) {
         </option>
 
       </select>
+
     </div>
 
 
     <div class="modal-field">
+
       <label for="projectDeadline">
         Fecha límite
       </label>
@@ -1108,11 +1178,14 @@ window.editProject = function(id) {
       <input
         type="date"
         id="projectDeadline"
-        value="${project.deadline || ""}">
+        value="${project.deadline || ""}"
+      >
+
     </div>
 
 
     <div class="modal-field">
+
       <label>
         Asignar miembros
       </label>
@@ -1121,30 +1194,36 @@ window.editProject = function(id) {
         "projectMembers",
         selectedMembers
       )}
+
     </div>
   `;
 
   document.getElementById(
     "projectStatus"
-  ).value = project.status;
+  ).value =
+    project.status;
 
   openModal();
 };
 
 
 // =====================================================
-// PROJECTS — SYNC MEMBERS
+// PROJECTS — SINCRONIZAR MIEMBROS
 // =====================================================
 
 async function syncProjectMembers(
   projectId,
   selectedProfileIds
 ) {
-  const { error: deleteError } =
-    await db
-      .from("project_members")
-      .delete()
-      .eq("project_id", projectId);
+  const {
+    error: deleteError
+  } = await db
+    .from("project_members")
+    .delete()
+    .eq(
+      "project_id",
+      projectId
+    );
 
   if (deleteError) {
     throw deleteError;
@@ -1155,15 +1234,18 @@ async function syncProjectMembers(
   }
 
   const rows =
-    selectedProfileIds.map(profileId => ({
-      project_id: projectId,
-      profile_id: profileId
-    }));
+    selectedProfileIds.map(
+      profileId => ({
+        project_id: projectId,
+        profile_id: profileId
+      })
+    );
 
-  const { error: insertError } =
-    await db
-      .from("project_members")
-      .insert(rows);
+  const {
+    error: insertError
+  } = await db
+    .from("project_members")
+    .insert(rows);
 
   if (insertError) {
     throw insertError;
@@ -1176,6 +1258,7 @@ async function syncProjectMembers(
 // =====================================================
 
 async function saveProject() {
+
   const selectedProfileIds =
     getSelectedMemberIds(
       "projectMembers"
@@ -1204,48 +1287,60 @@ async function saveProject() {
     deadline:
       document
         .getElementById("projectDeadline")
-        .value || null
+        .value ||
+      null
   };
 
-  let result;
-
   try {
+
+    let projectId;
+
     if (editingProject) {
 
-      result = await db
+      const {
+        error
+      } = await db
         .from("projects")
         .update(payload)
-        .eq("id", editingProject.id);
+        .eq(
+          "id",
+          editingProject.id
+        );
 
-      if (result.error) {
-        throw result.error;
+      if (error) {
+        throw error;
       }
 
-      await syncProjectMembers(
-        editingProject.id,
-        selectedProfileIds
-      );
+      projectId =
+        editingProject.id;
 
     } else {
 
-      result = await db
+      const {
+        data,
+        error
+      } = await db
         .from("projects")
         .insert({
           ...payload,
-          created_by: currentUser.id
+          created_by:
+            currentUser.id
         })
         .select()
         .single();
 
-      if (result.error) {
-        throw result.error;
+      if (error) {
+        throw error;
       }
 
-      await syncProjectMembers(
-        result.data.id,
-        selectedProfileIds
-      );
+      projectId =
+        data.id;
     }
+
+    await syncProjectMembers(
+      projectId,
+      selectedProfileIds
+    );
 
     closeModalWindow();
 
@@ -1257,10 +1352,13 @@ async function saveProject() {
 
     await loadProjects();
     await loadProjectMembers();
-    updateDashboard();
+
     renderProjects();
+    renderTeam();
+    updateDashboard();
 
   } catch (error) {
+
     console.error(
       "Error guardando proyecto:",
       error
@@ -1278,61 +1376,55 @@ async function saveProject() {
 // PROJECTS — ELIMINAR
 // =====================================================
 
-window.deleteProject = async function(id) {
+window.deleteProject =
+  async function(id) {
 
-  if (!isAdmin(currentProfile)) {
-    return;
-  }
+    if (!isAdmin(currentProfile)) {
+      return;
+    }
 
-  const confirmed =
-    confirm(
-      "¿Seguro que quieres eliminar este proyecto?"
-    );
+    const confirmed =
+      confirm(
+        "¿Seguro que quieres eliminar este proyecto?"
+      );
 
-  if (!confirmed) {
-    return;
-  }
+    if (!confirmed) {
+      return;
+    }
 
-  const { error } =
-    await db
+    const {
+      error
+    } = await db
       .from("projects")
       .delete()
       .eq("id", id);
 
-  if (error) {
-    console.error(error);
+    if (error) {
+      console.error(error);
+
+      showToast(
+        error.message
+      );
+
+      return;
+    }
 
     showToast(
-      error.message
+      "Proyecto eliminado"
     );
 
-    return;
-  }
+    await loadProjects();
+    await loadProjectMembers();
 
-  projectMembers =
-    projectMembers.filter(
-      item =>
-        item.project_id !== id
-    );
+    await loadTasks();
+    await loadTaskMembers();
 
-  projects =
-    projects.filter(
-      item => item.id !== id
-    );
+    renderProjects();
+    renderTasks();
+    renderTeam();
 
-  showToast(
-    "Proyecto eliminado"
-  );
-
-  await loadProjects();
-  await loadProjectMembers();
-  await loadTasks();
-  await loadTaskMembers();
-
-  renderProjects();
-  renderTasks();
-  updateDashboard();
-};
+    updateDashboard();
+  };
 
 
 // =====================================================
@@ -1340,6 +1432,7 @@ window.deleteProject = async function(id) {
 // =====================================================
 
 async function loadTasks() {
+
   const {
     data,
     error
@@ -1364,12 +1457,15 @@ async function loadTasks() {
 
 
 async function loadTaskMembers() {
+
   const {
     data,
     error
   } = await db
     .from("task_members")
-    .select("id,task_id,profile_id");
+    .select(
+      "id,task_id,profile_id"
+    );
 
   if (error) {
     console.error(
@@ -1385,16 +1481,19 @@ async function loadTaskMembers() {
 
 
 // =====================================================
-// TASKS — CARGAR PERFILES
+// PROFILES
 // =====================================================
 
 async function loadProfiles() {
+
   const {
     data,
     error
   } = await db
     .from("profiles")
-    .select("id,name,role")
+    .select(
+      "id,name,role"
+    )
     .order("name");
 
   if (error) {
@@ -1415,6 +1514,7 @@ async function loadProfiles() {
 // =====================================================
 
 function renderTasks() {
+
   const search =
     document
       .getElementById("taskSearch")
@@ -1423,14 +1523,18 @@ function renderTasks() {
       .trim();
 
   const status =
-    document.getElementById(
-      "taskStatusFilter"
-    ).value;
+    document
+      .getElementById(
+        "taskStatusFilter"
+      )
+      .value;
 
   const priority =
-    document.getElementById(
-      "taskPriorityFilter"
-    ).value;
+    document
+      .getElementById(
+        "taskPriorityFilter"
+      )
+      .value;
 
   const filtered =
     tasks.filter(task => {
@@ -1457,6 +1561,7 @@ function renderTasks() {
 
 
   const columns = {
+
     pending:
       filtered.filter(
         task =>
@@ -1520,6 +1625,7 @@ function renderTaskColumn(
     );
 
   if (!list.length) {
+
     container.innerHTML =
       `<p class="task-meta">Sin tareas.</p>`;
 
@@ -1534,6 +1640,7 @@ function renderTaskColumn(
 
 
 function renderTaskCard(task) {
+
   const project =
     projects.find(
       project =>
@@ -1554,7 +1661,9 @@ function renderTaskCard(task) {
         task.description
           ? `
             <div class="task-description">
-              ${escapeHTML(task.description)}
+              ${escapeHTML(
+                task.description
+              )}
             </div>
           `
           : ""
@@ -1568,16 +1677,20 @@ function renderTaskCard(task) {
       </div>
 
       <div>
+
         <span class="badge ${escapeHTML(task.priority)}">
           ${escapeHTML(
             PRIORITY_LABELS[
               task.priority
-            ] || task.priority
+            ] ||
+            task.priority
           )}
         </span>
+
       </div>
 
       <div>
+
         <div class="task-meta">
           ASIGNADO A
         </div>
@@ -1585,6 +1698,7 @@ function renderTaskCard(task) {
         ${assignedMembersHTML(
           members
         )}
+
       </div>
 
       ${
@@ -1651,31 +1765,35 @@ document
 
 
 // =====================================================
-// TASK FORM
+// NUEVA TAREA
 // =====================================================
 
 document
   .getElementById("newTaskButton")
-  .addEventListener("click", () => {
+  .addEventListener(
+    "click",
+    () => {
 
-    if (!canManage(currentProfile)) {
-      return;
+      if (!canManage(currentProfile)) {
+        return;
+      }
+
+      editingTask = null;
+      activeModalMode = "task";
+
+      modalTitle.textContent =
+        "Nueva tarea";
+
+      modalFields.innerHTML =
+        buildTaskFormFields(null);
+
+      openModal();
     }
-
-    editingTask = null;
-    activeModalMode = "task";
-
-    modalTitle.textContent =
-      "Nueva tarea";
-
-    modalFields.innerHTML =
-      buildTaskFormFields(null);
-
-    openModal();
-  });
+  );
 
 
 function buildTaskFormFields(task) {
+
   const projectOptions =
     projects
       .map(project => `
@@ -1686,7 +1804,8 @@ function buildTaskFormFields(task) {
             project.id === task.project_id
               ? "selected"
               : ""
-          }>
+          }
+        >
           ${escapeHTML(project.name)}
         </option>
       `)
@@ -1713,7 +1832,8 @@ function buildTaskFormFields(task) {
             ? escapeHTML(task.title)
             : ""
         }"
-        required>
+        required
+      >
 
     </div>
 
@@ -1724,7 +1844,9 @@ function buildTaskFormFields(task) {
         Descripción
       </label>
 
-      <textarea id="taskDescription">${
+      <textarea
+        id="taskDescription"
+      >${
         task
           ? escapeHTML(
               task.description || ""
@@ -1743,7 +1865,8 @@ function buildTaskFormFields(task) {
 
       <select
         id="taskProject"
-        required>
+        required
+      >
 
         <option value="">
           Seleccionar proyecto
@@ -1834,7 +1957,8 @@ function buildTaskFormFields(task) {
           task.deadline
             ? task.deadline
             : ""
-        }">
+        }"
+      >
 
     </div>
   `;
@@ -1845,54 +1969,63 @@ function buildTaskFormFields(task) {
 // TASKS — EDITAR
 // =====================================================
 
-window.editTask = function(id) {
-  const task =
-    tasks.find(
-      item => item.id === id
-    );
+window.editTask =
+  function(id) {
 
-  if (!task) {
-    return;
-  }
+    const task =
+      tasks.find(
+        item => item.id === id
+      );
 
-  if (!canManage(currentProfile)) {
-    return;
-  }
+    if (!task) {
+      return;
+    }
 
-  editingTask = task;
-  activeModalMode = "task";
+    if (!canManage(currentProfile)) {
+      return;
+    }
 
-  modalTitle.textContent =
-    "Editar tarea";
+    editingTask = task;
+    activeModalMode = "task";
 
-  modalFields.innerHTML =
-    buildTaskFormFields(task);
+    modalTitle.textContent =
+      "Editar tarea";
 
-  document.getElementById(
-    "taskStatus"
-  ).value = task.status;
+    modalFields.innerHTML =
+      buildTaskFormFields(task);
 
-  document.getElementById(
-    "taskPriority"
-  ).value = task.priority;
+    document.getElementById(
+      "taskStatus"
+    ).value =
+      task.status;
 
-  openModal();
-};
+    document.getElementById(
+      "taskPriority"
+    ).value =
+      task.priority;
+
+    openModal();
+  };
 
 
 // =====================================================
-// TASKS — SYNC MEMBERS
+// TASKS — SINCRONIZAR MIEMBROS
 // =====================================================
 
 async function syncTaskMembers(
   taskId,
   selectedProfileIds
 ) {
-  const { error: deleteError } =
-    await db
-      .from("task_members")
-      .delete()
-      .eq("task_id", taskId);
+
+  const {
+    error: deleteError
+  } = await db
+    .from("task_members")
+    .delete()
+    .eq(
+      "task_id",
+      taskId
+    );
 
   if (deleteError) {
     throw deleteError;
@@ -1903,15 +2036,18 @@ async function syncTaskMembers(
   }
 
   const rows =
-    selectedProfileIds.map(profileId => ({
-      task_id: taskId,
-      profile_id: profileId
-    }));
+    selectedProfileIds.map(
+      profileId => ({
+        task_id: taskId,
+        profile_id: profileId
+      })
+    );
 
-  const { error: insertError } =
-    await db
-      .from("task_members")
-      .insert(rows);
+  const {
+    error: insertError
+  } = await db
+    .from("task_members")
+    .insert(rows);
 
   if (insertError) {
     throw insertError;
@@ -1924,29 +2060,32 @@ async function syncTaskMembers(
 // =====================================================
 
 async function saveTask() {
+
   const selectedProfileIds =
     getSelectedMemberIds(
       "taskMembers"
     );
 
   const payload = {
-    title: document
-      .getElementById("taskTitle")
-      .value
-      .trim(),
+    title:
+      document
+        .getElementById("taskTitle")
+        .value
+        .trim(),
 
-    description: document
-      .getElementById("taskDescription")
-      .value
-      .trim(),
+    description:
+      document
+        .getElementById("taskDescription")
+        .value
+        .trim(),
 
     project_id:
       document.getElementById(
         "taskProject"
       ).value,
 
-    // Se mantiene null por compatibilidad.
-    // La asignación real vive en task_members.
+    // Se conserva null para compatibilidad.
+    // La asignación real está en task_members.
     assigned_to: null,
 
     status:
@@ -1964,7 +2103,8 @@ async function saveTask() {
         .getElementById(
           "taskDeadline"
         )
-        .value || null
+        .value ||
+      null
   };
 
 
@@ -1974,14 +2114,15 @@ async function saveTask() {
 
     if (editingTask) {
 
-      const { error } =
-        await db
-          .from("tasks")
-          .update(payload)
-          .eq(
-            "id",
-            editingTask.id
-          );
+      const {
+        error
+      } = await db
+        .from("tasks")
+        .update(payload)
+        .eq(
+          "id",
+          editingTask.id
+        );
 
       if (error) {
         throw error;
@@ -2034,6 +2175,7 @@ async function saveTask() {
 
     renderTasks();
     renderTeam();
+
     updateDashboard();
 
   } catch (error) {
@@ -2055,65 +2197,59 @@ async function saveTask() {
 // TASKS — ELIMINAR
 // =====================================================
 
-window.deleteTask = async function(id) {
+window.deleteTask =
+  async function(id) {
 
-  if (!isAdmin(currentProfile)) {
-    return;
-  }
+    if (!isAdmin(currentProfile)) {
+      return;
+    }
 
-  const confirmed =
-    confirm(
-      "¿Eliminar esta tarea?"
-    );
+    const confirmed =
+      confirm(
+        "¿Eliminar esta tarea?"
+      );
 
-  if (!confirmed) {
-    return;
-  }
+    if (!confirmed) {
+      return;
+    }
 
-  const { error } =
-    await db
+    const {
+      error
+    } = await db
       .from("tasks")
       .delete()
       .eq("id", id);
 
-  if (error) {
-    console.error(error);
+    if (error) {
+      console.error(error);
+
+      showToast(
+        error.message
+      );
+
+      return;
+    }
 
     showToast(
-      error.message
+      "Tarea eliminada"
     );
 
-    return;
-  }
+    await loadTasks();
+    await loadTaskMembers();
 
-  tasks =
-    tasks.filter(
-      task => task.id !== id
-    );
+    renderTasks();
+    renderTeam();
 
-  taskMembers =
-    taskMembers.filter(
-      item => item.task_id !== id
-    );
-
-  showToast(
-    "Tarea eliminada"
-  );
-
-  await loadTasks();
-  await loadTaskMembers();
-
-  renderTasks();
-  renderTeam();
-  updateDashboard();
-};
+    updateDashboard();
+  };
 
 
 // =====================================================
-// TEAM — LISTA
+// EQUIPO — RENDER
 // =====================================================
 
 function renderTeam() {
+
   const container =
     document.getElementById(
       "teamList"
@@ -2124,13 +2260,20 @@ function renderTeam() {
   }
 
   if (!profiles.length) {
-    container.innerHTML =
-      `
-        <div class="panel">
-          <h3>No hay usuarios</h3>
-          <p>No se encontraron miembros del equipo.</p>
-        </div>
-      `;
+
+    container.innerHTML = `
+      <div class="panel">
+
+        <h3>
+          No hay usuarios
+        </h3>
+
+        <p>
+          No se encontraron miembros del equipo.
+        </p>
+
+      </div>
+    `;
 
     return;
   }
@@ -2139,10 +2282,12 @@ function renderTeam() {
   container.innerHTML =
     profiles
       .map(profile => `
+
         <button
           class="team-card"
           type="button"
-          onclick="openTeamProfile('${profile.id}')">
+          data-profile-id="${escapeHTML(profile.id)}"
+        >
 
           <div class="avatar">
             ${escapeHTML(
@@ -2151,6 +2296,7 @@ function renderTeam() {
           </div>
 
           <div>
+
             <h3>
               ${escapeHTML(
                 profile.name
@@ -2162,290 +2308,384 @@ function renderTeam() {
                 roleLabel(profile.role)
               )}
             </p>
+
           </div>
 
         </button>
+
       `)
       .join("");
 }
 
 
 // =====================================================
-// TEAM — MOSTRAR PERFIL
+// EQUIPO — CLICK EN PERFIL
 // =====================================================
 
-window.openTeamProfile = function(profileId) {
-  const profile =
-    profiles.find(
-      item => item.id === profileId
-    );
+// Usamos delegación de eventos.
+// Así funciona aunque las tarjetas se vuelvan a
+// dibujar dinámicamente después de cargar datos.
 
-  if (!profile) {
-    return;
-  }
+if (teamList) {
 
-  selectedTeamProfile = profile;
+  teamList.addEventListener(
+    "click",
+    event => {
 
-  const memberProjects =
-    projects.filter(project =>
-      getProjectMemberIds(
-        project.id
-      ).includes(profile.id)
-    );
+      const card =
+        event.target.closest(
+          ".team-card"
+        );
 
+      if (!card) {
+        return;
+      }
 
-  const memberTasks =
-    tasks.filter(task =>
-      getTaskMemberIds(
-        task
-      ).includes(profile.id)
-    );
+      const profileId =
+        card.dataset.profileId;
 
+      if (!profileId) {
+        return;
+      }
 
-  const pendingTasks =
-    memberTasks.filter(
-      task =>
-        task.status !== "completed"
-    );
-
-  const completedTasks =
-    memberTasks.filter(
-      task =>
-        task.status === "completed"
-    );
-
-
-  teamOverview.classList.add(
-    "hidden"
+      openTeamProfile(profileId);
+    }
   );
-
-  teamProfileView.classList.remove(
-    "hidden"
-  );
+}
 
 
-  teamProfileContent.innerHTML = `
+// =====================================================
+// EQUIPO — PERFIL
+// =====================================================
 
-    <div class="team-profile-card">
+window.openTeamProfile =
+  function(profileId) {
 
-      <div class="profile-hero">
+    const profile =
+      profiles.find(
+        item => item.id === profileId
+      );
 
-        <div class="avatar">
-          ${escapeHTML(
-            initials(profile.name)
-          )}
-        </div>
+    if (!profile) {
+      return;
+    }
 
-        <div>
-          <p class="eyebrow">
-            PERFIL
-          </p>
+    selectedTeamProfile =
+      profile;
 
-          <h1>
-            ${escapeHTML(profile.name)}
-          </h1>
 
-          <p>
+    const memberProjects =
+      projects.filter(
+        project =>
+          getProjectMemberIds(
+            project.id
+          ).includes(profile.id)
+      );
+
+
+    const memberTasks =
+      tasks.filter(
+        task =>
+          getTaskMemberIds(
+            task
+          ).includes(profile.id)
+      );
+
+
+    const pendingTasks =
+      memberTasks.filter(
+        task =>
+          task.status !== "completed"
+      );
+
+
+    const completedTasks =
+      memberTasks.filter(
+        task =>
+          task.status === "completed"
+      );
+
+
+    teamOverview.classList.add(
+      "hidden"
+    );
+
+    teamProfileView.classList.remove(
+      "hidden"
+    );
+
+
+    teamProfileContent.innerHTML = `
+
+      <div class="team-profile-card">
+
+        <div class="profile-hero">
+
+          <div class="avatar">
             ${escapeHTML(
-              roleLabel(profile.role)
+              initials(profile.name)
             )}
-          </p>
-        </div>
-
-      </div>
-
-
-      <div class="stats">
-
-        <div class="stat">
-          <span>PROYECTOS</span>
-          <strong>
-            ${memberProjects.length}
-          </strong>
-        </div>
-
-        <div class="stat">
-          <span>PENDIENTES</span>
-          <strong>
-            ${pendingTasks.length}
-          </strong>
-        </div>
-
-        <div class="stat">
-          <span>COMPLETADAS</span>
-          <strong>
-            ${completedTasks.length}
-          </strong>
-        </div>
-
-      </div>
-
-
-      <div class="profile-section">
-
-        <div class="profile-section-header">
+          </div>
 
           <div>
+
             <p class="eyebrow">
-              PRODUCCIÓN
+              PERFIL
             </p>
 
-            <h3>
-              Proyectos asignados
-            </h3>
+            <h1>
+              ${escapeHTML(
+                profile.name
+              )}
+            </h1>
+
+            <p>
+              ${escapeHTML(
+                roleLabel(profile.role)
+              )}
+            </p>
+
           </div>
 
         </div>
 
 
-        ${
-          memberProjects.length
-            ? `
-              <div class="member-project-list">
+        <div class="stats">
 
-                ${memberProjects
-                  .map(project => `
-                    <div class="member-project-item">
+          <div class="stat">
 
-                      <div class="card-top">
+            <span>
+              PROYECTOS
+            </span>
 
-                        <div>
-                          <strong>
-                            ${escapeHTML(
-                              project.name
-                            )}
-                          </strong>
+            <strong>
+              ${memberProjects.length}
+            </strong>
 
-                          <div class="project-client">
-                            ${escapeHTML(
-                              project.client
-                            )}
+          </div>
+
+
+          <div class="stat">
+
+            <span>
+              PENDIENTES
+            </span>
+
+            <strong>
+              ${pendingTasks.length}
+            </strong>
+
+          </div>
+
+
+          <div class="stat">
+
+            <span>
+              COMPLETADAS
+            </span>
+
+            <strong>
+              ${completedTasks.length}
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div class="profile-section">
+
+          <div class="profile-section-header">
+
+            <div>
+
+              <p class="eyebrow">
+                PRODUCCIÓN
+              </p>
+
+              <h3>
+                Proyectos asignados
+              </h3>
+
+            </div>
+
+          </div>
+
+
+          ${
+            memberProjects.length
+              ? `
+
+                <div class="member-project-list">
+
+                  ${memberProjects
+                    .map(project => `
+
+                      <div class="member-project-item">
+
+                        <div class="card-top">
+
+                          <div>
+
+                            <strong>
+                              ${escapeHTML(
+                                project.name
+                              )}
+                            </strong>
+
+                            <div class="project-client">
+                              ${escapeHTML(
+                                project.client
+                              )}
+                            </div>
+
                           </div>
-                        </div>
 
-                        <span class="badge ${escapeHTML(project.status)}">
-                          ${escapeHTML(
-                            PROJECT_STATUS_LABELS[
+                          <span class="badge ${escapeHTML(project.status)}">
+                            ${escapeHTML(
+                              PROJECT_STATUS_LABELS[
+                                project.status
+                              ] ||
                               project.status
-                            ] ||
-                            project.status
-                          )}
-                        </span>
+                            )}
+                          </span>
+
+                        </div>
 
                       </div>
 
-                    </div>
-                  `)
-                  .join("")}
+                    `)
+                    .join("")}
 
-              </div>
-            `
-            : `
-              <p class="profile-empty">
-                No tiene proyectos asignados.
-              </p>
-            `
-        }
+                </div>
 
-      </div>
+              `
+              : `
 
+                <p class="profile-empty">
+                  No tiene proyectos asignados.
+                </p>
 
-      <div class="profile-section">
-
-        <div class="profile-section-header">
-
-          <div>
-            <p class="eyebrow">
-              TRABAJO
-            </p>
-
-            <h3>
-              Tareas pendientes
-            </h3>
-          </div>
-
-          <span class="badge pending">
-            ${pendingTasks.length}
-          </span>
+              `
+          }
 
         </div>
 
 
-        ${
-          pendingTasks.length
-            ? `
-              <div class="member-task-list">
+        <div class="profile-section">
 
-                ${pendingTasks
-                  .map(renderProfileTask)
-                  .join("")}
+          <div class="profile-section-header">
 
-              </div>
-            `
-            : `
-              <p class="profile-empty">
-                No tiene tareas pendientes.
+            <div>
+
+              <p class="eyebrow">
+                TRABAJO
               </p>
-            `
-        }
 
-      </div>
+              <h3>
+                Tareas pendientes
+              </h3>
 
+            </div>
 
-      <div class="profile-section">
+            <span class="badge pending">
+              ${pendingTasks.length}
+            </span>
 
-        <div class="profile-section-header">
-
-          <div>
-            <p class="eyebrow">
-              HISTORIAL
-            </p>
-
-            <h3>
-              Tareas completadas
-            </h3>
           </div>
 
-          <span class="badge completed">
-            ${completedTasks.length}
-          </span>
+
+          ${
+            pendingTasks.length
+              ? `
+
+                <div class="member-task-list">
+
+                  ${pendingTasks
+                    .map(
+                      renderProfileTask
+                    )
+                    .join("")}
+
+                </div>
+
+              `
+              : `
+
+                <p class="profile-empty">
+                  No tiene tareas pendientes.
+                </p>
+
+              `
+          }
 
         </div>
 
 
-        ${
-          completedTasks.length
-            ? `
-              <div class="member-task-list">
+        <div class="profile-section">
 
-                ${completedTasks
-                  .map(renderProfileTask)
-                  .join("")}
+          <div class="profile-section-header">
 
-              </div>
-            `
-            : `
-              <p class="profile-empty">
-                No tiene tareas completadas.
+            <div>
+
+              <p class="eyebrow">
+                HISTORIAL
               </p>
-            `
-        }
+
+              <h3>
+                Tareas completadas
+              </h3>
+
+            </div>
+
+            <span class="badge completed">
+              ${completedTasks.length}
+            </span>
+
+          </div>
+
+
+          ${
+            completedTasks.length
+              ? `
+
+                <div class="member-task-list">
+
+                  ${completedTasks
+                    .map(
+                      renderProfileTask
+                    )
+                    .join("")}
+
+                </div>
+
+              `
+              : `
+
+                <p class="profile-empty">
+                  No tiene tareas completadas.
+                </p>
+
+              `
+          }
+
+        </div>
 
       </div>
-
-    </div>
-  `;
-};
+    `;
+  };
 
 
 function renderProfileTask(task) {
+
   const project =
     projects.find(
-      project =>
-        project.id === task.project_id
+      item =>
+        item.id === task.project_id
     );
 
   return `
+
     <div class="member-task-item">
 
       <div class="card-top">
@@ -2458,7 +2698,8 @@ function renderProfileTask(task) {
           ${escapeHTML(
             TASK_STATUS_LABELS[
               task.status
-            ] || task.status
+            ] ||
+            task.status
           )}
         </span>
 
@@ -2469,12 +2710,16 @@ function renderProfileTask(task) {
           project?.name ||
           "Sin proyecto"
         )}
+
         ·
+
         ${escapeHTML(
           PRIORITY_LABELS[
             task.priority
-          ] || task.priority
+          ] ||
+          task.priority
         )}
+
       </p>
 
     </div>
@@ -2483,6 +2728,7 @@ function renderProfileTask(task) {
 
 
 function showTeamOverview() {
+
   selectedTeamProfile = null;
 
   teamProfileView.classList.add(
@@ -2560,10 +2806,11 @@ function updateDashboard() {
 
 
 // =====================================================
-// DASHBOARD — PROJECTS
+// DASHBOARD — PROYECTOS
 // =====================================================
 
 function renderDashboardProjects() {
+
   const container =
     document.getElementById(
       "dashboardProjects"
@@ -2579,8 +2826,13 @@ function renderDashboardProjects() {
 
 
   if (!recent.length) {
+
     container.innerHTML =
-      "<p class='profile-empty'>No hay proyectos activos.</p>";
+      `
+        <p class="profile-empty">
+          No hay proyectos activos.
+        </p>
+      `;
 
     return;
   }
@@ -2596,11 +2848,13 @@ function renderDashboardProjects() {
           );
 
         return `
+
           <div class="project-card dashboard-card">
 
             <div class="card-top">
 
               <div>
+
                 <h3>
                   ${escapeHTML(
                     project.name
@@ -2612,6 +2866,7 @@ function renderDashboardProjects() {
                     project.client
                   )}
                 </span>
+
               </div>
 
               <span class="badge active">
@@ -2625,6 +2880,7 @@ function renderDashboardProjects() {
             )}
 
           </div>
+
         `;
       })
       .join("");
@@ -2632,10 +2888,11 @@ function renderDashboardProjects() {
 
 
 // =====================================================
-// DASHBOARD — TASKS
+// DASHBOARD — TAREAS
 // =====================================================
 
 function renderDashboardTasks() {
+
   const container =
     document.getElementById(
       "dashboardTasks"
@@ -2651,8 +2908,13 @@ function renderDashboardTasks() {
 
 
   if (!recent.length) {
+
     container.innerHTML =
-      "<p class='profile-empty'>No hay tareas pendientes.</p>";
+      `
+        <p class="profile-empty">
+          No hay tareas pendientes.
+        </p>
+      `;
 
     return;
   }
@@ -2666,6 +2928,7 @@ function renderDashboardTasks() {
           getTaskMembers(task);
 
         return `
+
           <div class="task-row">
 
             <div class="task-title">
@@ -2688,6 +2951,7 @@ function renderDashboardTasks() {
             )}
 
           </div>
+
         `;
       })
       .join("");
@@ -2704,6 +2968,7 @@ function openModal() {
 
 
 function closeModalWindow() {
+
   modal.classList.add("hidden");
 
   editingProject = null;
@@ -2728,9 +2993,11 @@ cancelModal.addEventListener(
 modal.addEventListener(
   "click",
   event => {
+
     if (event.target === modal) {
       closeModalWindow();
     }
+
   }
 );
 
@@ -2749,6 +3016,7 @@ modalForm.addEventListener(
       activeModalMode ===
       "project"
     ) {
+
       await saveProject();
       return;
     }
@@ -2757,6 +3025,7 @@ modalForm.addEventListener(
       activeModalMode ===
       "task"
     ) {
+
       await saveTask();
     }
   }
@@ -2764,22 +3033,31 @@ modalForm.addEventListener(
 
 
 // =====================================================
-// ESCAPE PARA MODAL / MENÚ
+// ESCAPE
 // =====================================================
 
 document.addEventListener(
   "keydown",
   event => {
 
-    if (event.key === "Escape") {
+    if (event.key !== "Escape") {
+      return;
+    }
 
-      if (!modal.classList.contains("hidden")) {
-        closeModalWindow();
-      }
+    if (
+      !modal.classList.contains(
+        "hidden"
+      )
+    ) {
+      closeModalWindow();
+    }
 
-      if (sidebar.classList.contains("open")) {
-        closeSidebar();
-      }
+    if (
+      sidebar.classList.contains(
+        "open"
+      )
+    ) {
+      closeSidebar();
     }
   }
 );
