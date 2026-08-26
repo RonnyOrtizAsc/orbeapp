@@ -2,493 +2,940 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Orbe — Gestión</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
 
-  <link rel="stylesheet" href="./style.css">
+  <title>Orbe — Gestión de Producción</title>
+
+  <link rel="stylesheet" href="./style.css?v=4">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-<!-- =====================================================
-    LOGIN
-===================================================== -->
-<div id="loginScreen" class="login-screen">
-  <div class="login-box">
+  <!-- ==================================================
+       LOGIN
+  =================================================== -->
 
-    <div class="brand">
-      ORBE
-      <span>CINEMATOGRÁFICA</span>
-    </div>
+  <div id="loginScreen" class="login-screen">
 
-    <div class="login-content">
-      <p class="eyebrow">WORKSPACE</p>
-      <h1>Bienvenido.</h1>
-      <p class="login-description">Ingresa a tu espacio de trabajo.</p>
+    <div class="login-box">
 
-      <form id="loginForm">
-        <div class="field">
-          <label for="loginEmail">Correo</label>
-          <input id="loginEmail" type="email" autocomplete="email" required>
-        </div>
+      <div class="login-brand">
+        ORBE
+        <span>CINEMATOGRÁFICA</span>
+      </div>
 
-        <div class="field">
-          <label for="loginPassword">Contraseña</label>
-          <input id="loginPassword" type="password" autocomplete="current-password" required>
-        </div>
+      <div class="login-content">
 
-        <button type="submit" class="button button-dark full">
-          Entrar
-        </button>
+        <p class="eyebrow">WORKSPACE</p>
 
-        <p id="loginError" class="error"></p>
-      </form>
+        <h1>Bienvenido.</h1>
+
+        <p class="login-description">
+          Gestiona la producción de Orbe.
+        </p>
+
+        <form id="loginForm">
+
+          <div class="field">
+
+            <label for="loginEmail">
+              Correo
+            </label>
+
+            <input
+              id="loginEmail"
+              type="email"
+              autocomplete="email"
+              required
+            >
+
+          </div>
+
+          <div class="field">
+
+            <label for="loginPassword">
+              Contraseña
+            </label>
+
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            >
+
+          </div>
+
+          <button
+            class="button button-dark full"
+            type="submit"
+          >
+            Entrar
+          </button>
+
+          <p
+            id="loginError"
+            class="error"
+          ></p>
+
+        </form>
+
+      </div>
+
     </div>
 
   </div>
-</div>
 
 
-<!-- =====================================================
-    APP
-===================================================== -->
-<div id="app" class="app hidden">
+  <!-- ==================================================
+       APP
+  =================================================== -->
 
-  <div id="sidebarBackdrop" class="sidebar-backdrop"></div>
+  <div id="app" class="app hidden">
 
-  <!-- ===================================================
-      SIDEBAR
-  ==================================================== -->
-  <aside id="sidebar" class="sidebar">
+    <div
+      id="sidebarBackdrop"
+      class="sidebar-backdrop"
+    ></div>
 
-    <div>
 
-      <div class="sidebar-brand">
-        <div>
-          ORBE
-          <small>CINEMATOGRÁFICA</small>
+    <!-- SIDEBAR -->
+
+    <aside
+      id="sidebar"
+      class="sidebar"
+    >
+
+      <div>
+
+        <div class="sidebar-brand">
+
+          <div>
+            ORBE
+
+            <small>
+              CINEMATOGRÁFICA
+            </small>
+          </div>
+
+          <button
+            id="closeSidebar"
+            class="sidebar-close"
+            type="button"
+            aria-label="Cerrar menú"
+          >
+            ×
+          </button>
+
         </div>
 
+
+        <div class="sidebar-section">
+
+          <span class="sidebar-label">
+            ESPACIO
+          </span>
+
+          <nav>
+
+            <button
+              class="nav-item active"
+              data-page="dashboard"
+              type="button"
+            >
+              <span class="nav-icon">⌂</span>
+              <span>Dashboard</span>
+            </button>
+
+
+            <button
+              class="nav-item"
+              data-page="projects"
+              type="button"
+            >
+              <span class="nav-icon">▣</span>
+              <span>Proyectos</span>
+            </button>
+
+
+            <button
+              class="nav-item"
+              data-page="tasks"
+              type="button"
+            >
+              <span class="nav-icon">✓</span>
+              <span>Tareas</span>
+            </button>
+
+
+            <button
+              class="nav-item"
+              data-page="team"
+              type="button"
+            >
+              <span class="nav-icon">○</span>
+              <span>Equipo</span>
+            </button>
+
+          </nav>
+
+        </div>
+
+      </div>
+
+
+      <div class="sidebar-bottom">
+
+        <div class="profile-mini">
+
+          <div
+            id="userAvatar"
+            class="avatar"
+          >
+            R
+          </div>
+
+          <div class="profile-mini-info">
+
+            <strong id="sidebarUser">
+              Usuario
+            </strong>
+
+            <span id="sidebarRole">
+              Miembro
+            </span>
+
+          </div>
+
+        </div>
+
+
         <button
-          id="closeSidebar"
-          class="sidebar-close"
+          id="logoutButton"
+          class="logout"
           type="button"
-          aria-label="Cerrar menú">
-          ×
+        >
+          Cerrar sesión
         </button>
+
       </div>
 
-      <div class="sidebar-section">
-        <span class="sidebar-label">ESPACIO</span>
-
-        <nav>
-          <button class="nav-item active" data-page="dashboard" type="button">
-            <span class="nav-icon">⌂</span>
-            <span>Dashboard</span>
-          </button>
-
-          <button class="nav-item" data-page="projects" type="button">
-            <span class="nav-icon">▣</span>
-            <span>Proyectos</span>
-          </button>
-
-          <button class="nav-item" data-page="tasks" type="button">
-            <span class="nav-icon">✓</span>
-            <span>Tareas</span>
-          </button>
-
-          <button class="nav-item" data-page="team" type="button">
-            <span class="nav-icon">○</span>
-            <span>Equipo</span>
-          </button>
-        </nav>
-      </div>
-
-    </div>
-
-    <div class="sidebar-bottom">
-
-      <div class="profile-mini">
-        <div id="userAvatar" class="avatar">R</div>
-
-        <div class="profile-mini-info">
-          <strong id="sidebarUser">Usuario</strong>
-          <span id="sidebarRole">Miembro</span>
-        </div>
-      </div>
-
-      <button id="logoutButton" class="logout" type="button">
-        Cerrar sesión
-      </button>
-
-    </div>
-
-  </aside>
+    </aside>
 
 
-  <!-- ===================================================
-      MAIN
-  ==================================================== -->
-  <main class="main">
+    <!-- ==================================================
+         MAIN
+    =================================================== -->
 
-    <!-- TOPBAR -->
-    <header class="topbar">
+    <main class="main">
 
-      <button
-        id="menuToggle"
-        class="menu-toggle"
-        type="button"
-        aria-label="Abrir menú"
-        aria-expanded="false">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+      <header class="topbar">
 
-      <button
-        id="backButton"
-        class="back-button hidden"
-        type="button"
-        aria-label="Volver">
-        ←
-      </button>
-
-      <div class="topbar-titles">
-        <p id="pageEyebrow" class="eyebrow">ORBE WORKSPACE</p>
-        <h2 id="pageTitle">Dashboard</h2>
-        <p id="pageSubtitle" class="page-subtitle">
-          Resumen de tu trabajo
-        </p>
-      </div>
-
-      <div class="top-user">
-        <div id="topAvatar" class="avatar avatar-small">R</div>
-        <span id="topUser">Usuario</span>
-      </div>
-
-    </header>
+        <button
+          id="menuToggle"
+          class="menu-toggle"
+          type="button"
+          aria-label="Abrir menú"
+          aria-expanded="false"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
 
 
-    <!-- =================================================
-        DASHBOARD
-    ================================================== -->
-    <section id="page-dashboard" class="page">
+        <button
+          id="backButton"
+          class="back-button hidden"
+          type="button"
+          aria-label="Volver"
+        >
+          ←
+        </button>
 
-      <div class="hero">
-        <div>
-          <p id="todayLabel" class="eyebrow">HOY</p>
 
-          <h1>
-            Hola,
-            <span id="welcomeName">Usuario</span>.
-          </h1>
+        <div class="topbar-titles">
 
-          <p>
-            Esto es lo que está pasando con Orbe hoy.
+          <p
+            id="pageEyebrow"
+            class="eyebrow"
+          >
+            ORBE WORKSPACE
           </p>
-        </div>
-      </div>
 
+          <h2 id="pageTitle">
+            Dashboard
+          </h2>
 
-      <div class="stats">
+          <p
+            id="pageSubtitle"
+            class="page-subtitle"
+          >
+            Resumen de producción
+          </p>
 
-        <div class="stat">
-          <span>PROYECTOS</span>
-          <strong id="statProjects">0</strong>
-        </div>
-
-        <div class="stat">
-          <span>ACTIVOS</span>
-          <strong id="statActive">0</strong>
         </div>
 
-        <div class="stat">
-          <span>TAREAS PENDIENTES</span>
-          <strong id="statPending">0</strong>
+
+        <div class="top-user">
+
+          <div
+            id="topAvatar"
+            class="avatar avatar-small"
+          >
+            R
+          </div>
+
+          <span id="topUser">
+            Usuario
+          </span>
+
         </div>
 
-        <div class="stat">
-          <span>COMPLETADAS</span>
-          <strong id="statCompleted">0</strong>
+      </header>
+
+
+      <!-- ==================================================
+           DASHBOARD
+      =================================================== -->
+
+      <section
+        id="page-dashboard"
+        class="page"
+      >
+
+        <div class="hero">
+
+          <div>
+
+            <p
+              id="todayLabel"
+              class="eyebrow"
+            >
+              HOY
+            </p>
+
+            <h1>
+              Hola,
+              <span id="welcomeName">
+                Usuario
+              </span>.
+            </h1>
+
+            <p>
+              Aquí está lo que necesita atención.
+            </p>
+
+          </div>
+
         </div>
 
-      </div>
+
+        <div class="stats">
+
+          <div class="stat">
+
+            <span>
+              PROYECTOS
+            </span>
+
+            <strong id="statProjects">
+              0
+            </strong>
+
+          </div>
 
 
-      <div class="dashboard-columns">
+          <div class="stat">
 
-        <div class="section-card">
+            <span>
+              ACTIVOS
+            </span>
 
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">PRODUCCIÓN</p>
-              <h3>Proyectos activos</h3>
+            <strong id="statActive">
+              0
+            </strong>
+
+          </div>
+
+
+          <div class="stat">
+
+            <span>
+              PENDIENTES
+            </span>
+
+            <strong id="statPending">
+              0
+            </strong>
+
+          </div>
+
+
+          <div class="stat">
+
+            <span>
+              COMPLETADAS
+            </span>
+
+            <strong id="statCompleted">
+              0
+            </strong>
+
+          </div>
+
+        </div>
+
+
+        <div class="dashboard-grid">
+
+          <section class="section-card">
+
+            <div class="section-header">
+
+              <div>
+
+                <p class="eyebrow">
+                  PRODUCCIÓN
+                </p>
+
+                <h3>
+                  Proyectos activos
+                </h3>
+
+              </div>
+
+              <button
+                class="link-button"
+                type="button"
+                data-page-link="projects"
+              >
+                Ver todos →
+              </button>
+
             </div>
 
-            <button
-              class="link-button"
-              type="button"
-              data-page-link="projects">
-              Ver todos →
-            </button>
-          </div>
 
-          <div id="dashboardProjects"></div>
+            <div
+              id="dashboardProjects"
+              class="dashboard-list"
+            ></div>
 
-        </div>
+          </section>
 
 
-        <div class="section-card">
+          <section class="section-card">
 
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">TRABAJO</p>
-              <h3>Próximas tareas</h3>
+            <div class="section-header">
+
+              <div>
+
+                <p class="eyebrow">
+                  ATENCIÓN
+                </p>
+
+                <h3>
+                  Lo que requiere atención
+                </h3>
+
+              </div>
+
             </div>
 
-            <button
-              class="link-button"
-              type="button"
-              data-page-link="tasks">
-              Ver todas →
-            </button>
-          </div>
 
-          <div id="dashboardTasks"></div>
+            <div
+              id="dashboardAlerts"
+              class="dashboard-list"
+            ></div>
+
+          </section>
+
+
+          <section class="section-card dashboard-wide">
+
+            <div class="section-header">
+
+              <div>
+
+                <p class="eyebrow">
+                  HOY
+                </p>
+
+                <h3>
+                  Tareas pendientes
+                </h3>
+
+              </div>
+
+              <button
+                class="link-button"
+                type="button"
+                data-page-link="tasks"
+              >
+                Ver tareas →
+              </button>
+
+            </div>
+
+
+            <div
+              id="dashboardTasks"
+              class="dashboard-list"
+            ></div>
+
+          </section>
 
         </div>
 
-      </div>
-
-    </section>
+      </section>
 
 
-    <!-- =================================================
-        PROJECTS
-    ================================================== -->
-    <section id="page-projects" class="page hidden">
+      <!-- ==================================================
+           PROJECTS
+      =================================================== -->
 
-      <div class="page-header">
-
-        <div>
-          <p class="eyebrow">PRODUCCIÓN</p>
-          <h1>Proyectos</h1>
-          <p>Todo lo que está creando Orbe.</p>
-        </div>
-
-        <button
-          id="newProjectButton"
-          class="button button-dark manager-only"
-          type="button">
-          + Nuevo proyecto
-        </button>
-
-      </div>
-
-
-      <div class="toolbar">
-
-        <input
-          id="projectSearch"
-          class="search"
-          placeholder="Buscar proyectos..."
-          autocomplete="off">
-
-        <select id="projectFilter" class="select">
-          <option value="all">Todos</option>
-          <option value="pending">Pendientes</option>
-          <option value="active">Activos</option>
-          <option value="completed">Completados</option>
-        </select>
-
-      </div>
-
-
-      <div id="projectsList" class="projects-grid"></div>
-
-    </section>
-
-
-    <!-- =================================================
-        TASKS
-    ================================================== -->
-    <section id="page-tasks" class="page hidden">
-
-      <div class="page-header">
-
-        <div>
-          <p class="eyebrow">PRODUCCIÓN</p>
-          <h1>Tareas</h1>
-          <p>Organiza el trabajo del equipo.</p>
-        </div>
-
-        <button
-          id="newTaskButton"
-          class="button button-dark manager-only"
-          type="button">
-          + Nueva tarea
-        </button>
-
-      </div>
-
-
-      <div class="toolbar">
-
-        <input
-          id="taskSearch"
-          class="search"
-          placeholder="Buscar tareas..."
-          autocomplete="off">
-
-        <select id="taskStatusFilter" class="select">
-          <option value="all">Todos</option>
-          <option value="pending">Pendientes</option>
-          <option value="in_progress">En progreso</option>
-          <option value="completed">Completadas</option>
-        </select>
-
-        <select id="taskPriorityFilter" class="select">
-          <option value="all">Prioridad</option>
-          <option value="high">Alta</option>
-          <option value="medium">Media</option>
-          <option value="low">Baja</option>
-        </select>
-
-      </div>
-
-
-      <div class="kanban">
-
-        <div class="kanban-column">
-          <div class="kanban-title">
-            <span>Pendientes</span>
-            <strong id="pendingCount">0</strong>
-          </div>
-
-          <div id="tasksPending" class="kanban-tasks"></div>
-        </div>
-
-
-        <div class="kanban-column">
-          <div class="kanban-title">
-            <span>En progreso</span>
-            <strong id="progressCount">0</strong>
-          </div>
-
-          <div id="tasksProgress" class="kanban-tasks"></div>
-        </div>
-
-
-        <div class="kanban-column">
-          <div class="kanban-title">
-            <span>Completadas</span>
-            <strong id="completedCount">0</strong>
-          </div>
-
-          <div id="tasksCompleted" class="kanban-tasks"></div>
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- =================================================
-        TEAM
-    ================================================== -->
-    <section id="page-team" class="page hidden">
-
-      <div id="teamOverview">
+      <section
+        id="page-projects"
+        class="page hidden"
+      >
 
         <div class="page-header">
 
           <div>
-            <p class="eyebrow">ORBE</p>
-            <h1>Equipo</h1>
-            <p>Las personas detrás de los proyectos.</p>
+
+            <p class="eyebrow">
+              PRODUCCIÓN
+            </p>
+
+            <h1>
+              Proyectos
+            </h1>
+
+            <p>
+              Producciones completas de Orbe.
+            </p>
+
+          </div>
+
+
+          <button
+            id="newProjectButton"
+            class="button button-dark manager-only"
+            type="button"
+          >
+            + Nuevo proyecto
+          </button>
+
+        </div>
+
+
+        <div class="toolbar">
+
+          <input
+            id="projectSearch"
+            class="search"
+            type="search"
+            placeholder="Buscar proyectos..."
+            autocomplete="off"
+          >
+
+
+          <select
+            id="projectFilter"
+            class="select"
+          >
+
+            <option value="all">
+              Todos
+            </option>
+
+            <option value="pending">
+              Pendientes
+            </option>
+
+            <option value="active">
+              En producción
+            </option>
+
+            <option value="completed">
+              Completados
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div
+          id="projectsList"
+          class="projects-grid"
+        ></div>
+
+
+        <!-- PROJECT DETAIL -->
+
+        <div
+          id="projectDetail"
+          class="project-detail hidden"
+        >
+
+          <button
+            id="projectDetailBack"
+            class="text-back"
+            type="button"
+          >
+            ← Volver a proyectos
+          </button>
+
+
+          <div
+            id="projectDetailContent"
+          ></div>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==================================================
+           TASKS
+      =================================================== -->
+
+      <section
+        id="page-tasks"
+        class="page hidden"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <p class="eyebrow">
+              PRODUCCIÓN
+            </p>
+
+            <h1>
+              Tareas
+            </h1>
+
+            <p>
+              Todo lo que hay que hacer.
+            </p>
+
+          </div>
+
+
+          <button
+            id="newTaskButton"
+            class="button button-dark manager-only"
+            type="button"
+          >
+            + Nueva tarea
+          </button>
+
+        </div>
+
+
+        <div class="toolbar">
+
+          <input
+            id="taskSearch"
+            class="search"
+            type="search"
+            placeholder="Buscar tareas..."
+            autocomplete="off"
+          >
+
+
+          <select
+            id="taskStatusFilter"
+            class="select"
+          >
+
+            <option value="all">
+              Todos
+            </option>
+
+            <option value="pending">
+              Pendientes
+            </option>
+
+            <option value="in_progress">
+              En progreso
+            </option>
+
+            <option value="completed">
+              Completadas
+            </option>
+
+          </select>
+
+
+          <select
+            id="taskPriorityFilter"
+            class="select"
+          >
+
+            <option value="all">
+              Prioridad
+            </option>
+
+            <option value="high">
+              Alta
+            </option>
+
+            <option value="medium">
+              Media
+            </option>
+
+            <option value="low">
+              Baja
+            </option>
+
+          </select>
+
+
+          <select
+            id="taskProjectFilter"
+            class="select"
+          >
+
+            <option value="all">
+              Todos los proyectos
+            </option>
+
+            <option value="none">
+              Sin proyecto
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="kanban">
+
+          <div class="kanban-column">
+
+            <div class="kanban-title">
+
+              <span>
+                Pendientes
+              </span>
+
+              <strong id="pendingCount">
+                0
+              </strong>
+
+            </div>
+
+            <div
+              id="tasksPending"
+              class="kanban-tasks"
+            ></div>
+
+          </div>
+
+
+          <div class="kanban-column">
+
+            <div class="kanban-title">
+
+              <span>
+                En progreso
+              </span>
+
+              <strong id="progressCount">
+                0
+              </strong>
+
+            </div>
+
+            <div
+              id="tasksProgress"
+              class="kanban-tasks"
+            ></div>
+
+          </div>
+
+
+          <div class="kanban-column">
+
+            <div class="kanban-title">
+
+              <span>
+                Completadas
+              </span>
+
+              <strong id="completedCount">
+                0
+              </strong>
+
+            </div>
+
+            <div
+              id="tasksCompleted"
+              class="kanban-tasks"
+            ></div>
+
           </div>
 
         </div>
 
-        <div id="teamList" class="team-grid"></div>
-
-      </div>
+      </section>
 
 
-      <div id="teamProfileView" class="team-profile-view hidden">
+      <!-- ==================================================
+           TEAM
+      =================================================== -->
 
-        <button
-          id="teamBackButton"
-          class="text-back"
-          type="button">
-          ← Volver al equipo
-        </button>
+      <section
+        id="page-team"
+        class="page hidden"
+      >
 
-        <div id="teamProfileContent"></div>
+        <div
+          id="teamOverview"
+        >
 
-      </div>
+          <div class="page-header">
 
-    </section>
+            <div>
 
-  </main>
-</div>
+              <p class="eyebrow">
+                ORBE
+              </p>
+
+              <h1>
+                Equipo
+              </h1>
+
+              <p>
+                Las personas detrás de cada producción.
+              </p>
+
+            </div>
+
+          </div>
 
 
-<!-- =====================================================
-    MODAL
-===================================================== -->
-<div id="modal" class="modal hidden">
+          <div
+            id="teamList"
+            class="team-grid"
+          ></div>
 
-  <div class="modal-box">
+        </div>
 
-    <button
-      id="closeModal"
-      class="modal-close"
-      type="button"
-      aria-label="Cerrar">
-      ×
-    </button>
 
-    <p id="modalEyebrow" class="eyebrow">ORBE</p>
+        <div
+          id="teamProfileView"
+          class="team-profile-view hidden"
+        >
 
-    <h2 id="modalTitle">Nuevo</h2>
+          <button
+            id="teamBackButton"
+            class="text-back"
+            type="button"
+          >
+            ← Volver al equipo
+          </button>
 
-    <form id="modalForm">
 
-      <div id="modalFields"></div>
+          <div
+            id="teamProfileContent"
+          ></div>
 
-      <div class="modal-buttons">
+        </div>
 
-        <button
-          type="button"
-          id="cancelModal"
-          class="button button-light">
-          Cancelar
-        </button>
+      </section>
 
-        <button
-          type="submit"
-          class="button button-dark">
-          Guardar
-        </button>
-
-      </div>
-
-    </form>
+    </main>
 
   </div>
 
-</div>
+
+  <!-- ==================================================
+       MODAL
+  =================================================== -->
+
+  <div
+    id="modal"
+    class="modal hidden"
+  >
+
+    <div class="modal-box">
+
+      <button
+        id="closeModal"
+        class="modal-close"
+        type="button"
+        aria-label="Cerrar"
+      >
+        ×
+      </button>
 
 
-<!-- =====================================================
-    TOAST
-===================================================== -->
-<div id="toast" class="toast"></div>
+      <p
+        id="modalEyebrow"
+        class="eyebrow"
+      >
+        ORBE
+      </p>
 
 
-<script src="./app.js"></script>
+      <h2 id="modalTitle">
+        Nuevo
+      </h2>
+
+
+      <form id="modalForm">
+
+        <div
+          id="modalFields"
+        ></div>
+
+
+        <div class="modal-buttons">
+
+          <button
+            type="button"
+            id="cancelModal"
+            class="button button-light"
+          >
+            Cancelar
+          </button>
+
+
+          <button
+            type="submit"
+            class="button button-dark"
+          >
+            Guardar
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+  <!-- TOAST -->
+
+  <div
+    id="toast"
+    class="toast"
+  ></div>
+
+
+  <script src="./app.js?v=4"></script>
 
 </body>
 </html>
