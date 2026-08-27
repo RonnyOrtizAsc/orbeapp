@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0, viewport-fit=cover"
@@ -9,7 +10,7 @@
 
   <title>Orbe — Gestión de Producción</title>
 
-  <link rel="stylesheet" href="./style.css?v=4">
+  <link rel="stylesheet" href="./style.css?v=5">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -55,6 +56,8 @@
             >
 
           </div>
+
+
           <div class="field">
 
             <label for="loginPassword">
@@ -69,6 +72,7 @@
             >
 
           </div>
+
 
           <button
             class="button button-dark full"
@@ -181,6 +185,16 @@
               <span>Equipo</span>
             </button>
 
+
+            <button
+              class="nav-item"
+              data-page="organization"
+              type="button"
+            >
+              <span class="nav-icon">◇</span>
+              <span>Organización</span>
+            </button>
+
           </nav>
 
         </div>
@@ -279,6 +293,15 @@
           </p>
 
         </div>
+
+
+        <!-- PRESENCIA EN TIEMPO REAL -->
+
+        <div
+          id="presenceStrip"
+          class="presence-strip"
+          aria-label="Miembros conectados"
+        ></div>
 
 
         <div class="top-user">
@@ -717,6 +740,147 @@
         </div>
 
 
+        <!-- ==================================================
+             SMART TASKS
+        =================================================== -->
+
+        <section
+          id="smartTasksPanel"
+          class="smart-tasks-panel"
+        >
+
+          <div class="smart-task-header">
+
+            <div>
+
+              <p class="eyebrow">
+                PRODUCTIVIDAD
+              </p>
+
+              <h3>
+                Tareas inteligentes
+              </h3>
+
+              <p>
+                Crea objetivos que se repiten automáticamente y registra resultados sin crear cada tarea manualmente.
+              </p>
+
+            </div>
+
+
+            <button
+              id="newRecurringTaskButton"
+              class="button button-dark manager-only"
+              type="button"
+            >
+              + Nueva tarea inteligente
+            </button>
+
+          </div>
+
+
+          <div
+            id="recurringTasksList"
+            class="smart-tasks-list"
+          ></div>
+
+
+          <!-- ==================================================
+               CALL SESSION
+          =================================================== -->
+
+          <div
+            id="callSessionPanel"
+            class="call-session-panel hidden"
+          >
+
+            <div class="call-session-main">
+
+              <div>
+
+                <p class="eyebrow">
+                  SESIÓN DE LLAMADAS
+                </p>
+
+                <h3 id="callSessionTitle">
+                  Sesión de llamadas
+                </h3>
+
+                <p id="callSessionStatus">
+                  Sesión no iniciada
+                </p>
+
+              </div>
+
+
+              <div class="call-session-actions">
+
+                <button
+                  id="startCallSessionButton"
+                  class="button button-dark"
+                  type="button"
+                >
+                  ▶ Iniciar sesión
+                </button>
+
+                <button
+                  id="endCallSessionButton"
+                  class="button button-light hidden"
+                  type="button"
+                >
+                  ■ Terminar sesión
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <div class="call-progress">
+
+              <div class="call-progress-label">
+
+                <span id="callProgressLabel">
+                  0 / 0
+                </span>
+
+                <strong id="callProgressPercent">
+                  0%
+                </strong>
+
+              </div>
+
+
+              <div class="progress-track">
+
+                <div
+                  id="callProgressBar"
+                  class="progress-bar"
+                  style="width:0%"
+                ></div>
+
+              </div>
+
+            </div>
+
+
+            <button
+              id="registerCallButton"
+              class="button button-dark full hidden"
+              type="button"
+            >
+              + Registrar llamada
+            </button>
+
+          </div>
+
+        </section>
+
+
+        <!-- ==================================================
+             KANBAN
+        =================================================== -->
+
         <div class="kanban">
 
           <div class="kanban-column">
@@ -732,6 +896,7 @@
               </strong>
 
             </div>
+
 
             <div
               id="tasksPending"
@@ -755,6 +920,7 @@
 
             </div>
 
+
             <div
               id="tasksProgress"
               class="kanban-tasks"
@@ -776,6 +942,7 @@
               </strong>
 
             </div>
+
 
             <div
               id="tasksCompleted"
@@ -853,6 +1020,44 @@
 
       </section>
 
+
+      <!-- ==================================================
+           ORGANIZATION
+      =================================================== -->
+
+      <section
+        id="page-organization"
+        class="page hidden"
+      >
+
+        <div class="page-header">
+
+          <div>
+
+            <p class="eyebrow">
+              ORBE
+            </p>
+
+            <h1>
+              Organización
+            </h1>
+
+            <p>
+              Áreas, responsabilidades y personas encargadas de cada proceso.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="organizationChart"
+          class="organization-chart"
+        ></div>
+
+      </section>
+
     </main>
 
   </div>
@@ -926,7 +1131,9 @@
   </div>
 
 
-  <!-- TOAST -->
+  <!-- ==================================================
+       TOAST
+  =================================================== -->
 
   <div
     id="toast"
@@ -934,7 +1141,7 @@
   ></div>
 
 
-  <script src="./app.js?v=4"></script>
+  <script src="./app.js?v=5"></script>
 
 </body>
 </html>
