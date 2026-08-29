@@ -543,6 +543,7 @@ function renderPresence() {
               title="${escapeHTML(name)} está conectado"
             >
               ${escapeHTML(initials(name))}
+              <img class="presence-logo" src="./Recursos/Imagenes/Logotipo.PNG" alt="">
             </div>
           `;
       })
@@ -3515,3 +3516,95 @@ function renderOrganization() {
 // ARRANQUE
 // =====================================================
 checkSession();
+
+// =====================================================
+// CORRECCIONES ORBE V2 · PRESENCIA Y TAREAS INTELIGENTES
+// =====================================================
+function getTemplateResponsibleIds(template) {
+  if (template?.assigned_profile_id) {
+    return [template.assigned_profile_id];
+  }
+  const occurrenceWithTask = getTemplateOccurrences(template?.id).find(
+    (occurrence) => occurrence.task_id,
+  );
+  const generatedTask = occurrenceWithTask
+    ? tasks.find((task) => task.id === occurrenceWithTask.task_id)
+    : null;
+  return generatedTask ? getTaskMemberIds(generatedTask) : [];
+}
+
+const renderRecurringTaskCardOriginal = renderRecurringTaskCard;
+renderRecurringTaskCard = function renderRecurringTaskCardV2(template) {
+  const card = renderRecurringTaskCardOriginal(template);
+  if (!canManage(currentProfile)) {
+    return card;
+  }
+  return card.replace(
+    "      </div>\n    </article>",
+    `        <button class="smart-task-action danger-button" type="button" data-smart-delete="${template.id}">Eliminar</button>\n      </div>\n    </article>`,
+  );
+};
+
+prepareTemplateGeneration = async function prepareTemplateGenerationV2(templateId) {
+  const template = getTemplateById(templateId);
+  if (!template) return;
+  const profileIds = getTemplateResponsibleIds(template);
+  if (!profileIds.length) {
+    showToast("Asigna un responsable a esta tarea inteligente antes de generar.");
+    return;
+  }
+  try {
+    const generated = await generateOccurrencesForTemplate(template, profileIds);
+    await loadTaskOccurrences();
+    await loadTasks();
+    await loadTaskMembers();
+    renderRecurringTasks();
+    renderTasks();
+    renderTeam();
+    updateDashboard();
+    showToast(`Se generaron ${generated} tarea(s).`);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || "No se pudieron generar las tareas.");
+  }
+};
+
+async function deleteSmartTemplate(templateId) {
+  const template = getTemplateById(templateId);
+  if (!template || !confirm(`¿Eliminar la tarea inteligente “${template.title}” y sus tareas generadas?`)) return;
+  try {
+    const taskIds = tasks.filter((task) => task.template_id === templateId).map((task) => task.id);
+    if (taskIds.length) {
+      const { error: logsError } = await db.from("activity_logs").delete().in("task_id", taskIds);
+      if (logsError) throw logsError;
+      const { error: membersError } = await db.from("task_members").delete().in("task_id", taskIds);
+      if (membersError) throw membersError;
+    }
+    const { error: occurrencesError } = await db.from("task_occurrences").delete().eq("template_id", templateId);
+    if (occurrencesError) throw occurrencesError;
+    if (taskIds.length) {
+      const { error: tasksError } = await db.from("tasks").delete().in("id", taskIds);
+      if (tasksError) throw tasksError;
+    }
+    const { error: templateError } = await db.from("task_templates").delete().eq("id", templateId);
+    if (templateError) throw templateError;
+    await loadTaskTemplates();
+    await loadTaskOccurrences();
+    await loadTasks();
+    await loadTaskMembers();
+    renderRecurringTasks();
+    renderTasks();
+    renderTeam();
+    updateDashboard();
+    showToast("Tarea inteligente eliminada.");
+  } catch (error) {
+    console.error("Error eliminando tarea inteligente:", error);
+    showToast(error.message || "No se pudo eliminar la tarea inteligente.");
+  }
+}
+
+recurringTasksList?.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-smart-delete]");
+  if (deleteButton) deleteSmartTemplate(deleteButton.dataset.smartDelete);
+});
+
