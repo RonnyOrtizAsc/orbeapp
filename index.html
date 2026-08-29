@@ -5,14 +5,13 @@
   <meta charset="UTF-8">
 
 <meta
-name="viewport"
-content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-
-
+  name="viewport"
+  content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+>
 
   <title>Orbe — Gestión de Producción</title>
 
-  <link rel="stylesheet" href="./style.css?v=5">
+  <link rel="stylesheet" href="./style.css?v=6">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -29,8 +28,11 @@ content="width=device-width, initial-scale=1.0, viewport-fit=cover"
 <div class="login-box">
 
   <div class="login-brand">
-    LA ORBE
-    <span>CINEMATOGRÁFICA</span>
+    <img class="brand-logo" src="./Recursos/Imagenes/Logotipo.PNG" alt="Logotipo de Orbe Cinematográfica">
+    <div>
+      LA ORBE
+      <span>CINEMATOGRÁFICA</span>
+    </div>
   </div>
 
   <div class="login-content">
@@ -119,6 +121,8 @@ content="width=device-width, initial-scale=1.0, viewport-fit=cover"
   <div>
 
     <div class="sidebar-brand">
+
+      <img class="brand-logo brand-logo-sidebar" src="./Recursos/Imagenes/Logotipo.PNG" alt="Logotipo de Orbe Cinematográfica">
 
       <div>
         ORBE
@@ -665,83 +669,6 @@ content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     </div>
 
 
-    <div class="toolbar">
-
-      <input
-        id="taskSearch"
-        class="search"
-        type="search"
-        placeholder="Buscar tareas..."
-        autocomplete="off"
-      >
-
-
-      <select
-        id="taskStatusFilter"
-        class="select"
-      >
-
-        <option value="all">
-          Todos
-        </option>
-
-        <option value="pending">
-          Pendientes
-        </option>
-
-        <option value="in_progress">
-          En progreso
-        </option>
-
-        <option value="completed">
-          Completadas
-        </option>
-
-      </select>
-
-
-      <select
-        id="taskPriorityFilter"
-        class="select"
-      >
-
-        <option value="all">
-          Prioridad
-        </option>
-
-        <option value="high">
-          Alta
-        </option>
-
-        <option value="medium">
-          Media
-        </option>
-
-        <option value="low">
-          Baja
-        </option>
-
-      </select>
-
-
-      <select
-        id="taskProjectFilter"
-        class="select"
-      >
-
-        <option value="all">
-          Todos los proyectos
-        </option>
-
-        <option value="none">
-          Sin proyecto
-        </option>
-
-      </select>
-
-    </div>
-
-
     <!-- ==================================================
          SMART TASKS
     =================================================== -->
@@ -877,6 +804,85 @@ content="width=device-width, initial-scale=1.0, viewport-fit=cover"
       </div>
 
     </section>
+
+
+    
+
+    <div class="toolbar">
+
+      <input
+        id="taskSearch"
+        class="search"
+        type="search"
+        placeholder="Buscar tareas..."
+        autocomplete="off"
+      >
+
+
+      <select
+        id="taskStatusFilter"
+        class="select"
+      >
+
+        <option value="all">
+          Todos
+        </option>
+
+        <option value="pending">
+          Pendientes
+        </option>
+
+        <option value="in_progress">
+          En progreso
+        </option>
+
+        <option value="completed">
+          Completadas
+        </option>
+
+      </select>
+
+
+      <select
+        id="taskPriorityFilter"
+        class="select"
+      >
+
+        <option value="all">
+          Prioridad
+        </option>
+
+        <option value="high">
+          Alta
+        </option>
+
+        <option value="medium">
+          Media
+        </option>
+
+        <option value="low">
+          Baja
+        </option>
+
+      </select>
+
+
+      <select
+        id="taskProjectFilter"
+        class="select"
+      >
+
+        <option value="all">
+          Todos los proyectos
+        </option>
+
+        <option value="none">
+          Sin proyecto
+        </option>
+
+      </select>
+
+    </div>
 
 
     <!-- ==================================================
@@ -1140,7 +1146,8 @@ content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     class="toast"
   ></div>
 
-  <script src="./app.js?v=5"></script>
+  <script src="./app.js?v=6"></script>
 
 </body>
 </html>
+
