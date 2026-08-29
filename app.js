@@ -4593,6 +4593,10 @@ async function syncTaskMembers(
 
 async function saveTask() {
 
+  // Guardamos esto antes de cerrar el modal,
+  // porque closeModalWindow() limpia editingTask.
+  const wasEditing = Boolean(editingTask);
+
   const startDate =
     document
       .getElementById(
@@ -4611,11 +4615,30 @@ async function saveTask() {
     null;
 
 
+  const title =
+    document
+      .getElementById(
+        "taskTitle"
+      )
+      .value
+      .trim();
+
+
+  if (!title) {
+
+    showToast(
+      "La tarea necesita un título."
+    );
+
+    return;
+
+  }
+
+
   if (
     startDate &&
     deadline &&
-    startDate >
-      deadline
+    startDate > deadline
   ) {
 
     showToast(
@@ -4623,6 +4646,7 @@ async function saveTask() {
     );
 
     return;
+
   }
 
 
@@ -4642,13 +4666,7 @@ async function saveTask() {
 
   const payload = {
 
-    title:
-      document
-        .getElementById(
-          "taskTitle"
-        )
-        .value
-        .trim(),
+    title: title,
 
     description:
       document
@@ -4688,12 +4706,21 @@ async function saveTask() {
   };
 
 
+  let taskId = null;
+
+  // Nos sirve para saber si debemos
+  // eliminar una tarea recién creada
+  // si algo falla después.
+  let createdTask = false;
+
+
   try {
 
-    let taskId;
+    // ================================
+    // EDITAR TAREA
+    // ================================
 
-
-    if (editingTask) {
+    if (wasEditing) {
 
       const {
         error
@@ -4717,7 +4744,14 @@ async function saveTask() {
       taskId =
         editingTask.id;
 
-    } else {
+    }
+
+
+    // ================================
+    // CREAR TAREA
+    // ================================
+
+    else {
 
       const {
         data,
@@ -4744,8 +4778,14 @@ async function saveTask() {
       taskId =
         data.id;
 
+      createdTask = true;
+
     }
 
+
+    // ================================
+    // GUARDAR RESPONSABLES
+    // ================================
 
     await syncTaskMembers(
       taskId,
@@ -4753,17 +4793,12 @@ async function saveTask() {
     );
 
 
-    closeModalWindow();
-
-
-    showToast(
-      editingTask
-        ? "Tarea actualizada"
-        : "Tarea creada"
-    );
-
+    // ================================
+    // RECARGAR DATOS
+    // ================================
 
     await loadTasks();
+
     await loadTaskMembers();
 
 
@@ -4800,6 +4835,20 @@ async function saveTask() {
     }
 
 
+    // ================================
+    // CERRAR SOLO CUANDO TODO SALIÓ BIEN
+    // ================================
+
+    closeModalWindow();
+
+
+    showToast(
+      wasEditing
+        ? "Tarea actualizada"
+        : "Tarea creada"
+    );
+
+
   } catch (error) {
 
     console.error(
@@ -4807,15 +4856,58 @@ async function saveTask() {
       error
     );
 
+
+    // Si era una tarea NUEVA y ya se creó,
+    // pero algo posterior falló, intentamos
+    // eliminarla para evitar duplicados.
+    if (
+      createdTask &&
+      taskId
+    ) {
+
+      try {
+
+        const {
+          error: deleteError
+        } =
+          await db
+            .from("tasks")
+            .delete()
+            .eq(
+              "id",
+              taskId
+            );
+
+
+        if (deleteError) {
+
+          console.error(
+            "No se pudo revertir la tarea:",
+            deleteError
+          );
+
+        }
+
+      } catch (rollbackError) {
+
+        console.error(
+          "Error revirtiendo tarea:",
+          rollbackError
+        );
+
+      }
+
+    }
+
+
     showToast(
       error.message ||
       "No se pudo guardar la tarea."
     );
 
   }
+
 }
-
-
 // =====================================================
 // DELETE TASK
 // =====================================================
