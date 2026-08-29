@@ -2276,6 +2276,7 @@ async function saveRecurringTask() {
         title,
         description,
         project_id: projectId,
+        assigned_profile_id: profileIds[0],
         created_by: currentUser.id,
         start_date: startDate,
         end_date: endDate,
