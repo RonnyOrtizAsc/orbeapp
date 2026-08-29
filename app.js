@@ -543,7 +543,7 @@ function renderPresence() {
               title="${escapeHTML(name)} está conectado"
             >
               ${escapeHTML(initials(name))}
-              <img class="presence-logo" src="./Recursos/Imagenes/Logotipo.PNG" alt="">
+              <img class="presence-logo" src="./Recursos/Imagenes/Logotipo.png" alt="">
             </div>
           `;
       })
