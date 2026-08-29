@@ -10,16 +10,14 @@
 
   <title>Orbe — Gestión de Producción</title>
 
-  <link rel="stylesheet" href="./style.css?v=5">
+  <link rel="stylesheet" href="./style.css?v=6">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
 
-  <!-- ==================================================
-       LOGIN
-  =================================================== -->
+  <!-- LOGIN -->
 
   <div id="loginScreen" class="login-screen">
 
@@ -43,10 +41,7 @@
         <form id="loginForm">
 
           <div class="field">
-
-            <label for="loginEmail">
-              Correo
-            </label>
+            <label for="loginEmail">Correo</label>
 
             <input
               id="loginEmail"
@@ -54,15 +49,10 @@
               autocomplete="email"
               required
             >
-
           </div>
 
-
           <div class="field">
-
-            <label for="loginPassword">
-              Contraseña
-            </label>
+            <label for="loginPassword">Contraseña</label>
 
             <input
               id="loginPassword"
@@ -70,9 +60,7 @@
               autocomplete="current-password"
               required
             >
-
           </div>
-
 
           <button
             class="button button-dark full"
@@ -81,10 +69,7 @@
             Entrar
           </button>
 
-          <p
-            id="loginError"
-            class="error"
-          ></p>
+          <p id="loginError" class="error"></p>
 
         </form>
 
@@ -95,9 +80,7 @@
   </div>
 
 
-  <!-- ==================================================
-       APP
-  =================================================== -->
+  <!-- APP -->
 
   <div id="app" class="app hidden">
 
@@ -143,6 +126,7 @@
           <span class="sidebar-label">
             ESPACIO
           </span>
+
 
           <nav>
 
@@ -241,11 +225,12 @@
     </aside>
 
 
-    <!-- ==================================================
-         MAIN
-    =================================================== -->
+    <!-- MAIN -->
 
     <main class="main">
+
+
+      <!-- TOPBAR -->
 
       <header class="topbar">
 
@@ -295,7 +280,7 @@
         </div>
 
 
-        <!-- PRESENCIA EN TIEMPO REAL -->
+        <!-- PRESENCIA -->
 
         <div
           id="presenceStrip"
@@ -322,9 +307,7 @@
       </header>
 
 
-      <!-- ==================================================
-           DASHBOARD
-      =================================================== -->
+      <!-- DASHBOARD -->
 
       <section
         id="page-dashboard"
@@ -362,9 +345,7 @@
 
           <div class="stat">
 
-            <span>
-              PROYECTOS
-            </span>
+            <span>PROYECTOS</span>
 
             <strong id="statProjects">
               0
@@ -375,9 +356,7 @@
 
           <div class="stat">
 
-            <span>
-              ACTIVOS
-            </span>
+            <span>ACTIVOS</span>
 
             <strong id="statActive">
               0
@@ -388,9 +367,7 @@
 
           <div class="stat">
 
-            <span>
-              PENDIENTES
-            </span>
+            <span>PENDIENTES</span>
 
             <strong id="statPending">
               0
@@ -401,9 +378,7 @@
 
           <div class="stat">
 
-            <span>
-              COMPLETADAS
-            </span>
+            <span>COMPLETADAS</span>
 
             <strong id="statCompleted">
               0
@@ -415,6 +390,7 @@
 
 
         <div class="dashboard-grid">
+
 
           <section class="section-card">
 
@@ -431,6 +407,7 @@
                 </h3>
 
               </div>
+
 
               <button
                 class="link-button"
@@ -494,6 +471,7 @@
 
               </div>
 
+
               <button
                 class="link-button"
                 type="button"
@@ -517,9 +495,7 @@
       </section>
 
 
-      <!-- ==================================================
-           PROJECTS
-      =================================================== -->
+      <!-- PROYECTOS -->
 
       <section
         id="page-projects"
@@ -599,8 +575,6 @@
         ></div>
 
 
-        <!-- PROJECT DETAIL -->
-
         <div
           id="projectDetail"
           class="project-detail hidden"
@@ -614,7 +588,6 @@
             ← Volver a proyectos
           </button>
 
-
           <div
             id="projectDetailContent"
           ></div>
@@ -624,9 +597,7 @@
       </section>
 
 
-      <!-- ==================================================
-           TASKS
-      =================================================== -->
+      <!-- TAREAS -->
 
       <section
         id="page-tasks"
@@ -652,13 +623,28 @@
           </div>
 
 
-          <button
-            id="newTaskButton"
-            class="button button-dark manager-only"
-            type="button"
-          >
-            + Nueva tarea
-          </button>
+          <!-- ACCIONES UNIFICADAS -->
+
+          <div class="page-actions">
+
+            <button
+              id="newTaskButton"
+              class="button button-dark manager-only"
+              type="button"
+            >
+              + Nueva tarea
+            </button>
+
+
+            <button
+              id="newRecurringTaskButton"
+              class="button button-light manager-only"
+              type="button"
+            >
+              ↻ Objetivo recurrente
+            </button>
+
+          </div>
 
         </div>
 
@@ -740,9 +726,7 @@
         </div>
 
 
-        <!-- ==================================================
-             SMART TASKS
-        =================================================== -->
+        <!-- OBJETIVOS RECURRENTES -->
 
         <section
           id="smartTasksPanel"
@@ -758,23 +742,14 @@
               </p>
 
               <h3>
-                Tareas inteligentes
+                Objetivos recurrentes
               </h3>
 
               <p>
-                Crea objetivos que se repiten automáticamente y registra resultados sin crear cada tarea manualmente.
+                Programa actividades repetitivas y registra su avance sin crear cada tarea manualmente.
               </p>
 
             </div>
-
-
-            <button
-              id="newRecurringTaskButton"
-              class="button button-dark manager-only"
-              type="button"
-            >
-              + Nueva tarea inteligente
-            </button>
 
           </div>
 
@@ -785,9 +760,7 @@
           ></div>
 
 
-          <!-- ==================================================
-               CALL SESSION
-          =================================================== -->
+          <!-- SESIÓN DE LLAMADAS -->
 
           <div
             id="callSessionPanel"
@@ -822,6 +795,7 @@
                 >
                   ▶ Iniciar sesión
                 </button>
+
 
                 <button
                   id="endCallSessionButton"
@@ -877,11 +851,10 @@
         </section>
 
 
-        <!-- ==================================================
-             KANBAN
-        =================================================== -->
+        <!-- KANBAN -->
 
         <div class="kanban">
+
 
           <div class="kanban-column">
 
@@ -956,18 +929,14 @@
       </section>
 
 
-      <!-- ==================================================
-           TEAM
-      =================================================== -->
+      <!-- EQUIPO -->
 
       <section
         id="page-team"
         class="page hidden"
       >
 
-        <div
-          id="teamOverview"
-        >
+        <div id="teamOverview">
 
           <div class="page-header">
 
@@ -1011,7 +980,6 @@
             ← Volver al equipo
           </button>
 
-
           <div
             id="teamProfileContent"
           ></div>
@@ -1021,9 +989,7 @@
       </section>
 
 
-      <!-- ==================================================
-           ORGANIZATION
-      =================================================== -->
+      <!-- ORGANIZACIÓN -->
 
       <section
         id="page-organization"
@@ -1063,9 +1029,7 @@
   </div>
 
 
-  <!-- ==================================================
-       MODAL
-  =================================================== -->
+  <!-- MODAL -->
 
   <div
     id="modal"
@@ -1099,9 +1063,7 @@
 
       <form id="modalForm">
 
-        <div
-          id="modalFields"
-        ></div>
+        <div id="modalFields"></div>
 
 
         <div class="modal-buttons">
@@ -1131,9 +1093,7 @@
   </div>
 
 
-  <!-- ==================================================
-       TOAST
-  =================================================== -->
+  <!-- TOAST -->
 
   <div
     id="toast"
@@ -1141,7 +1101,7 @@
   ></div>
 
 
-  <script src="./app.js?v=5"></script>
+  <script src="./app.js?v=6"></script>
 
 </body>
 </html>
