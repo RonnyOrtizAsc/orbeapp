@@ -35,6 +35,7 @@ let editingTask = null;
 let activeModalMode = null;
 let selectedTeamProfile = null;
 let selectedProject = null;
+let isSavingModal = false;
 
 const PAGES = [
   "dashboard",
