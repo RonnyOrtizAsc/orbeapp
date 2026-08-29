@@ -6569,55 +6569,107 @@ modal.addEventListener(
   }
 );
 
-
 modalForm.addEventListener(
   "submit",
   async event => {
 
     event.preventDefault();
-
-
-    if (
-      activeModalMode ===
-      "project"
-    ) {
-
-      await saveProject();
-
+    if (isSavingModal) {
       return;
     }
 
-
-    if (
-      activeModalMode ===
-      "task"
-    ) {
-
-      await saveTask();
-
+    if (!activeModalMode) {
       return;
     }
 
+    isSavingModal = true;
 
-    if (
-      activeModalMode ===
-      "recurringTask"
-    ) {
+    const submitButton =
+      modalForm.querySelector(
+        'button[type="submit"]'
+      );
 
-      await saveRecurringTask();
+    const originalText =
+      submitButton
+        ? submitButton.textContent
+        : "";
 
-      return;
+    if (submitButton) {
+
+      submitButton.disabled = true;
+
+      submitButton.textContent =
+        "Guardando...";
+
     }
 
+    try {
 
-    if (
-      activeModalMode ===
-      "call"
-    ) {
+      if (
+        activeModalMode ===
+        "project"
+      ) {
 
-      await saveCallActivity();
+        await saveProject();
 
-      return;
+      }
+
+      else if (
+        activeModalMode ===
+        "task"
+      ) {
+
+        await saveTask();
+
+      }
+
+      else if (
+        activeModalMode ===
+        "recurringTask"
+      ) {
+
+        await saveRecurringTask();
+
+      }
+
+      else if (
+        activeModalMode ===
+        "call"
+      ) {
+
+        await saveCallActivity();
+
+      }
+
+    }
+
+    catch (error) {
+
+      console.error(
+        "Error guardando desde el modal:",
+        error
+      );
+
+      showToast(
+        error.message ||
+        "Ocurrió un error al guardar."
+      );
+
+    }
+
+    finally {
+
+      isSavingModal = false;
+
+      if (submitButton) {
+
+        submitButton.disabled = false;
+
+        submitButton.textContent =
+          originalText;
+
+      }
+
     }
 
   }
