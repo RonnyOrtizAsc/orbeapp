@@ -1411,6 +1411,11 @@ button.dashboard-item:hover { background: var(--surface-raised); }
 /* =====================================================
    AVATAR VIEWER (lightbox)
 ===================================================== */
+/* Cursor de "se puede ampliar" solo en el avatar grande
+   del perfil (el único que lleva data-avatar-view). */
+[data-avatar-view] {
+  cursor: zoom-in;
+}
 
 .avatar-viewer-modal {
   position: fixed;
