@@ -461,6 +461,11 @@
        app.js lo dispara con avatarFileInput.click() y sube el
        archivo elegido al bucket "avatars" en Supabase Storage. -->
   <input type="file" id="avatarFileInput" accept="image/*" class="hidden">
+    <!-- Visor de foto de perfil en grande (lightbox). -->
+  <div id="avatarViewerModal" class="avatar-viewer-modal hidden">
+    <button id="avatarViewerClose" class="avatar-viewer-close" type="button" aria-label="Cerrar">×</button>
+    <img id="avatarViewerImage" class="avatar-viewer-image" alt="Foto de perfil">
+  </div>
 
   <!-- ==================================================
        TOAST
