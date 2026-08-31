@@ -4,6 +4,7 @@
 const SUPABASE_URL = "https://ijnetiyxrxxfhurlsnbc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dnjsWgsrPMUQov5JTJuthw_KEAqjMfK";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // =====================================================
 // ESTADO
 // =====================================================
@@ -20,7 +21,13 @@ let activeModalMode = null;
 let selectedTeamProfile = null;
 let selectedProject = null;
 let isSavingModal = false;
+let avatarUploadInFlight = false;
+let autoPriorityInterval = null;
+let liveColorInterval = null;
 const PAGES = ["dashboard", "projects", "tasks", "team", "organization"];
+const AVATAR_MAX_DIMENSION = 240;
+const AVATAR_JPEG_QUALITY = 0.72;
+
 // =====================================================
 // ELEMENTOS
 // =====================================================
@@ -28,6 +35,8 @@ const loginScreen = document.getElementById("loginScreen");
 const app = document.getElementById("app");
 const loginForm = document.getElementById("loginForm");
 const loginError = document.getElementById("loginError");
+const loginSubmitButton = document.getElementById("loginSubmitButton");
+const loginSubmitLabel = document.getElementById("loginSubmitLabel");
 const sidebar = document.getElementById("sidebar");
 const sidebarBackdrop = document.getElementById("sidebarBackdrop");
 const menuToggle = document.getElementById("menuToggle");
@@ -48,8 +57,12 @@ const teamBackButton = document.getElementById("teamBackButton");
 const projectDetail = document.getElementById("projectDetail");
 const projectDetailContent = document.getElementById("projectDetailContent");
 const projectDetailBack = document.getElementById("projectDetailBack");
+const avatarFileInput = document.getElementById("avatarFileInput");
+const sidebarAvatarButton = document.getElementById("sidebarAvatarButton");
+const topAvatarButton = document.getElementById("topAvatarButton");
+
 // =====================================================
-// NUEVOS MÓDULOS
+// MÓDULOS: TAREAS INTELIGENTES / ORGANIZACIÓN / PRESENCIA
 // =====================================================
 let taskTemplates = [];
 let taskOccurrences = [];
@@ -72,6 +85,7 @@ const callProgressLabel = document.getElementById("callProgressLabel");
 const callProgressPercent = document.getElementById("callProgressPercent");
 const callProgressBar = document.getElementById("callProgressBar");
 const organizationChart = document.getElementById("organizationChart");
+
 // =====================================================
 // UTILIDADES
 // =====================================================
@@ -91,6 +105,14 @@ function initials(name) {
     return "?";
   }
   return String(name).trim().charAt(0).toUpperCase();
+}
+// Devuelve el contenido interno del círculo de avatar: la foto si
+// existe, o la inicial del nombre como respaldo.
+function avatarMarkup(profile) {
+  if (profile?.avatar_url) {
+    return `<img src="${profile.avatar_url}" alt="">`;
+  }
+  return escapeHTML(initials(profile?.name));
 }
 function showToast(message) {
   const toast = document.getElementById("toast");
@@ -148,14 +170,19 @@ function formatDate(value) {
     year: "numeric",
   });
 }
+// Acepta tanto fechas simples ("2026-01-05") como timestamps con
+// hora ("2026-01-05T10:23:00+00:00"), para poder usarla también
+// con columnas como created_at.
 function dateOnly(value) {
   if (!value) {
     return null;
   }
-  const date = new Date(`${value}T00:00:00`);
+  const raw = String(value).includes("T") ? String(value) : `${value}T00:00:00`;
+  const date = new Date(raw);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
+  date.setHours(0, 0, 0, 0);
   return date;
 }
 function startOfToday() {
@@ -236,6 +263,179 @@ function formatNumber(value) {
   const number = normalizeNumericValue(value);
   return Number.isInteger(number) ? String(number) : number.toFixed(2);
 }
+
+// =====================================================
+// URGENCIA POR TIEMPO (colores de barras/franjas)
+// =====================================================
+// Franja horaria del día para las barras "en vivo" (tareas de hoy,
+// sesión de llamadas): verde de madrugada/mañana, naranja en la
+// tarde, rojo en la noche — así se ve, de un vistazo, qué tan
+// avanzado va el día sin abrir nada.
+// 00:00–16:00 verde · 16:00–21:00 naranja · 21:00–23:59 rojo.
+function getDayUrgencyStage() {
+  const hour = new Date().getHours();
+  if (hour < 16) {
+    return "time-green";
+  }
+  if (hour < 21) {
+    return "time-orange";
+  }
+  return "time-red";
+}
+// Urgencia por cercanía de deadline, usada para la franja lateral
+// de las tarjetas de tareas y el color del cronograma.
+function deadlineUrgencyClass(deadline, status) {
+  if (status === "completed") {
+    return "urgency-green";
+  }
+  const days = daysUntil(deadline);
+  if (days === null) {
+    return "";
+  }
+  if (days <= 1) {
+    return "urgency-red";
+  }
+  if (days <= 3) {
+    return "urgency-orange";
+  }
+  return "urgency-green";
+}
+function urgencyColorVar(deadline, status) {
+  const cls = deadlineUrgencyClass(deadline, status);
+  if (cls === "urgency-red") {
+    return "var(--red)";
+  }
+  if (cls === "urgency-orange") {
+    return "var(--orange)";
+  }
+  if (cls === "urgency-green") {
+    return "var(--green)";
+  }
+  return "var(--amarillo)";
+}
+// Prioridad sugerida según lo cerca que está el deadline. Regla de
+// negocio pedida: si la tarea YA está en "alta" no se toca — se
+// asume que alguien la marcó así a propósito. Baja y media sí se
+// recalculan automáticamente (y pueden subir a alta si el deadline
+// se acerca).
+function computeAutoPriority(task) {
+  if (!task.deadline || task.status === "completed") {
+    return task.priority;
+  }
+  const days = daysUntil(task.deadline);
+  if (days === null) {
+    return task.priority;
+  }
+  if (days <= 1) {
+    return "high";
+  }
+  if (days <= 4) {
+    return "medium";
+  }
+  return "low";
+}
+async function autoAdjustPriorities() {
+  const updates = tasks
+    .filter((task) => task.status !== "completed" && task.priority !== "high")
+    .map((task) => ({ id: task.id, next: computeAutoPriority(task) }))
+    .filter((update) => update.next && update.next !== tasks.find((t) => t.id === update.id).priority);
+  if (!updates.length) {
+    return false;
+  }
+  try {
+    await Promise.all(
+      updates.map((update) => db.from("tasks").update({ priority: update.next }).eq("id", update.id)),
+    );
+    return true;
+  } catch (error) {
+    console.error("Error ajustando prioridades automáticamente:", error);
+    return false;
+  }
+}
+function startAutoPriorityWatcher() {
+  if (autoPriorityInterval) {
+    return;
+  }
+  autoPriorityInterval = setInterval(async () => {
+    const changed = await autoAdjustPriorities();
+    if (changed) {
+      await loadTasks();
+      renderTasks();
+      renderRecurringTasks();
+      updateDashboard();
+    }
+  }, 5 * 60 * 1000);
+}
+function startLiveColorWatcher() {
+  if (liveColorInterval) {
+    return;
+  }
+  liveColorInterval = setInterval(() => {
+    const stage = getDayUrgencyStage();
+    document.querySelectorAll(".smart-task-progress .progress-bar, #callProgressBar").forEach((bar) => {
+      bar.classList.remove("time-green", "time-orange", "time-red");
+      bar.classList.add(stage);
+    });
+  }, 60 * 1000);
+}
+function stopBackgroundWatchers() {
+  if (autoPriorityInterval) {
+    clearInterval(autoPriorityInterval);
+    autoPriorityInterval = null;
+  }
+  if (liveColorInterval) {
+    clearInterval(liveColorInterval);
+    liveColorInterval = null;
+  }
+}
+
+// =====================================================
+// AVANCE POR TIEMPO (proyectos)
+// =====================================================
+// % de la línea de tiempo del proyecto ya transcurrido — independiente
+// del % de tareas completadas. Si faltan fechas, no se muestra.
+function getProjectTimeProgress(project) {
+  const start = dateOnly(project.start_date) || dateOnly(project.created_at);
+  const end = dateOnly(project.deadline);
+  if (!start || !end || end <= start) {
+    return null;
+  }
+  const today = startOfToday();
+  if (today <= start) {
+    return 0;
+  }
+  if (today >= end) {
+    return 100;
+  }
+  const total = end.getTime() - start.getTime();
+  const elapsed = today.getTime() - start.getTime();
+  return Math.round((elapsed / total) * 100);
+}
+function buildTimeProgressHTML(project) {
+  const percent = getProjectTimeProgress(project);
+  if (percent === null) {
+    return "";
+  }
+  return `
+    <div class="progress-wrap-time">
+      <div class="progress-label">
+        <span>
+          AVANCE POR TIEMPO
+        </span>
+        <strong>
+          ${percent}%
+        </strong>
+      </div>
+      <div class="progress-track-time">
+        <div
+          class="progress-bar-time"
+          style="width:${percent}%"
+        ></div>
+      </div>
+    </div>
+  `;
+}
+
 // =====================================================
 // RELACIONES
 // =====================================================
@@ -288,6 +488,7 @@ function assignedMembersHTML(members) {
     </div>
   `;
 }
+
 // =====================================================
 // PROGRESO DE PROYECTOS
 // =====================================================
@@ -326,12 +527,19 @@ function projectStatusMessage(project) {
     text: progress >= 70 ? "En buen ritmo" : "En producción",
   };
 }
+
 // =====================================================
 // LOGIN
 // =====================================================
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  loginError.textContent = "Iniciando sesión...";
+  if (loginSubmitButton) {
+    loginSubmitButton.dataset.loading = "true";
+  }
+  if (loginSubmitLabel) {
+    loginSubmitLabel.textContent = "Entrando...";
+  }
+  loginError.textContent = "";
   const email = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
   const { error } = await db.auth.signInWithPassword({
@@ -341,10 +549,15 @@ loginForm.addEventListener("submit", async (event) => {
   if (error) {
     console.error(error);
     loginError.textContent = "Correo o contraseña incorrectos.";
-    return;
   }
-  loginError.textContent = "";
+  if (loginSubmitButton) {
+    delete loginSubmitButton.dataset.loading;
+  }
+  if (loginSubmitLabel) {
+    loginSubmitLabel.textContent = "Entrar";
+  }
 });
+
 // =====================================================
 // SESIÓN
 // =====================================================
@@ -375,14 +588,21 @@ function showLogin() {
   currentProfile = null;
   document.body.classList.remove("can-manage");
   stopPresence();
+  stopBackgroundWatchers();
 }
 function showApp() {
   loginScreen.classList.add("hidden");
   app.classList.remove("hidden");
 }
+
 // =====================================================
 // USUARIO
 // =====================================================
+// La app se muestra apenas tenemos el perfil, con la interfaz ya
+// navegada a la página correspondiente (aunque todavía vacía).
+// Los datos (proyectos, tareas, etc.) y la presencia en tiempo real
+// se cargan después, sin bloquear el primer pintado — así el login
+// se siente inmediato en vez de esperar todas las llamadas en fila.
 async function loadUser(user) {
   currentUser = user;
   const { data: profile, error } = await db.from("profiles").select("*").eq("id", user.id).single();
@@ -395,15 +615,19 @@ async function loadUser(user) {
   showApp();
   updateUserInterface();
   setTodayLabel();
-  await loadAllData();
-  await setupPresence();
-  updateDashboard();
   const page = PAGES.includes(location.hash.replace("#", ""))
     ? location.hash.replace("#", "")
     : "dashboard";
   showPage(page, {
     pushHistory: false,
   });
+  await loadAllData();
+  updateDashboard();
+  // No se espera: el canal de presencia en tiempo real puede tardar
+  // en conectar y no debe retrasar el resto de la app.
+  setupPresence();
+  startAutoPriorityWatcher();
+  startLiveColorWatcher();
 }
 function updateUserInterface() {
   const name = currentProfile.name || "Usuario";
@@ -411,8 +635,8 @@ function updateUserInterface() {
   document.getElementById("sidebarRole").textContent = roleLabel(currentProfile.role);
   document.getElementById("topUser").textContent = name;
   document.getElementById("welcomeName").textContent = name;
-  document.getElementById("userAvatar").textContent = initials(name);
-  document.getElementById("topAvatar").textContent = initials(name);
+  document.getElementById("userAvatar").innerHTML = avatarMarkup(currentProfile);
+  document.getElementById("topAvatar").innerHTML = avatarMarkup(currentProfile);
   document.body.classList.toggle("can-manage", canManage(currentProfile));
 }
 function setTodayLabel() {
@@ -426,6 +650,104 @@ function setTodayLabel() {
     })
     .toUpperCase();
 }
+
+// =====================================================
+// FOTO DE PERFIL
+// =====================================================
+// Guardada como texto (data URL) en profiles.avatar_url — sin
+// depender de un bucket de Storage. La imagen se reduce a lo largo
+// máximo de AVATAR_MAX_DIMENSION px antes de subirse para que el
+// texto guardado sea liviano.
+function openAvatarPicker() {
+  avatarFileInput?.click();
+}
+function resizeImageToDataURL(file, maxSize, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error("No se pudo procesar la imagen."));
+      image.onload = () => {
+        let { width, height } = image;
+        if (width >= height && width > maxSize) {
+          height = Math.round((height * maxSize) / width);
+          width = maxSize;
+        } else if (height > maxSize) {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        context.drawImage(image, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function handleAvatarFileSelected(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) {
+    return;
+  }
+  if (!file.type.startsWith("image/")) {
+    showToast("Elige un archivo de imagen.");
+    return;
+  }
+  if (avatarUploadInFlight) {
+    return;
+  }
+  avatarUploadInFlight = true;
+  showToast("Subiendo foto...");
+  try {
+    const dataUrl = await resizeImageToDataURL(file, AVATAR_MAX_DIMENSION, AVATAR_JPEG_QUALITY);
+    const { error } = await db
+      .from("profiles")
+      .update({
+        avatar_url: dataUrl,
+      })
+      .eq("id", currentUser.id);
+    if (error) {
+      throw error;
+    }
+    currentProfile.avatar_url = dataUrl;
+    const profileIndex = profiles.findIndex((profile) => profile.id === currentUser.id);
+    if (profileIndex !== -1) {
+      profiles[profileIndex] = {
+        ...profiles[profileIndex],
+        avatar_url: dataUrl,
+      };
+    }
+    updateUserInterface();
+    renderTeam();
+    renderPresence();
+    if (selectedTeamProfile && selectedTeamProfile.id === currentUser.id) {
+      openTeamProfile(currentUser.id);
+    }
+    showToast("Foto de perfil actualizada.");
+  } catch (error) {
+    console.error("Error subiendo foto de perfil:", error);
+    showToast(error.message || "No se pudo subir la foto. Intenta con una imagen más liviana.");
+  } finally {
+    avatarUploadInFlight = false;
+  }
+}
+avatarFileInput?.addEventListener("change", handleAvatarFileSelected);
+function goToMyProfile() {
+  if (!currentProfile) {
+    return;
+  }
+  showPage("team");
+  openTeamProfile(currentProfile.id);
+}
+sidebarAvatarButton?.addEventListener("click", goToMyProfile);
+topAvatarButton?.addEventListener("click", goToMyProfile);
+
 // =====================================================
 // PRESENCE — SUPABASE REALTIME
 // =====================================================
@@ -537,13 +859,15 @@ function renderPresence() {
       .map((user) => {
         const name = user.name || "Usuario";
         const isCurrent = user.profile_id === currentUser?.id;
+        const matchedProfile = profiles.find((profile) => profile.id === user.profile_id);
         return `
             <div
               class="presence-user ${isCurrent ? "current" : ""}"
               title="${escapeHTML(name)} está conectado"
             >
-              ${escapeHTML(initials(name))}
-              <img class="presence-logo" src="./Recursos/Imagenes/Logotipo.png" alt="">
+              ${avatarMarkup(matchedProfile || {
+                name,
+              })}
             </div>
           `;
       })
@@ -559,13 +883,16 @@ function renderPresence() {
         `
       : "");
 }
+
 // =====================================================
 // LOGOUT
 // =====================================================
 logoutButton.addEventListener("click", async () => {
   stopPresence();
+  stopBackgroundWatchers();
   await db.auth.signOut();
 });
+
 // =====================================================
 // NAVEGACIÓN
 // =====================================================
@@ -657,6 +984,7 @@ function showPage(page, { pushHistory = true } = {}) {
     location.hash = page;
   }
 }
+
 // =====================================================
 // CARGAR DATOS
 // =====================================================
@@ -677,6 +1005,10 @@ async function loadAllData() {
       console.error("Error cargando módulo:", result.reason);
     }
   });
+  const priorityChanged = await autoAdjustPriorities();
+  if (priorityChanged) {
+    await loadTasks();
+  }
   renderProjects();
   renderTasks();
   renderRecurringTasks();
@@ -702,7 +1034,7 @@ async function loadTasks() {
   tasks = data || [];
 }
 async function loadProfiles() {
-  const { data, error } = await db.from("profiles").select("id,name,role").order("name");
+  const { data, error } = await db.from("profiles").select("id,name,role,avatar_url").order("name");
   if (error) {
     throw error;
   }
@@ -763,11 +1095,13 @@ async function loadOrganization() {
   organizationAreas = areasResult.data || [];
   responsibilities = responsibilitiesResult.data || [];
 }
+
 // =====================================================
 // PROJECT FILTERS
 // =====================================================
 document.getElementById("projectSearch").addEventListener("input", renderProjects);
 document.getElementById("projectFilter").addEventListener("change", renderProjects);
+
 // =====================================================
 // TASK FILTERS
 // =====================================================
@@ -775,6 +1109,7 @@ document.getElementById("taskSearch").addEventListener("input", renderTasks);
 document.getElementById("taskStatusFilter").addEventListener("change", renderTasks);
 document.getElementById("taskPriorityFilter").addEventListener("change", renderTasks);
 document.getElementById("taskProjectFilter").addEventListener("change", renderTasks);
+
 // =====================================================
 // RENDER PROJECTS
 // =====================================================
@@ -858,6 +1193,7 @@ function renderProjectCard(project) {
           ></div>
         </div>
       </div>
+      ${buildTimeProgressHTML(project)}
       ${assignedMembersHTML(members)}
       ${
         message.type === "warning"
@@ -932,6 +1268,7 @@ document.getElementById("projectsList").addEventListener("click", (event) => {
     deleteProject(deleteButton.dataset.projectDelete);
   }
 });
+
 // =====================================================
 // PROJECT DETAIL
 // =====================================================
@@ -1038,6 +1375,7 @@ function renderProjectDetail(project) {
           ></div>
         </div>
       </div>
+      ${buildTimeProgressHTML(project)}
       ${
         message.type === "warning"
           ? `
@@ -1070,7 +1408,7 @@ function renderProjectDetail(project) {
         <div class="section-header">
           <div>
             <p class="eyebrow">
-              CRONOGRAMA
+              CRONOGRAMA AUTOMÁTICO
             </p>
             <h3>
               Tareas
@@ -1138,6 +1476,9 @@ function renderProjectTask(task) {
     </div>
   `;
 }
+// Cronograma automático: distribuye cada tarea sobre la línea de
+// tiempo del proyecto, coloreada por urgencia (verde/naranja/rojo,
+// igual que las tarjetas), con una marca vertical de "HOY".
 function buildTimelineHTML(project, projectTasks) {
   const projectStart = dateOnly(project.start_date);
   const projectEnd = dateOnly(project.deadline);
@@ -1149,6 +1490,11 @@ function buildTimelineHTML(project, projectTasks) {
     `;
   }
   const total = projectEnd.getTime() - projectStart.getTime();
+  const today = startOfToday();
+  const todayPercent =
+    today >= projectStart && today <= projectEnd
+      ? ((today.getTime() - projectStart.getTime()) / total) * 100
+      : null;
   return `
     <div class="timeline">
       ${projectTasks
@@ -1167,6 +1513,11 @@ function buildTimelineHTML(project, projectTasks) {
                   </span>
                 </div>
                 <div class="timeline-bar-area">
+                  ${
+                    todayPercent !== null
+                      ? `<div class="timeline-today-marker" style="left:${todayPercent}%"></div>`
+                      : ""
+                  }
                 </div>
               </div>
             `;
@@ -1176,6 +1527,7 @@ function buildTimelineHTML(project, projectTasks) {
           left = Math.max(0, Math.min(100, left));
           right = Math.max(left + 2, Math.min(100, right));
           const width = right - left;
+          const barColor = urgencyColorVar(task.deadline, task.status);
           return `
             <div class="timeline-row">
               <div class="timeline-label">
@@ -1194,8 +1546,14 @@ function buildTimelineHTML(project, projectTasks) {
                   style="
                     left:${left}%;
                     width:${width}%;
+                    background:${barColor};
                   "
                 ></div>
+                ${
+                  todayPercent !== null
+                    ? `<div class="timeline-today-marker" style="left:${todayPercent}%"></div>`
+                    : ""
+                }
               </div>
             </div>
           `;
@@ -1204,6 +1562,7 @@ function buildTimelineHTML(project, projectTasks) {
     </div>
   `;
 }
+
 // =====================================================
 // PROJECT CREATE / EDIT
 // =====================================================
@@ -1306,6 +1665,7 @@ function editProject(projectId) {
   document.getElementById("projectStatus").value = project.status;
   openModal();
 }
+
 // =====================================================
 // PROJECT MEMBERS
 // =====================================================
@@ -1384,6 +1744,7 @@ async function syncProjectMembers(projectId, profileIds) {
     throw error;
   }
 }
+
 // =====================================================
 // SAVE PROJECT
 // =====================================================
@@ -1442,6 +1803,7 @@ async function saveProject() {
     showToast(error.message || "No se pudo guardar el proyecto.");
   }
 }
+
 // =====================================================
 // DELETE PROJECT
 // =====================================================
@@ -1471,6 +1833,7 @@ async function deleteProject(projectId) {
   renderTeam();
   updateDashboard();
 }
+
 // =====================================================
 // TASK PROJECT FILTER
 // =====================================================
@@ -1503,6 +1866,7 @@ function refreshTaskProjectFilter() {
     select.value = "all";
   }
 }
+
 // =====================================================
 // RENDER TASKS
 // =====================================================
@@ -1554,8 +1918,9 @@ function renderTaskCard(task) {
   const overdue = task.status !== "completed" && isPastDate(task.deadline);
   const occurrence = taskOccurrences.find((item) => item.task_id === task.id);
   const isSmartTask = Boolean(task.template_id || occurrence);
+  const urgencyClass = deadlineUrgencyClass(task.deadline, task.status);
   return `
-    <article class="task-row">
+    <article class="task-row ${urgencyClass}">
       <div class="card-top">
         <div>
           <div class="task-title">
@@ -1577,6 +1942,9 @@ function renderTaskCard(task) {
               `
               : ""
           }
+          <span class="badge ${escapeHTML(task.priority)}">
+            ${escapeHTML(PRIORITY_LABELS[task.priority] || task.priority)}
+          </span>
           <span class="badge ${escapeHTML(task.status)}">
             ${escapeHTML(TASK_STATUS_LABELS[task.status] || task.status)}
           </span>
@@ -1649,7 +2017,7 @@ function renderTaskCard(task) {
     </article>
   `;
 }
-document.getElementById("tasksPending").parentElement.parentElement;
+
 // =====================================================
 // TASK ACTION DELEGATION
 // =====================================================
@@ -1670,6 +2038,7 @@ document.getElementById("tasksPending").parentElement.parentElement;
     }
   });
 });
+
 // =====================================================
 // TASK FORM
 // =====================================================
@@ -1787,6 +2156,11 @@ function buildTaskForm(task = null) {
           Alta
         </option>
       </select>
+      <p class="assignment-help">
+        Si la dejas en "Alta" no se recalcula sola: la app respeta tu criterio.
+        En baja/media, la prioridad puede subir automáticamente si el deadline
+        se acerca.
+      </p>
     </div>
   `;
 }
@@ -1806,6 +2180,7 @@ function editTask(taskId) {
   document.getElementById("taskPriority").value = task.priority;
   openModal();
 }
+
 // =====================================================
 // TASK MEMBERS
 // =====================================================
@@ -1826,12 +2201,11 @@ async function syncTaskMembers(taskId, profileIds) {
     throw error;
   }
 }
+
 // =====================================================
 // SAVE TASK
 // =====================================================
 async function saveTask() {
-  // Guardamos esto antes de cerrar el modal,
-  // porque closeModalWindow() limpia editingTask.
   const wasEditing = Boolean(editingTask);
   const startDate = document.getElementById("taskStartDate").value || null;
   const deadline = document.getElementById("taskDeadline").value || null;
@@ -1857,25 +2231,15 @@ async function saveTask() {
     priority: document.getElementById("taskPriority").value,
   };
   let taskId = null;
-  // Nos sirve para saber si debemos
-  // eliminar una tarea recién creada
-  // si algo falla después.
   let createdTask = false;
   try {
-    // ================================
-    // EDITAR TAREA
-    // ================================
     if (wasEditing) {
       const { error } = await db.from("tasks").update(payload).eq("id", editingTask.id);
       if (error) {
         throw error;
       }
       taskId = editingTask.id;
-    }
-    // ================================
-    // CREAR TAREA
-    // ================================
-    else {
+    } else {
       const { data, error } = await db
         .from("tasks")
         .insert({
@@ -1890,13 +2254,7 @@ async function saveTask() {
       taskId = data.id;
       createdTask = true;
     }
-    // ================================
-    // GUARDAR RESPONSABLES
-    // ================================
     await syncTaskMembers(taskId, profileIds);
-    // ================================
-    // RECARGAR DATOS
-    // ================================
     await loadTasks();
     await loadTaskMembers();
     renderTasks();
@@ -1909,16 +2267,10 @@ async function saveTask() {
         renderProjectDetail(freshProject);
       }
     }
-    // ================================
-    // CERRAR SOLO CUANDO TODO SALIÓ BIEN
-    // ================================
     closeModalWindow();
     showToast(wasEditing ? "Tarea actualizada" : "Tarea creada");
   } catch (error) {
     console.error("Error guardando tarea:", error);
-    // Si era una tarea NUEVA y ya se creó,
-    // pero algo posterior falló, intentamos
-    // eliminarla para evitar duplicados.
     if (createdTask && taskId) {
       try {
         const { error: deleteError } = await db.from("tasks").delete().eq("id", taskId);
@@ -1932,6 +2284,7 @@ async function saveTask() {
     showToast(error.message || "No se pudo guardar la tarea.");
   }
 }
+
 // =====================================================
 // DELETE TASK
 // =====================================================
@@ -1960,6 +2313,7 @@ async function deleteTask(taskId) {
     renderProjectDetail(selectedProject);
   }
 }
+
 // =====================================================
 // TAREAS INTELIGENTES
 // =====================================================
@@ -2411,6 +2765,21 @@ function occurrenceProgressPercent(occurrence) {
   }
   return Math.min(100, Math.round((getOccurrenceActualValue(occurrence) / target) * 100));
 }
+// Responsables reales de una tarea inteligente: el asignado en la
+// plantilla, o si no lo hay, quien esté asignado a la tarea ya
+// generada hoy (por si se reasignó manualmente después).
+function getTemplateResponsibleIds(template) {
+  if (template?.assigned_profile_id) {
+    return [template.assigned_profile_id];
+  }
+  const occurrenceWithTask = getTemplateOccurrences(template?.id).find(
+    (occurrence) => occurrence.task_id,
+  );
+  const generatedTask = occurrenceWithTask
+    ? tasks.find((task) => task.id === occurrenceWithTask.task_id)
+    : null;
+  return generatedTask ? getTaskMemberIds(generatedTask) : [];
+}
 function renderRecurringTasks() {
   if (!recurringTasksList) {
     return;
@@ -2446,6 +2815,7 @@ function renderRecurringTaskCard(template) {
   const completedCount = occurrences.filter(
     (occurrence) => occurrence.status === "completed",
   ).length;
+  const timeStage = today ? getDayUrgencyStage() : "";
   return `
     <article class="smart-task-card">
       <div class="smart-task-card-top">
@@ -2499,7 +2869,7 @@ function renderRecurringTaskCard(template) {
         </div>
         <div class="progress-track">
           <div
-            class="progress-bar"
+            class="progress-bar ${timeStage}"
             style="width:${today ? percent : 0}%"
           ></div>
         </div>
@@ -2529,6 +2899,13 @@ function renderRecurringTaskCard(template) {
               >
                 Generar
               </button>
+              <button
+                class="smart-task-action danger-button"
+                type="button"
+                data-smart-delete="${template.id}"
+              >
+                Eliminar
+              </button>
             `
             : ""
         }
@@ -2540,14 +2917,17 @@ if (recurringTasksList) {
   recurringTasksList.addEventListener("click", (event) => {
     const generateButton = event.target.closest("[data-smart-generate]");
     const startCallButton = event.target.closest("[data-start-call-template]");
+    const deleteButton = event.target.closest("[data-smart-delete]");
     if (generateButton) {
-      const templateId = generateButton.dataset.smartGenerate;
-      prepareTemplateGeneration(templateId);
+      prepareTemplateGeneration(generateButton.dataset.smartGenerate);
       return;
     }
     if (startCallButton) {
-      const templateId = startCallButton.dataset.startCallTemplate;
-      openCallSessionForTemplate(templateId);
+      openCallSessionForTemplate(startCallButton.dataset.startCallTemplate);
+      return;
+    }
+    if (deleteButton) {
+      deleteSmartTemplate(deleteButton.dataset.smartDelete);
     }
   });
 }
@@ -2556,9 +2936,9 @@ async function prepareTemplateGeneration(templateId) {
   if (!template) {
     return;
   }
-  const profileIds = template.assigned_profile_id ? [template.assigned_profile_id] : [];
+  const profileIds = getTemplateResponsibleIds(template);
   if (!profileIds.length) {
-    showToast("Esta tarea inteligente no tiene responsable.");
+    showToast("Asigna un responsable a esta tarea inteligente antes de generar.");
     return;
   }
   try {
@@ -2576,6 +2956,58 @@ async function prepareTemplateGeneration(templateId) {
     showToast(error.message || "No se pudieron generar las tareas.");
   }
 }
+async function deleteSmartTemplate(templateId) {
+  const template = getTemplateById(templateId);
+  if (!template) {
+    return;
+  }
+  if (!confirm(`¿Eliminar la tarea inteligente "${template.title}" y sus tareas generadas?`)) {
+    return;
+  }
+  try {
+    const taskIds = tasks.filter((task) => task.template_id === templateId).map((task) => task.id);
+    if (taskIds.length) {
+      const { error: logsError } = await db.from("activity_logs").delete().in("task_id", taskIds);
+      if (logsError) {
+        throw logsError;
+      }
+      const { error: membersError } = await db.from("task_members").delete().in("task_id", taskIds);
+      if (membersError) {
+        throw membersError;
+      }
+    }
+    const { error: occurrencesError } = await db
+      .from("task_occurrences")
+      .delete()
+      .eq("template_id", templateId);
+    if (occurrencesError) {
+      throw occurrencesError;
+    }
+    if (taskIds.length) {
+      const { error: tasksError } = await db.from("tasks").delete().in("id", taskIds);
+      if (tasksError) {
+        throw tasksError;
+      }
+    }
+    const { error: templateError } = await db.from("task_templates").delete().eq("id", templateId);
+    if (templateError) {
+      throw templateError;
+    }
+    await loadTaskTemplates();
+    await loadTaskOccurrences();
+    await loadTasks();
+    await loadTaskMembers();
+    renderRecurringTasks();
+    renderTasks();
+    renderTeam();
+    updateDashboard();
+    showToast("Tarea inteligente eliminada.");
+  } catch (error) {
+    console.error("Error eliminando tarea inteligente:", error);
+    showToast(error.message || "No se pudo eliminar la tarea inteligente.");
+  }
+}
+
 // =====================================================
 // MODAL
 // =====================================================
@@ -2634,6 +3066,7 @@ modalForm.addEventListener("submit", async (event) => {
     }
   }
 });
+
 // =====================================================
 // LLAMADAS — SESIONES
 // =====================================================
@@ -2684,6 +3117,8 @@ function updateCallSessionUI() {
   }
   if (callProgressBar) {
     callProgressBar.style.width = `${percent}%`;
+    callProgressBar.classList.remove("time-green", "time-orange", "time-red");
+    callProgressBar.classList.add(getDayUrgencyStage());
   }
   const hasActiveSession = Boolean(currentCallSession);
   if (startCallSessionButton) {
@@ -2917,6 +3352,7 @@ async function saveCallActivity() {
     showToast(error.message || "No se pudo registrar la llamada.");
   }
 }
+
 // =====================================================
 // DASHBOARD
 // =====================================================
@@ -3098,6 +3534,7 @@ function renderDashboardTasks() {
     )
     .join("");
 }
+
 // =====================================================
 // EQUIPO
 // =====================================================
@@ -3127,7 +3564,7 @@ function renderTeam() {
           data-profile-id="${escapeHTML(profile.id)}"
         >
           <div class="avatar">
-            ${escapeHTML(initials(profile.name))}
+            ${avatarMarkup(profile)}
           </div>
           <div>
             <h3>
@@ -3159,6 +3596,7 @@ function openTeamProfile(profileId) {
     return;
   }
   selectedTeamProfile = profile;
+  const isOwnProfile = profile.id === currentUser?.id;
   const memberProjects = projects.filter((project) =>
     getProjectMemberIds(project.id).includes(profile.id),
   );
@@ -3173,8 +3611,25 @@ function openTeamProfile(profileId) {
   teamProfileContent.innerHTML = `
     <div class="team-profile-card">
       <div class="profile-hero">
-        <div class="avatar">
-          ${escapeHTML(initials(profile.name))}
+        <div class="profile-avatar-shell">
+          <div class="avatar">
+            ${avatarMarkup(profile)}
+          </div>
+          ${
+            isOwnProfile
+              ? `
+                <button
+                  type="button"
+                  class="avatar-edit-button"
+                  id="profileAvatarEditButton"
+                  aria-label="Cambiar foto de perfil"
+                  title="Cambiar foto"
+                >
+                  ✎
+                </button>
+              `
+              : ""
+          }
         </div>
         <div>
           <p class="eyebrow">
@@ -3186,6 +3641,15 @@ function openTeamProfile(profileId) {
           <p>
             ${escapeHTML(roleLabel(profile.role))}
           </p>
+          ${
+            isOwnProfile
+              ? `
+                <p class="assignment-help">
+                  Toca el lápiz para cambiar tu foto. Se importa desde tu galería.
+                </p>
+              `
+              : ""
+          }
         </div>
       </div>
       <div class="profile-stats">
@@ -3379,6 +3843,7 @@ function openTeamProfile(profileId) {
       </div>
     </div>
   `;
+  document.getElementById("profileAvatarEditButton")?.addEventListener("click", openAvatarPicker);
 }
 teamBackButton.addEventListener("click", showTeamOverview);
 function showTeamOverview() {
@@ -3387,6 +3852,7 @@ function showTeamOverview() {
   teamProfileView.classList.add("hidden");
   renderTeam();
 }
+
 // =====================================================
 // ORGANIZACIÓN
 // =====================================================
@@ -3512,98 +3978,8 @@ function renderOrganization() {
     })
     .join("");
 }
+
 // =====================================================
 // ARRANQUE
 // =====================================================
 checkSession();
-
-// =====================================================
-// CORRECCIONES ORBE V2 · PRESENCIA Y TAREAS INTELIGENTES
-// =====================================================
-function getTemplateResponsibleIds(template) {
-  if (template?.assigned_profile_id) {
-    return [template.assigned_profile_id];
-  }
-  const occurrenceWithTask = getTemplateOccurrences(template?.id).find(
-    (occurrence) => occurrence.task_id,
-  );
-  const generatedTask = occurrenceWithTask
-    ? tasks.find((task) => task.id === occurrenceWithTask.task_id)
-    : null;
-  return generatedTask ? getTaskMemberIds(generatedTask) : [];
-}
-
-const renderRecurringTaskCardOriginal = renderRecurringTaskCard;
-renderRecurringTaskCard = function renderRecurringTaskCardV2(template) {
-  const card = renderRecurringTaskCardOriginal(template);
-  if (!canManage(currentProfile)) {
-    return card;
-  }
-  return card.replace(
-    "      </div>\n    </article>",
-    `        <button class="smart-task-action danger-button" type="button" data-smart-delete="${template.id}">Eliminar</button>\n      </div>\n    </article>`,
-  );
-};
-
-prepareTemplateGeneration = async function prepareTemplateGenerationV2(templateId) {
-  const template = getTemplateById(templateId);
-  if (!template) return;
-  const profileIds = getTemplateResponsibleIds(template);
-  if (!profileIds.length) {
-    showToast("Asigna un responsable a esta tarea inteligente antes de generar.");
-    return;
-  }
-  try {
-    const generated = await generateOccurrencesForTemplate(template, profileIds);
-    await loadTaskOccurrences();
-    await loadTasks();
-    await loadTaskMembers();
-    renderRecurringTasks();
-    renderTasks();
-    renderTeam();
-    updateDashboard();
-    showToast(`Se generaron ${generated} tarea(s).`);
-  } catch (error) {
-    console.error(error);
-    showToast(error.message || "No se pudieron generar las tareas.");
-  }
-};
-
-async function deleteSmartTemplate(templateId) {
-  const template = getTemplateById(templateId);
-  if (!template || !confirm(`¿Eliminar la tarea inteligente “${template.title}” y sus tareas generadas?`)) return;
-  try {
-    const taskIds = tasks.filter((task) => task.template_id === templateId).map((task) => task.id);
-    if (taskIds.length) {
-      const { error: logsError } = await db.from("activity_logs").delete().in("task_id", taskIds);
-      if (logsError) throw logsError;
-      const { error: membersError } = await db.from("task_members").delete().in("task_id", taskIds);
-      if (membersError) throw membersError;
-    }
-    const { error: occurrencesError } = await db.from("task_occurrences").delete().eq("template_id", templateId);
-    if (occurrencesError) throw occurrencesError;
-    if (taskIds.length) {
-      const { error: tasksError } = await db.from("tasks").delete().in("id", taskIds);
-      if (tasksError) throw tasksError;
-    }
-    const { error: templateError } = await db.from("task_templates").delete().eq("id", templateId);
-    if (templateError) throw templateError;
-    await loadTaskTemplates();
-    await loadTaskOccurrences();
-    await loadTasks();
-    await loadTaskMembers();
-    renderRecurringTasks();
-    renderTasks();
-    renderTeam();
-    updateDashboard();
-    showToast("Tarea inteligente eliminada.");
-  } catch (error) {
-    console.error("Error eliminando tarea inteligente:", error);
-    showToast(error.message || "No se pudo eliminar la tarea inteligente.");
-  }
-}
-
-recurringTasksList?.addEventListener("click", (event) => {
-  const deleteButton = event.target.closest("[data-smart-delete]");
-  if (deleteButton) deleteSmartTemplate(deleteButton.dataset.smartDelete);
-});
