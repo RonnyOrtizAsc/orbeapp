@@ -3,11 +3,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const app = document.getElementById("app");
   const loginForm = document.getElementById("loginForm");
   const loginError = document.getElementById("loginError");
+
   const sidebar = document.getElementById("sidebar");
   const sidebarBackdrop = document.getElementById("sidebarBackdrop");
   const menuToggle = document.getElementById("menuToggle");
   const closeSidebar = document.getElementById("closeSidebar");
-  const backButton = document.getElementById("backButton");
   const logoutButton = document.getElementById("logoutButton");
 
   const modal = document.getElementById("modal");
@@ -17,7 +17,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalForm = document.getElementById("modalForm");
   const closeModal = document.getElementById("closeModal");
   const cancelModal = document.getElementById("cancelModal");
-
   const toast = document.getElementById("toast");
 
   const pageElements = {
@@ -38,33 +37,31 @@ document.addEventListener("DOMContentLoaded", () => {
   const sidebarRole = document.getElementById("sidebarRole");
   const topUser = document.getElementById("topUser");
   const welcomeName = document.getElementById("welcomeName");
-
   const profileImageInput = document.getElementById("profileImageInput");
+
+  const DEFAULT_PROFILE_IMAGE = "./Recursos/Imagenes/perfil-default.png";
 
   const state = {
     currentPage: "dashboard",
-    currentProjectId: null,
-    currentTeamProfileId: null,
     loggedIn: false,
+    currentProfileId: null,
+    session: {
+      active: false,
+      callsCompleted: 0,
+      totalCalls: 3
+    },
     user: {
+      id: "p1",
       name: "Raúl García",
       role: "Productor",
       initials: "RG"
-    },
-    session: {
-      active: false,
-      startedAt: null,
-      callsTotal: 3,
-      callsCompleted: 0
     }
   };
 
   const profiles = [
     { id: "p1", name: "Raúl García", role: "Productor", initials: "RG", status: "online" },
-    { id: "p2", name: "Lucía Ramos", role: "Director de Producción", initials: "LR", status: "online" },
-    { id: "p3", name: "Diego Ortega", role: "Coordinador", initials: "DO", status: "online" },
-    { id: "p4", name: "Marina Sol", role: "Asistente", initials: "MS", status: "away" },
-    { id: "p5", name: "Alex Torres", role: "Editor", initials: "AT", status: "online" }
+    { id: "p2", name: "Lucía Ramos", role: "Directora de Producción", initials: "LR", status: "online" },
+    { id: "p3", name: "Diego Ortega", role: "Coordinador", initials: "DO", status: "online" }
   ];
 
   const projects = [
@@ -72,7 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
       id: "pr1",
       name: "Cierzo",
       client: "Northlight",
-      description: "Producción documental de seguimiento en territorio rural y urbano.",
+      description: "Producción documental de seguimiento y territorio.",
       status: "active",
       deadline: "2026-09-15",
       startDate: "2026-08-01",
@@ -83,23 +80,23 @@ document.addEventListener("DOMContentLoaded", () => {
       id: "pr2",
       name: "Cuarta pared",
       client: "Aster Studio",
-      description: "Proyecto de ficción con rodaje paralelo y edición a la vez.",
+      description: "Proyecto de ficción con rodaje paralelo y edición simultánea.",
       status: "pending",
       deadline: "2026-09-28",
       startDate: "2026-08-15",
       progress: 34,
-      members: ["p2", "p4"]
+      members: ["p2", "p3"]
     },
     {
       id: "pr3",
       name: "Marea Alta",
       client: "Lumen Films",
-      description: "Serie de entrevistas y piezas de archivo con revisiones por parte del equipo creativo.",
+      description: "Serie documental con archivos y revisiones creativas.",
       status: "completed",
       deadline: "2026-08-27",
       startDate: "2026-07-10",
       progress: 100,
-      members: ["p1", "p5"]
+      members: ["p1", "p3"]
     }
   ];
 
@@ -112,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
       status: "in_progress",
       priority: "high",
       deadline: "2026-09-03",
-      assignedTo: "p5",
+      assignedTo: "p3",
       projectName: "Cierzo"
     },
     {
@@ -123,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
       status: "pending",
       priority: "medium",
       deadline: "2026-09-08",
-      assignedTo: "p3",
+      assignedTo: "p2",
       projectName: "Cuarta pared"
     },
     {
@@ -140,12 +137,12 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       id: "t4",
       title: "Control de batería",
-      description: "Revisión semanal del material de archivo y backup.",
+      description: "Revisión semanal del material y backup.",
       projectId: null,
       status: "pending",
       priority: "medium",
       deadline: "2026-09-12",
-      assignedTo: "p4",
+      assignedTo: "p2",
       projectName: "Sin proyecto"
     }
   ];
@@ -173,7 +170,7 @@ document.addEventListener("DOMContentLoaded", () => {
       unit: "entregables",
       progress: 100,
       status: "completed",
-      assignedTo: "p4"
+      assignedTo: "p2"
     }
   ];
 
@@ -184,39 +181,39 @@ document.addEventListener("DOMContentLoaded", () => {
       description: "Planificación, coordinación y ejecución general.",
       responsibilities: [
         {
-          id: "rA",
+          id: "ra1",
           name: "Planificación general",
           description: "Control de cronogramas, presupuestos y alcance.",
           primary: "p1",
           backups: ["p2"]
         },
         {
-          id: "rB",
+          id: "ra2",
           name: "Coordinación de rodaje",
           description: "Organización del equipo y materiales en el set.",
           primary: "p3",
-          backups: ["p4"]
+          backups: ["p2"]
         }
       ]
     },
     {
       id: "a2",
       name: "Postproducción",
-      description: "Montaje, edición y entrega de materiales.",
+      description: "Montaje, edición y entrega final.",
       responsibilities: [
         {
-          id: "rC",
+          id: "ra3",
           name: "Edición principal",
           description: "Seguimiento del montaje y revisión de secuencias.",
-          primary: "p5",
-          backups: ["p2"]
+          primary: "p3",
+          backups: ["p1"]
         }
       ]
     }
   ];
 
-  function showToast(text) {
-    toast.textContent = text;
+  function showToast(message) {
+    toast.textContent = message;
     toast.classList.add("show");
     clearTimeout(showToast.timeoutId);
     showToast.timeoutId = setTimeout(() => {
@@ -224,10 +221,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 2200);
   }
 
-  function setLoggedInState(isLoggedIn) {
-    state.loggedIn = isLoggedIn;
+  function setLoggedInState(value) {
+    state.loggedIn = value;
 
-    if (isLoggedIn) {
+    if (value) {
       loginScreen.classList.add("hidden");
       app.classList.remove("hidden");
     } else {
@@ -246,6 +243,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return projects.find((project) => project.id === id) || null;
   }
 
+  function getProfileImage(profileId) {
+    const saved = localStorage.getItem(`orbeProfileImage:${profileId}`);
+    return saved || DEFAULT_PROFILE_IMAGE;
+  }
+
   function getInitials(name) {
     return name
       .split(" ")
@@ -255,148 +257,57 @@ document.addEventListener("DOMContentLoaded", () => {
       .join("");
   }
 
-  function formatDate(dateValue) {
-    if (!dateValue) return "Sin fecha";
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return dateValue;
-    return new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  function formatDate(value) {
+    if (!value) return "Sin fecha";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    }).format(date);
   }
 
-  function formatShortDate(dateValue) {
-    if (!dateValue) return "Sin fecha";
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return dateValue;
-    return new Intl.DateTimeFormat("es-ES", { day: "2-digit", month: "short" }).format(date);
-  }
-
-  function getPageConfig(page) {
-    const config = {
-      dashboard: {
-        eyebrow: "ORBE WORKSPACE",
-        title: "Dashboard",
-        subtitle: "Resumen de producción"
-      },
-      projects: {
-        eyebrow: "PRODUCCIÓN",
-        title: "Proyectos",
-        subtitle: "Producciones completas de Orbe."
-      },
-      tasks: {
-        eyebrow: "PRODUCCIÓN",
-        title: "Tareas",
-        subtitle: "Todo lo que hay que hacer."
-      },
-      team: {
-        eyebrow: "ORBE",
-        title: "Equipo",
-        subtitle: "Las personas detrás de cada producción."
-      },
-      organization: {
-        eyebrow: "ORBE",
-        title: "Organización",
-        subtitle: "Áreas, responsabilidades y personas encargadas."
-      }
-    };
-
-    return config[page] || config.dashboard;
-  }
-
-  function showPage(page) {
-    state.currentPage = page;
-
-    Object.entries(pageElements).forEach(([key, element]) => {
-      element.classList.toggle("hidden", key !== page);
-    });
-
-    const config = getPageConfig(page);
-    pageEyebrow.textContent = config.eyebrow;
-    pageTitle.textContent = config.title;
-    pageSubtitle.textContent = config.subtitle;
-
-    document.querySelectorAll(".nav-item").forEach((button) => {
-      const isActive = button.dataset.page === page;
-      button.classList.toggle("active", isActive);
-    });
-
-    if (page !== "projects") {
-      const projectDetail = document.getElementById("projectDetail");
-      projectDetail.classList.add("hidden");
-    }
-
-    if (page !== "team") {
-      const teamOverview = document.getElementById("teamOverview");
-      const teamProfileView = document.getElementById("teamProfileView");
-      teamOverview.classList.remove("hidden");
-      teamProfileView.classList.add("hidden");
-    }
-
-    if (page === "dashboard") {
-      renderDashboard();
-    } else if (page === "projects") {
-      renderProjects();
-    } else if (page === "tasks") {
-      renderTasks();
-    } else if (page === "team") {
-      renderTeam();
-    } else if (page === "organization") {
-      renderOrganization();
-    }
-
-    if (window.innerWidth <= 880) {
-      sidebar.classList.remove("open");
-      sidebarBackdrop.classList.remove("show");
-    }
+  function formatShortDate(value) {
+    if (!value) return "Sin fecha";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "short"
+    }).format(date);
   }
 
   function renderUserHeader() {
-    const initials = getInitials(state.user.name);
     sidebarUser.textContent = state.user.name;
     sidebarRole.textContent = state.user.role;
     topUser.textContent = state.user.name;
     welcomeName.textContent = state.user.name.split(" ")[0];
 
-    const profileImage = localStorage.getItem("orbeProfileImage") || "./Recursos/Imagenes/perfil-default.png";
+    const userImage = getProfileImage(state.user.id);
 
-    const avatarMarkup = `
-      <img src="${profileImage}" alt="Foto del perfil">
-    `;
-
-    userAvatar.innerHTML = avatarMarkup;
-    topAvatar.innerHTML = avatarMarkup;
+    userAvatar.innerHTML = `<img src="${userImage}" alt="Perfil">`;
+    topAvatar.innerHTML = `<img src="${userImage}" alt="Perfil">`;
   }
 
   function renderPresence() {
     const strip = document.getElementById("presenceStrip");
-    const visibleProfiles = profiles.slice(0, 4);
-    const extraCount = Math.max(0, profiles.length - visibleProfiles.length);
-
     strip.innerHTML = "";
 
-    visibleProfiles.forEach((profile) => {
+    profiles.forEach((profile) => {
       const item = document.createElement("div");
       item.className = "presence-user current";
       item.title = profile.name;
       item.textContent = profile.initials;
       strip.appendChild(item);
     });
-
-    if (extraCount > 0) {
-      const overflow = document.createElement("span");
-      overflow.className = "presence-overflow";
-      overflow.textContent = `+${extraCount}`;
-      strip.appendChild(overflow);
-    }
   }
 
   function renderDashboard() {
-    const activeProjects = projects.filter((project) => project.status === "active").length;
-    const pendingProjects = projects.filter((project) => project.status === "pending").length;
-    const completedProjects = projects.filter((project) => project.status === "completed").length;
-
     document.getElementById("statProjects").textContent = projects.length;
-    document.getElementById("statActive").textContent = activeProjects;
-    document.getElementById("statPending").textContent = pendingProjects;
-    document.getElementById("statCompleted").textContent = completedProjects;
+    document.getElementById("statActive").textContent = projects.filter((p) => p.status === "active").length;
+    document.getElementById("statPending").textContent = projects.filter((p) => p.status === "pending").length;
+    document.getElementById("statCompleted").textContent = projects.filter((p) => p.status === "completed").length;
 
     const dashboardProjects = document.getElementById("dashboardProjects");
     dashboardProjects.innerHTML = projects.slice(0, 3).map((project) => `
@@ -407,12 +318,18 @@ document.addEventListener("DOMContentLoaded", () => {
     `).join("");
 
     const dashboardAlerts = document.getElementById("dashboardAlerts");
-    const alerts = [
-      { type: "warning", title: "Revisión de producción", text: "Quedan 3 tareas pendientes antes del cierre del proyecto Cierzo." },
-      { type: "danger", title: "Entrega próxima", text: "Marea Alta necesita aprobación final antes del 27 de agosto." }
-    ];
-
-    dashboardAlerts.innerHTML = alerts.map((alert) => `
+    dashboardAlerts.innerHTML = [
+      {
+        type: "warning",
+        title: "Revisión de producción",
+        text: "Quedan 3 tareas pendientes antes del cierre del proyecto Cierzo."
+      },
+      {
+        type: "danger",
+        title: "Entrega próxima",
+        text: "Marea Alta necesita aprobación final antes del 27 de agosto."
+      }
+    ].map((alert) => `
       <div class="dashboard-alert">
         <span class="alert-dot ${alert.type === "danger" ? "danger" : ""}"></span>
         <div>
@@ -437,28 +354,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderProjects() {
-    const projectsList = document.getElementById("projectsList");
-    const projectSearch = document.getElementById("projectSearch");
-    const projectFilter = document.getElementById("projectFilter");
-
-    const query = projectSearch.value.trim().toLowerCase();
-    const statusFilter = projectFilter.value;
+    const search = document.getElementById("projectSearch").value.trim().toLowerCase();
+    const filter = document.getElementById("projectFilter").value;
+    const list = document.getElementById("projectsList");
 
     let filtered = [...projects];
 
-    if (query) {
+    if (search) {
       filtered = filtered.filter((project) =>
-        project.name.toLowerCase().includes(query) ||
-        project.client.toLowerCase().includes(query)
+        project.name.toLowerCase().includes(search) ||
+        project.client.toLowerCase().includes(search)
       );
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter((project) => project.status === statusFilter);
+    if (filter !== "all") {
+      filtered = filtered.filter((project) => project.status === filter);
     }
 
     if (!filtered.length) {
-      projectsList.innerHTML = `
+      list.innerHTML = `
         <div class="panel">
           <h3>No hay proyectos</h3>
           <p>No se encontraron resultados con este filtro.</p>
@@ -467,9 +381,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    projectsList.innerHTML = filtered.map((project) => {
-      const overdue = project.status !== "completed" && new Date(project.deadline) < new Date();
+    list.innerHTML = filtered.map((project) => {
       const members = project.members.map((id) => getProfileById(id)).filter(Boolean);
+      const overdue = project.status !== "completed" && new Date(project.deadline) < new Date();
 
       return `
         <article class="project-card">
@@ -525,20 +439,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const project = getProjectById(projectId);
     if (!project) return;
 
-    state.currentProjectId = projectId;
+    const container = document.getElementById("projectDetail");
+    const content = document.getElementById("projectDetailContent");
 
-    const projectDetail = document.getElementById("projectDetail");
-    const projectDetailContent = document.getElementById("projectDetailContent");
     const members = project.members.map((id) => getProfileById(id)).filter(Boolean);
 
-    projectDetail.classList.remove("hidden");
+    container.classList.remove("hidden");
 
-    const relatedTasks = tasks.filter((task) => task.projectId === project.id);
-    const totalProgress = relatedTasks.length
-      ? Math.round(relatedTasks.filter((task) => task.status === "completed").length / relatedTasks.length * 100)
-      : project.progress;
-
-    projectDetailContent.innerHTML = `
+    content.innerHTML = `
       <div class="project-detail-header">
         <div class="project-detail-title-row">
           <div class="project-detail-title">
@@ -546,7 +454,6 @@ document.addEventListener("DOMContentLoaded", () => {
             <h1>${project.name}</h1>
             <p>${project.client}</p>
           </div>
-
           <span class="badge ${project.status}">${project.status === "active" ? "En producción" : project.status === "pending" ? "Pendiente" : "Completado"}</span>
         </div>
 
@@ -607,45 +514,35 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="assigned-members">
             ${members.length ? members.map((member) => `<span class="member-chip">${member.name}</span>`).join("") : '<span class="no-members">Sin miembros</span>'}
           </div>
-
-          <div class="project-detail-description" style="margin-top: 18px;">
-            <p style="color: var(--muted); font-size: 12px; line-height: 1.6;">
-              ${relatedTasks.length} tareas vinculadas a este proyecto.
-            </p>
-          </div>
         </div>
       </div>
     `;
 
     document.getElementById("projectDetailBack").addEventListener("click", () => {
-      projectDetail.classList.add("hidden");
+      container.classList.add("hidden");
     });
   }
 
   function renderTasks() {
-    const search = document.getElementById("taskSearch");
-    const statusFilter = document.getElementById("taskStatusFilter");
-    const priorityFilter = document.getElementById("taskPriorityFilter");
-    const projectFilter = document.getElementById("taskProjectFilter");
-
-    const taskProjectSelect = document.getElementById("taskProjectFilter");
-    taskProjectSelect.innerHTML = `
-      <option value="all">Todos los proyectos</option>
-      <option value="none">Sin proyecto</option>
-      ${projects.map((project) => `<option value="${project.id}">${project.name}</option>`).join("")}
-    `;
+    const search = document.getElementById("taskSearch").value.trim().toLowerCase();
+    const statusFilter = document.getElementById("taskStatusFilter").value;
+    const priorityFilter = document.getElementById("taskPriorityFilter").value;
+    const projectFilter = document.getElementById("taskProjectFilter").value;
 
     const filtered = tasks.filter((task) => {
-      const term = search.value.trim().toLowerCase();
-      const matchesTerm = !term || task.title.toLowerCase().includes(term) || task.description.toLowerCase().includes(term);
-      const matchesStatus = statusFilter.value === "all" || task.status === statusFilter.value;
-      const matchesPriority = priorityFilter.value === "all" || task.priority === priorityFilter.value;
-      const matchesProject =
-        projectFilter.value === "all" ||
-        (projectFilter.value === "none" && !task.projectId) ||
-        task.projectId === projectFilter.value;
+      const termMatch =
+        !search ||
+        task.title.toLowerCase().includes(search) ||
+        task.description.toLowerCase().includes(search);
 
-      return matchesTerm && matchesStatus && matchesPriority && matchesProject;
+      const statusMatch = statusFilter === "all" || task.status === statusFilter;
+      const priorityMatch = priorityFilter === "all" || task.priority === priorityFilter;
+      const projectMatch =
+        projectFilter === "all" ||
+        (projectFilter === "none" && !task.projectId) ||
+        task.projectId === projectFilter;
+
+      return termMatch && statusMatch && priorityMatch && projectMatch;
     });
 
     const columns = {
@@ -658,8 +555,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("progressCount").textContent = columns.in_progress.length;
     document.getElementById("completedCount").textContent = columns.completed.length;
 
-    const renderColumn = (items, columnId) => {
-      const container = document.getElementById(columnId);
+    const renderColumn = (items, containerId) => {
+      const container = document.getElementById(containerId);
+
       if (!items.length) {
         container.innerHTML = `<div class="panel"><p>No hay tareas aquí.</p></div>`;
         return;
@@ -697,16 +595,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderRecurringTasks() {
     const list = document.getElementById("recurringTasksList");
-
-    if (!recurringTasks.length) {
-      list.innerHTML = `
-        <div class="smart-task-empty">
-          <h4>No hay tareas inteligentes</h4>
-          <p>Crea una nueva tarea recurrente para empezar a automatizar el trabajo.</p>
-        </div>
-      `;
-      return;
-    }
 
     list.innerHTML = recurringTasks.map((task) => {
       const assigned = getProfileById(task.assignedTo);
@@ -751,108 +639,143 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function renderTeam() {
-    const teamList = document.getElementById("teamList");
-    const overview = document.getElementById("teamOverview");
-    const teamProfileView = document.getElementById("teamProfileView");
-    const teamProfileContent = document.getElementById("teamProfileContent");
+    const list = document.getElementById("teamList");
 
-    teamList.innerHTML = profiles.map((profile) => `
-      <button class="team-card" data-profile-id="${profile.id}" type="button">
-        <div class="avatar">${profile.initials}</div>
-        <div>
-          <h3>${profile.name}</h3>
-          <p>${profile.role}</p>
-        </div>
-      </button>
-    `).join("");
+    list.innerHTML = profiles.map((profile) => {
+      const image = getProfileImage(profile.id);
 
-    teamList.querySelectorAll("[data-profile-id]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const id = button.dataset.profileId;
-        const profile = getProfileById(id);
-        if (!profile) return;
-
-        overview.classList.add("hidden");
-        teamProfileView.classList.remove("hidden");
-
-        const profileProjects = projects.filter((project) => project.members.includes(profile.id));
-        const profileTasks = tasks.filter((task) => task.assignedTo === profile.id);
-
-        teamProfileContent.innerHTML = `
-          <div class="team-profile-card">
-            <div class="profile-hero">
-              <div class="avatar">${profile.initials}</div>
-              <div>
-                <p class="eyebrow">PERSONA</p>
-                <h1>${profile.name}</h1>
-                <p>${profile.role}</p>
-              </div>
-            </div>
-
-            <div class="profile-stats">
-              <div class="stat">
-                <span>Proyectos</span>
-                <strong>${profileProjects.length}</strong>
-              </div>
-              <div class="stat">
-                <span>Tareas</span>
-                <strong>${profileTasks.length}</strong>
-              </div>
-              <div class="stat">
-                <span>Estado</span>
-                <strong>${profile.status === "online" ? "Online" : "Away"}</strong>
-              </div>
-            </div>
-
-            <div class="profile-section">
-              <div class="profile-section-header">
-                <h3>Proyectos</h3>
-              </div>
-              <div class="member-project-list">
-                ${profileProjects.length ? profileProjects.map((project) => `
-                  <div class="member-project-item">
-                    <strong>${project.name}</strong>
-                  </div>
-                `).join("") : '<div class="profile-empty">Sin proyectos asignados</div>'}
-              </div>
-            </div>
-
-            <div class="profile-section">
-              <div class="profile-section-header">
-                <h3>Tareas</h3>
-              </div>
-              <div class="member-task-list">
-                ${profileTasks.length ? profileTasks.map((task) => `
-                  <div class="member-task-item">
-                    <strong>${task.title}</strong>
-                    <p>${task.status === "completed" ? "Completada" : task.status === "in_progress" ? "En progreso" : "Pendiente"}</p>
-                  </div>
-                `).join("") : '<div class="profile-empty">Sin tareas asignadas</div>'}
-              </div>
-            </div>
+      return `
+        <button class="team-card" data-profile-id="${profile.id}" type="button">
+          <div class="avatar">
+            <img src="${image}" alt="${profile.name}" />
           </div>
-        `;
+          <div>
+            <h3>${profile.name}</h3>
+            <p>${profile.role}</p>
+          </div>
+        </button>
+      `;
+    }).join("");
 
-        document.getElementById("teamBackButton").addEventListener("click", () => {
-          overview.classList.remove("hidden");
-          teamProfileView.classList.add("hidden");
-        });
+    list.querySelectorAll("[data-profile-id]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const profileId = button.dataset.profileId;
+        openProfileView(profileId);
       });
     });
   }
 
+  function openProfileView(profileId) {
+    const profile = getProfileById(profileId);
+    if (!profile) return;
+
+    state.currentProfileId = profileId;
+
+    const overview = document.getElementById("teamOverview");
+    const profileView = document.getElementById("teamProfileView");
+    const content = document.getElementById("teamProfileContent");
+
+    overview.classList.add("hidden");
+    profileView.classList.remove("hidden");
+
+    const profileProjects = projects.filter((project) => project.members.includes(profile.id));
+    const profileTasks = tasks.filter((task) => task.assignedTo === profile.id);
+    const image = getProfileImage(profile.id);
+
+    content.innerHTML = `
+      <div class="team-profile-card">
+        <div class="profile-hero">
+          <div class="avatar">
+            <img src="${image}" alt="${profile.name}" />
+          </div>
+          <div>
+            <p class="eyebrow">PERSONA</p>
+            <h1>${profile.name}</h1>
+            <p>${profile.role}</p>
+          </div>
+        </div>
+
+        <div class="profile-stats">
+          <div class="stat">
+            <span>Proyectos</span>
+            <strong>${profileProjects.length}</strong>
+          </div>
+          <div class="stat">
+            <span>Tareas</span>
+            <strong>${profileTasks.length}</strong>
+          </div>
+          <div class="stat">
+            <span>Estado</span>
+            <strong>${profile.status === "online" ? "Online" : "Away"}</strong>
+          </div>
+        </div>
+
+        <div class="profile-upload">
+          <label for="teamProfilePicker" class="button button-light">Elegir foto</label>
+          <input id="teamProfilePicker" type="file" accept="image/*" />
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-section-header">
+            <h3>Proyectos</h3>
+          </div>
+          <div class="member-project-list">
+            ${profileProjects.length ? profileProjects.map((project) => `
+              <div class="member-project-item">
+                <strong>${project.name}</strong>
+              </div>
+            `).join("") : '<div class="profile-empty">Sin proyectos asignados</div>'}
+          </div>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-section-header">
+            <h3>Tareas</h3>
+          </div>
+          <div class="member-task-list">
+            ${profileTasks.length ? profileTasks.map((task) => `
+              <div class="member-task-item">
+                <strong>${task.title}</strong>
+                <p>${task.status === "completed" ? "Completada" : task.status === "in_progress" ? "En progreso" : "Pendiente"}</p>
+              </div>
+            `).join("") : '<div class="profile-empty">Sin tareas asignadas</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("teamBackButton").addEventListener("click", () => {
+      overview.classList.remove("hidden");
+      profileView.classList.add("hidden");
+    });
+
+    const fileInput = document.getElementById("teamProfilePicker");
+    fileInput.addEventListener("change", handleProfileImageUpload);
+  }
+
+  function handleProfileImageUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const profileId = state.currentProfileId || state.user.id;
+
+      localStorage.setItem(`orbeProfileImage:${profileId}`, dataUrl);
+
+      renderTeam();
+      if (profileId === state.user.id) {
+        renderUserHeader();
+      }
+
+      showToast("Foto guardada");
+    };
+    reader.readAsDataURL(file);
+  }
+
   function renderOrganization() {
     const container = document.getElementById("organizationChart");
-
-    if (!organizationAreas.length) {
-      container.innerHTML = `
-        <div class="organization-empty">
-          <h3>No hay áreas configuradas</h3>
-          <p>Aún no se han añadido responsabilidades a la organización.</p>
-        </div>
-      `;
-      return;
-    }
 
     container.innerHTML = organizationAreas.map((area) => `
       <div class="organization-area">
@@ -900,41 +823,44 @@ document.addEventListener("DOMContentLoaded", () => {
     `).join("");
   }
 
-  function bindNavigation() {
+  function showPage(page) {
+    state.currentPage = page;
+
+    Object.entries(pageElements).forEach(([key, element]) => {
+      element.classList.toggle("hidden", key !== page);
+    });
+
+    const pageConfig = {
+      dashboard: ["ORBE WORKSPACE", "Dashboard", "Resumen de producción"],
+      projects: ["PRODUCCIÓN", "Proyectos", "Producciones completas de Orbe."],
+      tasks: ["PRODUCCIÓN", "Tareas", "Todo lo que hay que hacer."],
+      team: ["ORBE", "Equipo", "Las personas detrás de cada producción."],
+      organization: ["ORBE", "Organización", "Áreas, responsabilidades y personas encargadas."]
+    };
+
+    const [eyebrow, title, subtitle] = pageConfig[page];
+    pageEyebrow.textContent = eyebrow;
+    pageTitle.textContent = title;
+    pageSubtitle.textContent = subtitle;
+
     document.querySelectorAll(".nav-item").forEach((button) => {
-      button.addEventListener("click", () => {
-        const page = button.dataset.page;
-        showPage(page);
-      });
+      button.classList.toggle("active", button.dataset.page === page);
     });
 
-    document.querySelectorAll("[data-page-link]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const page = button.dataset.pageLink;
-        showPage(page);
-      });
-    });
+    if (page === "dashboard") renderDashboard();
+    if (page === "projects") renderProjects();
+    if (page === "tasks") renderTasks();
+    if (page === "team") renderTeam();
+    if (page === "organization") renderOrganization();
 
-    menuToggle.addEventListener("click", () => {
-      sidebar.classList.toggle("open");
-      sidebarBackdrop.classList.toggle("show");
-      menuToggle.setAttribute("aria-expanded", sidebar.classList.contains("open"));
-    });
-
-    closeSidebar.addEventListener("click", () => {
+    if (window.innerWidth <= 880) {
       sidebar.classList.remove("open");
       sidebarBackdrop.classList.remove("show");
-      menuToggle.setAttribute("aria-expanded", "false");
-    });
-
-    sidebarBackdrop.addEventListener("click", () => {
-      sidebar.classList.remove("open");
-      sidebarBackdrop.classList.remove("show");
-      menuToggle.setAttribute("aria-expanded", "false");
-    });
+    }
   }
 
-  function openModal(type, data = {}) {
+  function openModal(type) {
+    modal.dataset.type = type;
     modal.classList.remove("hidden");
 
     if (type === "project") {
@@ -1065,10 +991,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const formData = new FormData(modalForm);
     const entries = Object.fromEntries(formData.entries());
+    const type = modal.dataset.type;
 
-    const modalType = modal.dataset.type;
-
-    if (modalType === "project") {
+    if (type === "project") {
       const newProject = {
         id: `pr${Date.now()}`,
         name: entries.name,
@@ -1078,16 +1003,16 @@ document.addEventListener("DOMContentLoaded", () => {
         startDate: entries.startDate || new Date().toISOString().slice(0, 10),
         deadline: entries.deadline || new Date(Date.now() + 86400000 * 30).toISOString().slice(0, 10),
         progress: 0,
-        members: [state.user.id || "p1"]
+        members: [state.user.id]
       };
 
       projects.unshift(newProject);
-      showToast("Proyecto creado");
       closeModalDialog();
+      showToast("Proyecto creado");
       showPage("projects");
     }
 
-    if (modalType === "task") {
+    if (type === "task") {
       const newTask = {
         id: `t${Date.now()}`,
         title: entries.title,
@@ -1101,13 +1026,13 @@ document.addEventListener("DOMContentLoaded", () => {
       };
 
       tasks.unshift(newTask);
-      showToast("Tarea creada");
       closeModalDialog();
+      showToast("Tarea creada");
       showPage("tasks");
     }
 
-    if (modalType === "recurringTask") {
-      const newTask = {
+    if (type === "recurringTask") {
+      recurringTasks.unshift({
         id: `r${Date.now()}`,
         title: entries.title,
         subtitle: entries.description || "Tarea inteligente",
@@ -1118,32 +1043,17 @@ document.addEventListener("DOMContentLoaded", () => {
         progress: 0,
         status: "active",
         assignedTo: entries.assignedTo || "p3"
-      };
+      });
 
-      recurringTasks.unshift(newTask);
-      showToast("Tarea inteligente creada");
       closeModalDialog();
       renderRecurringTasks();
+      showToast("Tarea inteligente creada");
     }
   });
 
-  closeModal.addEventListener("click", closeModalDialog);
-  cancelModal.addEventListener("click", closeModalDialog);
-
-  document.getElementById("newProjectButton").addEventListener("click", () => {
-    modal.dataset.type = "project";
-    openModal("project");
-  });
-
-  document.getElementById("newTaskButton").addEventListener("click", () => {
-    modal.dataset.type = "task";
-    openModal("task");
-  });
-
-  document.getElementById("newRecurringTaskButton").addEventListener("click", () => {
-    modal.dataset.type = "recurringTask";
-    openModal("recurringTask");
-  });
+  document.getElementById("newProjectButton").addEventListener("click", () => openModal("project"));
+  document.getElementById("newTaskButton").addEventListener("click", () => openModal("task"));
+  document.getElementById("newRecurringTaskButton").addEventListener("click", () => openModal("recurringTask"));
 
   document.getElementById("projectSearch").addEventListener("input", renderProjects);
   document.getElementById("projectFilter").addEventListener("change", renderProjects);
@@ -1152,6 +1062,40 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("taskStatusFilter").addEventListener("change", renderTasks);
   document.getElementById("taskPriorityFilter").addEventListener("change", renderTasks);
   document.getElementById("taskProjectFilter").addEventListener("change", renderTasks);
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeModalDialog();
+  });
+
+  closeModal.addEventListener("click", closeModalDialog);
+  cancelModal.addEventListener("click", closeModalDialog);
+
+  document.querySelectorAll(".nav-item").forEach((button) => {
+    button.addEventListener("click", () => {
+      showPage(button.dataset.page);
+    });
+  });
+
+  document.querySelectorAll("[data-page-link]").forEach((button) => {
+    button.addEventListener("click", () => {
+      showPage(button.dataset.pageLink);
+    });
+  });
+
+  menuToggle.addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+    sidebarBackdrop.classList.toggle("show");
+  });
+
+  closeSidebar.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    sidebarBackdrop.classList.remove("show");
+  });
+
+  sidebarBackdrop.addEventListener("click", () => {
+    sidebar.classList.remove("open");
+    sidebarBackdrop.classList.remove("show");
+  });
 
   loginForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1164,13 +1108,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    state.user = {
-      ...state.user,
-      name: "Raúl García",
-      role: "Productor",
-      email
-    };
-
+    state.user = { ...state.user, name: "Raúl García", role: "Productor" };
     loginError.textContent = "";
     setLoggedInState(true);
     renderUserHeader();
@@ -1187,94 +1125,58 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast("Sesión cerrada");
   });
 
-  function bindProfileImage() {
-    const defaultImage = "./Recursos/Imagenes/perfil-default.png";
-    const savedImage = localStorage.getItem("orbeProfileImage") || defaultImage;
+  profileImageInput.addEventListener("change", (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const applyAvatar = (src) => {
-      const finalSrc = src || defaultImage;
-      userAvatar.innerHTML = `<img src="${finalSrc}" alt="Perfil">`;
-      topAvatar.innerHTML = `<img src="${finalSrc}" alt="Perfil">`;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      localStorage.setItem(`orbeProfileImage:${state.user.id}`, dataUrl);
+      renderUserHeader();
+      showToast("Foto de perfil guardada");
     };
+    reader.readAsDataURL(file);
+  });
 
-    applyAvatar(savedImage);
+  document.getElementById("startCallSessionButton").addEventListener("click", () => {
+    state.session.active = true;
+    document.getElementById("callSessionStatus").textContent = "Sesión iniciada";
+    document.getElementById("startCallSessionButton").classList.add("hidden");
+    document.getElementById("endCallSessionButton").classList.remove("hidden");
+    document.getElementById("registerCallButton").classList.remove("hidden");
+  });
 
-    if (profileImageInput) {
-      profileImageInput.addEventListener("change", (event) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+  document.getElementById("endCallSessionButton").addEventListener("click", () => {
+    state.session.active = false;
+    document.getElementById("callSessionStatus").textContent = "Sesión finalizada";
+    document.getElementById("startCallSessionButton").classList.remove("hidden");
+    document.getElementById("endCallSessionButton").classList.add("hidden");
+  });
 
-        if (!file.type.startsWith("image/")) {
-          showToast("Selecciona una imagen válida.");
-          return;
-        }
+  document.getElementById("registerCallButton").addEventListener("click", () => {
+    if (!state.session.active) return;
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const dataUrl = e.target.result;
-          localStorage.setItem("orbeProfileImage", dataUrl);
-          applyAvatar(dataUrl);
-          showToast("Foto de perfil guardada.");
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  }
+    state.session.callsCompleted += 1;
+    const total = state.session.totalCalls;
+    const percent = Math.min(100, Math.round((state.session.callsCompleted / total) * 100));
 
-  function bindSessionButtons() {
-    const callSessionPanel = document.getElementById("callSessionPanel");
-    const startCallSessionButton = document.getElementById("startCallSessionButton");
-    const endCallSessionButton = document.getElementById("endCallSessionButton");
-    const registerCallButton = document.getElementById("registerCallButton");
-    const callProgressLabel = document.getElementById("callProgressLabel");
-    const callProgressPercent = document.getElementById("callProgressPercent");
-    const callProgressBar = document.getElementById("callProgressBar");
+    document.getElementById("callProgressLabel").textContent = `${state.session.callsCompleted} / ${total}`;
+    document.getElementById("callProgressPercent").textContent = `${percent}%`;
+    document.getElementById("callProgressBar").style.width = `${percent}%`;
 
-    startCallSessionButton.addEventListener("click", () => {
-      state.session.active = true;
-      state.session.startedAt = new Date();
-      callSessionPanel.classList.remove("hidden");
-      startCallSessionButton.classList.add("hidden");
-      endCallSessionButton.classList.remove("hidden");
-      registerCallButton.classList.remove("hidden");
-      document.getElementById("callSessionStatus").textContent = "Sesión iniciada";
-    });
-
-    endCallSessionButton.addEventListener("click", () => {
-      state.session.active = false;
-      startCallSessionButton.classList.remove("hidden");
-      endCallSessionButton.classList.add("hidden");
-      document.getElementById("callSessionStatus").textContent = "Sesión finalizada";
-    });
-
-    registerCallButton.addEventListener("click", () => {
-      if (!state.session.active) return;
-
-      state.session.callsCompleted += 1;
-      const total = Math.max(state.session.callsTotal, 1);
-      const percent = Math.min(100, Math.round((state.session.callsCompleted / total) * 100));
-
-      callProgressLabel.textContent = `${state.session.callsCompleted} / ${total}`;
-      callProgressPercent.textContent = `${percent}%`;
-      callProgressBar.style.width = `${percent}%`;
-
-      showToast("Llamada registrada");
-    });
-  }
+    showToast("Llamada registrada");
+  });
 
   function init() {
-    bindNavigation();
-    bindSessionButtons();
-    bindProfileImage();
-
     renderUserHeader();
     renderPresence();
-    renderRecurringTasks();
+    renderDashboard();
     renderProjects();
     renderTasks();
+    renderRecurringTasks();
     renderTeam();
     renderOrganization();
-    renderDashboard();
 
     setLoggedInState(false);
     showPage("dashboard");
