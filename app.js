@@ -787,7 +787,7 @@ sidebarAvatarButton?.addEventListener("click", goToMyProfile);
 topAvatarButton?.addEventListener("click", goToMyProfile);
 
 // =====================================================
-// VISOR DE FOTO DE PERFIL
+// VISOR DE FOTO DE PERFIL 
 // =====================================================
 const avatarViewerModal = document.getElementById("avatarViewerModal");
 const avatarViewerImage = document.getElementById("avatarViewerImage");
