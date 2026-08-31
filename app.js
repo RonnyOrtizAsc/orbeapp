@@ -396,19 +396,24 @@ function stopBackgroundWatchers() {
 // del % de tareas completadas. Si faltan fechas, no se muestra.
 function getProjectTimeProgress(project) {
   const start = dateOnly(project.start_date) || dateOnly(project.created_at);
-  const end = dateOnly(project.deadline);
-  if (!start || !end || end <= start) {
+  const endDay = dateOnly(project.deadline);
+  if (!start || !endDay) {
     return null;
   }
-  const today = startOfToday();
-  if (today <= start) {
+  const end = new Date(endDay);
+  end.setHours(23, 59, 59, 999);
+  if (end <= start) {
+    return null;
+  }
+  const now = new Date();
+  if (now <= start) {
     return 0;
   }
-  if (today >= end) {
+  if (now >= end) {
     return 100;
   }
   const total = end.getTime() - start.getTime();
-  const elapsed = today.getTime() - start.getTime();
+  const elapsed = now.getTime() - start.getTime();
   return Math.round((elapsed / total) * 100);
 }
 function buildTimeProgressHTML(project) {
