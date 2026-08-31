@@ -2836,6 +2836,16 @@ function getOccurrenceActualValue(occurrence) {
   }
   return normalizeNumericValue(occurrence.actual_value);
 }
+function getUpcomingDateForTemplate(template) {
+  const todayISO = toISODate(new Date());
+  const future = getTemplateOccurrences(template.id)
+    .filter((occurrence) => occurrence.occurrence_date > todayISO)
+    .sort((a, b) => a.occurrence_date.localeCompare(b.occurrence_date));
+  if (future.length) {
+    return future[0].occurrence_date;
+  }
+  return template.start_date && template.start_date > todayISO ? template.start_date : null;
+}
 function occurrenceProgressPercent(occurrence) {
   if (!occurrence) {
     return 0;
@@ -3749,47 +3759,105 @@ function openTeamProfile(profileId) {
           </strong>
         </div>
       </div>
-      ${
+           ${
         memberSmartTemplates.length
-          ? `
-            <div class="profile-section">
-              <div class="profile-section-header">
-                <div>
-                  <p class="eyebrow">
-                    OBJETIVOS
-                  </p>
-                  <h3>
-                    Tareas inteligentes
-                  </h3>
-                </div>
-              </div>
-              <div class="member-task-list">
-                ${memberSmartTemplates
-                  .map((template) => {
-                    const today = getOccurrenceForToday(template.id);
-                    const percent = occurrenceProgressPercent(today);
-                    return `
-                      <div class="member-task-item">
-                        <div class="card-top">
-                          <strong>
-                            ${escapeHTML(template.title)}
-                          </strong>
-                          <span class="badge smart">
-                            ${today ? `${percent}%` : "Programada"}
-                          </span>
+          ? (() => {
+              const todayList = memberSmartTemplates.filter((template) =>
+                Boolean(getOccurrenceForToday(template.id)),
+              );
+              const upcomingList = memberSmartTemplates.filter(
+                (template) => !getOccurrenceForToday(template.id),
+              );
+              return `
+                ${
+                  todayList.length
+                    ? `
+                      <div class="profile-section">
+                        <div class="profile-section-header">
+                          <div>
+                            <p class="eyebrow">
+                              HOY
+                            </p>
+                            <h3>
+                              Objetivos de hoy
+                            </h3>
+                          </div>
                         </div>
-                        <p>
-                          Meta diaria:
-                          ${formatNumber(template.target_value)}
-                          ${escapeHTML(template.target_unit || "unidades")}
-                        </p>
+                        <div class="member-task-list">
+                          ${todayList
+                            .map((template) => {
+                              const today = getOccurrenceForToday(template.id);
+                              const percent = occurrenceProgressPercent(today);
+                              return `
+                                <div class="member-task-item">
+                                  <div class="card-top">
+                                    <strong>
+                                      ${escapeHTML(template.title)}
+                                    </strong>
+                                    <span class="badge smart">
+                                      ${percent}%
+                                    </span>
+                                  </div>
+                                  <p>
+                                    Meta diaria:
+                                    ${formatNumber(template.target_value)}
+                                    ${escapeHTML(template.target_unit || "unidades")}
+                                  </p>
+                                </div>
+                              `;
+                            })
+                            .join("")}
+                        </div>
                       </div>
-                    `;
-                  })
-                  .join("")}
-              </div>
-            </div>
-          `
+                    `
+                    : ""
+                }
+                ${
+                  upcomingList.length
+                    ? `
+                      <div class="profile-section">
+                        <div class="profile-section-header">
+                          <div>
+                            <p class="eyebrow">
+                              PRÓXIMAS
+                            </p>
+                            <h3>
+                              Tareas próximas
+                            </h3>
+                          </div>
+                        </div>
+                        <div class="member-task-list">
+                          ${upcomingList
+                            .map((template) => {
+                              const upcomingDate = getUpcomingDateForTemplate(template);
+                              return `
+                                <div class="member-task-item">
+                                  <div class="card-top">
+                                    <strong>
+                                      ${escapeHTML(template.title)}
+                                    </strong>
+                                    <span class="badge smart">
+                                      Programada
+                                    </span>
+                                  </div>
+                                  <p>
+                                    ${
+                                      upcomingDate
+                                        ? `Empieza el ${formatDate(upcomingDate)}`
+                                        : "Sin fecha próxima generada"
+                                    }
+                                  </p>
+                                </div>
+                              `;
+                            })
+                            .join("")}
+                        </div>
+                      </div>
+                    `
+                    : ""
+                }
+              `;
+            })()
           : ""
       }
       <div class="profile-section">
