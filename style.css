@@ -1409,6 +1409,49 @@ button.dashboard-item:hover { background: var(--surface-raised); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* =====================================================
+   AVATAR VIEWER (lightbox)
+===================================================== */
+
+.avatar-viewer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 260;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, .85);
+}
+
+.avatar-viewer-image {
+  max-width: min(90vw, 420px);
+  max-height: 80vh;
+  border-radius: 12px;
+  object-fit: contain;
+  box-shadow: var(--shadow-card);
+}
+
+.avatar-viewer-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 24px;
+  border: 1px solid var(--border);
+}
+
+.avatar-viewer-close:hover { background: var(--surface-raised); }
+
+/* Cursor de "se puede tocar" solo cuando el avatar tiene foto real */
+.avatar.has-photo { cursor: zoom-in; }
+
+/* =====================================================
    PERMISSIONS
 ===================================================== */
 
