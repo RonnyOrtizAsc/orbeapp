@@ -382,6 +382,14 @@ function startLiveColorWatcher() {
       bar.classList.remove("time-green", "time-orange", "time-red");
       bar.classList.add(stage);
     });
+    const dayPercent = getDayTimeProgress();
+    document.querySelectorAll("[data-day-progress-bar]").forEach((bar) => {
+      bar.style.width = `${dayPercent}%`;
+    });
+    document.querySelectorAll("[data-day-progress-value]").forEach((label) => {
+      label.textContent = `${dayPercent}%`;
+    });
+    updateProjectTimeProgressBars();
   }, 60 * 1000);
 }
 function stopBackgroundWatchers() {
