@@ -267,11 +267,17 @@ function formatNumber(value) {
 // =====================================================
 // URGENCIA POR TIEMPO (colores de barras/franjas)
 // =====================================================
-// Franja horaria del día para las barras "en vivo" (tareas de hoy,
-// sesión de llamadas): verde de madrugada/mañana, naranja en la
-// tarde, rojo en la noche — así se ve, de un vistazo, qué tan
-// avanzado va el día sin abrir nada.
 // 00:00–16:00 verde · 16:00–21:00 naranja · 21:00–23:59 rojo.
+function getDayTimeProgress() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+  const total = end.getTime() - start.getTime();
+  const elapsed = now.getTime() - start.getTime();
+  return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+}
 function getDayUrgencyStage() {
   const hour = new Date().getHours();
   if (hour < 16) {
@@ -427,18 +433,37 @@ function buildTimeProgressHTML(project) {
         <span>
           AVANCE POR TIEMPO
         </span>
-        <strong>
+        <strong data-time-progress-value="${project.id}">
           ${percent}%
         </strong>
       </div>
       <div class="progress-track-time">
         <div
           class="progress-bar-time"
+          data-time-progress-bar="${project.id}"
           style="width:${percent}%"
         ></div>
       </div>
     </div>
   `;
+}
+function updateProjectTimeProgressBars() {
+  document.querySelectorAll("[data-time-progress-bar]").forEach((bar) => {
+    const projectId = bar.dataset.timeProgressBar;
+    const project = projects.find((item) => item.id === projectId);
+    if (!project) {
+      return;
+    }
+    const percent = getProjectTimeProgress(project);
+    if (percent === null) {
+      return;
+    }
+    bar.style.width = `${percent}%`;
+    const label = document.querySelector(`[data-time-progress-value="${projectId}"]`);
+    if (label) {
+      label.textContent = `${percent}%`;
+    }
+  });
 }
 
 // =====================================================
@@ -2857,7 +2882,7 @@ function renderRecurringTaskCard(template) {
           completadas
         </span>
       </div>
-      <div class="smart-task-progress">
+        <div class="smart-task-progress">
         <div
           class="smart-task-progress-label"
         >
@@ -2879,6 +2904,29 @@ function renderRecurringTaskCard(template) {
           ></div>
         </div>
       </div>
+      ${
+        today
+          ? `
+            <div class="smart-task-progress">
+              <div class="smart-task-progress-label">
+                <span>
+                  AVANCE DEL DÍA
+                </span>
+                <strong data-day-progress-value>
+                  ${getDayTimeProgress()}%
+                </strong>
+              </div>
+              <div class="progress-track">
+                <div
+                  class="progress-bar ${timeStage}"
+                  data-day-progress-bar
+                  style="width:${getDayTimeProgress()}%"
+                ></div>
+              </div>
+            </div>
+          `
+          : ""
+      }
       ${members.length ? assignedMembersHTML(members) : ""}
       <div class="smart-task-actions">
         ${
