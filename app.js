@@ -108,9 +108,12 @@ function initials(name) {
 }
 // Devuelve el contenido interno del círculo de avatar: la foto si
 // existe, o la inicial del nombre como respaldo.
-function avatarMarkup(profile) {
+function avatarMarkup(profile, options = {}) {
   if (profile?.avatar_url) {
-    return `<img src="${profile.avatar_url}" alt="" data-avatar-view="${profile.avatar_url}">`;
+    const viewAttr = options.clickable
+      ? ` data-avatar-view="${profile.avatar_url}"`
+      : "";
+    return `<img src="${profile.avatar_url}" alt=""${viewAttr}>`;
   }
   return escapeHTML(initials(profile?.name));
 }
@@ -3725,9 +3728,9 @@ function openTeamProfile(profileId) {
   teamProfileContent.innerHTML = `
     <div class="team-profile-card">
       <div class="profile-hero">
-        <div class="profile-avatar-shell">
+                <div class="profile-avatar-shell">
           <div class="avatar">
-            ${avatarMarkup(profile)}
+            ${avatarMarkup(profile, { clickable: true })}
           </div>
           ${
             isOwnProfile
