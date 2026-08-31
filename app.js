@@ -810,31 +810,6 @@ avatarViewerModal?.addEventListener("click", (event) => {
     closeAvatarViewer();
   }
 });
-
-// =====================================================
-// VISOR DE FOTO DE PERFIL
-// =====================================================
-const avatarViewerModal = document.getElementById("avatarViewerModal");
-const avatarViewerImage = document.getElementById("avatarViewerImage");
-const avatarViewerClose = document.getElementById("avatarViewerClose");
-
-function openAvatarViewer(avatarUrl) {
-  if (!avatarUrl) {
-    return;
-  }
-  avatarViewerImage.src = avatarUrl;
-  avatarViewerModal.classList.remove("hidden");
-}
-function closeAvatarViewer() {
-  avatarViewerModal.classList.add("hidden");
-  avatarViewerImage.src = "";
-}
-avatarViewerClose?.addEventListener("click", closeAvatarViewer);
-avatarViewerModal?.addEventListener("click", (event) => {
-  if (event.target === avatarViewerModal) {
-    closeAvatarViewer();
-  }
-});
 document.addEventListener("click", (event) => {
   const image = event.target.closest("[data-avatar-view]");
   if (!image) {
