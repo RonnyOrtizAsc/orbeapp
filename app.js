@@ -110,7 +110,7 @@ function initials(name) {
 // existe, o la inicial del nombre como respaldo.
 function avatarMarkup(profile) {
   if (profile?.avatar_url) {
-    return `<img src="${profile.avatar_url}" alt="">`;
+    return `<img src="${profile.avatar_url}" alt="" data-avatar-view="${profile.avatar_url}">`;
   }
   return escapeHTML(initials(profile?.name));
 }
@@ -785,6 +785,64 @@ function goToMyProfile() {
 }
 sidebarAvatarButton?.addEventListener("click", goToMyProfile);
 topAvatarButton?.addEventListener("click", goToMyProfile);
+
+// =====================================================
+// VISOR DE FOTO DE PERFIL
+// =====================================================
+const avatarViewerModal = document.getElementById("avatarViewerModal");
+const avatarViewerImage = document.getElementById("avatarViewerImage");
+const avatarViewerClose = document.getElementById("avatarViewerClose");
+
+function openAvatarViewer(avatarUrl) {
+  if (!avatarUrl) {
+    return;
+  }
+  avatarViewerImage.src = avatarUrl;
+  avatarViewerModal.classList.remove("hidden");
+}
+function closeAvatarViewer() {
+  avatarViewerModal.classList.add("hidden");
+  avatarViewerImage.src = "";
+}
+avatarViewerClose?.addEventListener("click", closeAvatarViewer);
+avatarViewerModal?.addEventListener("click", (event) => {
+  if (event.target === avatarViewerModal) {
+    closeAvatarViewer();
+  }
+});
+
+// =====================================================
+// VISOR DE FOTO DE PERFIL
+// =====================================================
+const avatarViewerModal = document.getElementById("avatarViewerModal");
+const avatarViewerImage = document.getElementById("avatarViewerImage");
+const avatarViewerClose = document.getElementById("avatarViewerClose");
+
+function openAvatarViewer(avatarUrl) {
+  if (!avatarUrl) {
+    return;
+  }
+  avatarViewerImage.src = avatarUrl;
+  avatarViewerModal.classList.remove("hidden");
+}
+function closeAvatarViewer() {
+  avatarViewerModal.classList.add("hidden");
+  avatarViewerImage.src = "";
+}
+avatarViewerClose?.addEventListener("click", closeAvatarViewer);
+avatarViewerModal?.addEventListener("click", (event) => {
+  if (event.target === avatarViewerModal) {
+    closeAvatarViewer();
+  }
+});
+document.addEventListener("click", (event) => {
+  const image = event.target.closest("[data-avatar-view]");
+  if (!image) {
+    return;
+  }
+  event.stopPropagation();
+  openAvatarViewer(image.dataset.avatarView);
+});
 
 // =====================================================
 // PRESENCE — SUPABASE REALTIME
