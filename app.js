@@ -2700,7 +2700,7 @@ async function saveRecurringTask() {
     showToast(error.message || "No se pudo crear la tarea inteligente.");
   }
 }
-async function generateOccurrencesForTemplate(template, profileIds) {
+async function generateOccurrencesForTemplate(template) {
   const weekdays = parseWeekdays(template.weekdays);
   const start = dateOnly(template.start_date);
   const end = dateOnly(template.end_date || template.start_date);
@@ -2725,55 +2725,27 @@ async function generateOccurrencesForTemplate(template, profileIds) {
   if (!rows.length) {
     return 0;
   }
+  // ignoreDuplicates: true — si el día ya existía, no le pisa el
+  // progreso ya registrado (antes se reseteaba a 0 al volver a "Generar").
   const { data: occurrences, error } = await db
     .from("task_occurrences")
     .upsert(rows, {
       onConflict: "template_id,occurrence_date",
+      ignoreDuplicates: true,
     })
     .select();
   if (error) {
     throw error;
   }
-  for (const occurrence of occurrences || []) {
-    const existingTask = occurrence.task_id
-      ? tasks.find((task) => task.id === occurrence.task_id)
-      : null;
-    if (existingTask) {
-      continue;
-    }
-    const dueDate = occurrence.occurrence_date;
-    const taskPayload = {
-      title: template.title,
-      description: template.description,
-      project_id: template.project_id,
-      assigned_to: null,
-      start_date: dueDate,
-      deadline: dueDate,
-      status: "pending",
-      priority: template.priority,
-      created_by: template.created_by,
-      template_id: template.id,
-    };
-    const { data: task, error: taskError } = await db
-      .from("tasks")
-      .insert(taskPayload)
-      .select()
-      .single();
-    if (taskError) {
-      throw taskError;
-    }
-    await syncTaskMembers(task.id, profileIds);
-    const { error: updateOccurrenceError } = await db
-      .from("task_occurrences")
-      .update({
-        task_id: task.id,
-      })
-      .eq("id", occurrence.id);
-    if (updateOccurrenceError) {
-      throw updateOccurrenceError;
-    }
-  }
   return (occurrences || []).length;
+}
+function getTemplateProgressPercent(templateId) {
+  const occurrences = getTemplateOccurrences(templateId);
+  if (!occurrences.length) {
+    return 0;
+  }
+  const completed = occurrences.filter((occurrence) => occurrence.status === "completed").length;
+  return Math.round((completed / occurrences.length) * 100);
 }
 function getTemplateById(templateId) {
   return taskTemplates.find((template) => template.id === templateId);
@@ -2997,24 +2969,15 @@ async function prepareTemplateGeneration(templateId) {
   if (!template) {
     return;
   }
-  const profileIds = getTemplateResponsibleIds(template);
-  if (!profileIds.length) {
-    showToast("Asigna un responsable a esta tarea inteligente antes de generar.");
-    return;
-  }
   try {
-    const generated = await generateOccurrencesForTemplate(template, profileIds);
+    const generated = await generateOccurrencesForTemplate(template);
     await loadTaskOccurrences();
-    await loadTasks();
-    await loadTaskMembers();
     renderRecurringTasks();
-    renderTasks();
-    renderTeam();
     updateDashboard();
-    showToast(`Se generaron ${generated} tarea(s).`);
+    showToast(`Se generaron ${generated} día(s).`);
   } catch (error) {
     console.error(error);
-    showToast(error.message || "No se pudieron generar las tareas.");
+    showToast(error.message || "No se pudieron generar los días.");
   }
 }
 async function deleteSmartTemplate(templateId) {
