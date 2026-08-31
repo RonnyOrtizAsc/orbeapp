@@ -2917,7 +2917,7 @@ function renderRecurringTaskCard(template) {
                 type="button"
                 data-start-call-template="${template.id}"
               >
-                ${today.task_id ? "▶ Registrar actividad" : "▶ Empezar"}
+                ▶ Registrar actividad
               </button>
             `
             : ""
@@ -2989,15 +2989,14 @@ async function deleteSmartTemplate(templateId) {
     return;
   }
   try {
-    const taskIds = tasks.filter((task) => task.template_id === templateId).map((task) => task.id);
-    if (taskIds.length) {
-      const { error: logsError } = await db.from("activity_logs").delete().in("task_id", taskIds);
+     const occurrenceIds = getTemplateOccurrences(templateId).map((occurrence) => occurrence.id);
+    if (occurrenceIds.length) {
+      const { error: logsError } = await db
+        .from("activity_logs")
+        .delete()
+        .in("occurrence_id", occurrenceIds);
       if (logsError) {
         throw logsError;
-      }
-      const { error: membersError } = await db.from("task_members").delete().in("task_id", taskIds);
-      if (membersError) {
-        throw membersError;
       }
     }
     const { error: occurrencesError } = await db
@@ -3007,23 +3006,13 @@ async function deleteSmartTemplate(templateId) {
     if (occurrencesError) {
       throw occurrencesError;
     }
-    if (taskIds.length) {
-      const { error: tasksError } = await db.from("tasks").delete().in("id", taskIds);
-      if (tasksError) {
-        throw tasksError;
-      }
-    }
     const { error: templateError } = await db.from("task_templates").delete().eq("id", templateId);
     if (templateError) {
       throw templateError;
     }
     await loadTaskTemplates();
     await loadTaskOccurrences();
-    await loadTasks();
-    await loadTaskMembers();
     renderRecurringTasks();
-    renderTasks();
-    renderTeam();
     updateDashboard();
     showToast("Tarea inteligente eliminada.");
   } catch (error) {
@@ -3325,7 +3314,7 @@ async function saveCallActivity() {
     const { error } = await db.from("activity_logs").insert({
       session_id: currentCallSession.id,
       profile_id: currentUser.id,
-      task_id: currentCallOccurrence.task_id,
+      occurrence_id: currentCallOccurrence.id,
       activity_type: "call",
       started_at: startedAt,
       ended_at: endedAt,
@@ -3349,20 +3338,7 @@ async function saveCallActivity() {
     if (occurrenceError) {
       throw occurrenceError;
     }
-    if (currentCallOccurrence.task_id) {
-      const taskStatus = newActual >= target ? "completed" : "in_progress";
-      const { error: taskError } = await db
-        .from("tasks")
-        .update({
-          status: taskStatus,
-        })
-        .eq("id", currentCallOccurrence.task_id);
-      if (taskError) {
-        throw taskError;
-      }
-    }
     closeModalWindow();
-    await loadTasks();
     await loadTaskOccurrences();
     await loadActivityLogs();
     currentCallOccurrence = getOccurrenceForToday(currentCallTemplate.id);
