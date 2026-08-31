@@ -1332,7 +1332,10 @@ function closeProjectDetail() {
 }
 projectDetailBack.addEventListener("click", closeProjectDetail);
 function renderProjectDetail(project) {
-  const projectTasks = getProjectTasks(project.id);
+   const projectTasks = getProjectTasks(project.id);
+  const projectTemplates = taskTemplates.filter(
+    (template) => template.project_id === project.id && template.is_active !== false,
+  );
   const members = getProjectMembers(project.id);
   const progress = getProjectProgress(project.id);
   const message = projectStatusMessage(project);
@@ -1453,9 +1456,9 @@ function renderProjectDetail(project) {
             </h3>
           </div>
         </div>
-        ${
-          projectTasks.length
-            ? buildTimelineHTML(project, projectTasks)
+                ${
+          projectTasks.length || projectTemplates.length
+            ? buildTimelineHTML(project, projectTasks, projectTemplates)
             : `
               <p class="empty-text">
                 Este proyecto todavía no tiene tareas.
@@ -1474,16 +1477,20 @@ function renderProjectDetail(project) {
             </h3>
           </div>
         </div>
-        <div class="member-task-list">
+             <div class="member-task-list">
+          ${projectTemplates.map(renderProjectTemplateItem).join("")}
           ${
             projectTasks.length
               ? projectTasks.map(renderProjectTask).join("")
-              : `
+              : !projectTemplates.length
+              ? `
                 <p class="profile-empty">
                   No hay tareas todavía.
                 </p>
               `
+              : ""
           }
+        </div>
         </div>
       </div>
     </div>
@@ -1514,10 +1521,38 @@ function renderProjectTask(task) {
     </div>
   `;
 }
+function renderProjectTemplateItem(template) {
+  const percent = getTemplateProgressPercent(template.id);
+  const members = template.assigned_profile_id
+    ? getProfilesByIds([template.assigned_profile_id])
+    : [];
+  return `
+    <div class="member-task-item">
+      <div class="card-top">
+        <strong>
+          ${escapeHTML(template.title)}
+        </strong>
+        <span class="badge smart">
+          ${percent}%
+        </span>
+      </div>
+      <p>
+        ${formatDate(template.start_date)}
+        →
+        ${template.end_date ? formatDate(template.end_date) : "Sin fin"}
+      </p>
+      <div
+        style="margin-top:7px"
+      >
+        ${assignedMembersHTML(members)}
+      </div>
+    </div>
+  `;
+}
 // Cronograma automático: distribuye cada tarea sobre la línea de
 // tiempo del proyecto, coloreada por urgencia (verde/naranja/rojo,
 // igual que las tarjetas), con una marca vertical de "HOY".
-function buildTimelineHTML(project, projectTasks) {
+function buildTimelineHTML(project, projectTasks, projectTemplates = []) {
   const projectStart = dateOnly(project.start_date);
   const projectEnd = dateOnly(project.deadline);
   if (!projectStart || !projectEnd || projectEnd <= projectStart) {
@@ -1533,8 +1568,44 @@ function buildTimelineHTML(project, projectTasks) {
     today >= projectStart && today <= projectEnd
       ? ((today.getTime() - projectStart.getTime()) / total) * 100
       : null;
+  const templateRows = projectTemplates
+    .map((template) => {
+      const templateStart = dateOnly(template.start_date) || projectStart;
+      const templateEnd = dateOnly(template.end_date) || projectEnd;
+      let left = ((templateStart.getTime() - projectStart.getTime()) / total) * 100;
+      let right = ((templateEnd.getTime() - projectStart.getTime()) / total) * 100;
+      left = Math.max(0, Math.min(100, left));
+      right = Math.max(left + 2, Math.min(100, right));
+      const width = right - left;
+      const percent = getTemplateProgressPercent(template.id);
+      return `
+        <div class="timeline-row">
+          <div class="timeline-label">
+            <strong>
+              ${escapeHTML(template.title)}
+            </strong>
+            <span>
+              Recurrente · ${percent}%
+            </span>
+          </div>
+          <div class="timeline-bar-area">
+            <div
+              class="timeline-bar"
+              style="left:${left}%;width:${width}%;background:var(--purple);"
+            ></div>
+            ${
+              todayPercent !== null
+                ? `<div class="timeline-today-marker" style="left:${todayPercent}%"></div>`
+                : ""
+            }
+          </div>
+        </div>
+      `;
+    })
+    .join("");
   return `
     <div class="timeline">
+      ${templateRows}
       ${projectTasks
         .map((task) => {
           const taskStart = dateOnly(task.start_date) || dateOnly(project.start_date);
