@@ -992,7 +992,19 @@ button.dashboard-item:hover { background: var(--surface-raised); }
 .task-title { font-size: 13px; font-weight: 800; color: var(--text); }
 .task-description { color: var(--muted); font-size: 11.5px; line-height: 1.4; }
 .task-meta { color: var(--muted); font-size: 10.5px; }
-.task-project-label { color: var(--blue); font-size: 11px; font-weight: 700; }
+.task-project-label {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.task-project-label:hover { text-decoration: underline; }
+.task-project-label:disabled { color: var(--muted); cursor: default; }
+.task-project-label:disabled:hover { text-decoration: none; }
 .task-actions { display: flex; gap: 6px; }
 .task-overdue { color: var(--red); font-size: 10.5px; font-weight: 800; }
 
@@ -1069,6 +1081,24 @@ button.dashboard-item:hover { background: var(--surface-raised); }
 .smart-task-empty h4, .organization-empty h3, .panel h3 { margin-bottom: 6px; font-size: 15px; color: var(--text); }
 .smart-task-empty p, .organization-empty p, .panel p { color: var(--muted); font-size: 12px; }
 
+/* =====================================================
+   NAVEGACIÓN ENTRE TARJETAS
+===================================================== */
+
+.member-task-item-clickable {
+  cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.member-task-item-clickable:hover {
+  border-color: var(--muted-dim);
+  transform: translateY(-1px);
+}
+
+@keyframes highlightFlash {
+  0% { box-shadow: 0 0 0 3px var(--amarillo); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.highlight-flash { animation: highlightFlash 1.6s ease; }
 /* =====================================================
    CALL SESSION
 ===================================================== */
