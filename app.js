@@ -393,6 +393,7 @@ function startLiveColorWatcher() {
       label.textContent = `${dayPercent}%`;
     });
     updateProjectTimeProgressBars();
+    checkAutoCompleteCallSession();
   }, 60 * 1000);
 }
 function stopBackgroundWatchers() {
@@ -1058,6 +1059,43 @@ function showPage(page, { pushHistory = true } = {}) {
     location.hash = page;
   }
 }
+// =====================================================
+// NAVEGACIÓN ENTRE TARJETAS
+// =====================================================
+function goToProject(projectId) {
+  showPage("projects");
+  openProjectDetail(projectId);
+}
+function goToTask(taskId) {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task) {
+    showToast("No se encontró la tarea.");
+    return;
+  }
+  if (task.project_id) {
+    showPage("projects");
+    openProjectDetail(task.project_id);
+  } else {
+    showPage("tasks");
+  }
+  requestAnimationFrame(() => {
+    highlightElement(`[data-task-row="${taskId}"]`);
+  });
+}
+function highlightElement(selector) {
+  const element = document.querySelector(selector);
+  if (!element) {
+    return;
+  }
+  element.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+  });
+  element.classList.add("highlight-flash");
+  setTimeout(() => {
+    element.classList.remove("highlight-flash");
+  }, 1800);
+}
 
 // =====================================================
 // CARGAR DATOS
@@ -1535,7 +1573,7 @@ function renderProjectDetail(project) {
 function renderProjectTask(task) {
   const members = getTaskMembers(task);
   return `
-    <div class="member-task-item">
+    <div class="member-task-item" data-task-row="${task.id}">
       <div class="card-top">
         <strong>
           ${escapeHTML(task.title)}
@@ -2065,17 +2103,20 @@ function renderTaskCard(task) {
   const isSmartTask = Boolean(task.template_id || occurrence);
   const urgencyClass = deadlineUrgencyClass(task.deadline, task.status);
   return `
-    <article class="task-row ${urgencyClass}">
+    <article class="task-row ${urgencyClass}" data-task-row="${task.id}">
       <div class="card-top">
         <div>
           <div class="task-title">
             ${escapeHTML(task.title)}
           </div>
-          <div class="task-project-label">
+          <button
+            type="button"
+            class="task-project-label"
+            ${project ? `data-goto-project="${project.id}"` : "disabled"}
+          >
             ${project ? escapeHTML(project.name) : "Tarea general"}
-          </div>
+          </button>
         </div>
-        <div
           style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end"
         >
           ${
@@ -2174,6 +2215,11 @@ function renderTaskCard(task) {
   container.addEventListener("click", (event) => {
     const edit = event.target.closest("[data-task-edit]");
     const remove = event.target.closest("[data-task-delete]");
+    const gotoProject = event.target.closest("[data-goto-project]");
+    if (gotoProject) {
+      goToProject(gotoProject.dataset.gotoProject);
+      return;
+    }
     if (edit) {
       editTask(edit.dataset.taskEdit);
       return;
@@ -2183,7 +2229,6 @@ function renderTaskCard(task) {
     }
   });
 });
-
 // =====================================================
 // TASK FORM
 // =====================================================
@@ -3277,13 +3322,14 @@ async function startCallSession() {
     return;
   }
   try {
-    const { data, error } = await db
+      const { data, error } = await db
       .from("work_sessions")
       .insert({
         profile_id: currentUser.id,
         session_type: "calls",
         started_at: new Date().toISOString(),
         ended_at: null,
+        occurrence_id: currentCallOccurrence.id,
       })
       .select()
       .single();
@@ -3318,6 +3364,49 @@ async function endCallSession() {
   } catch (error) {
     console.error("Error terminando sesión:", error);
     showToast(error.message || "No se pudo terminar la sesión.");
+  }
+}
+function checkAutoCompleteCallSession() {
+  if (!currentCallSession || !currentCallOccurrence) {
+    return;
+  }
+  if (currentCallOccurrence.status === "completed") {
+    return;
+  }
+  const startedAt = new Date(currentCallSession.started_at).getTime();
+  const elapsed = Date.now() - startedAt;
+  if (elapsed >= 60 * 60 * 1000) {
+    autoCompleteCurrentOccurrence();
+  }
+}
+async function autoCompleteCurrentOccurrence() {
+  try {
+    const { error } = await db
+      .from("task_occurrences")
+      .update({
+        status: "completed",
+      })
+      .eq("id", currentCallOccurrence.id);
+    if (error) {
+      throw error;
+    }
+    currentCallOccurrence = {
+      ...currentCallOccurrence,
+      status: "completed",
+    };
+    const index = taskOccurrences.findIndex((item) => item.id === currentCallOccurrence.id);
+    if (index !== -1) {
+      taskOccurrences[index] = {
+        ...taskOccurrences[index],
+        status: "completed",
+      };
+    }
+    updateCallSessionUI();
+    renderRecurringTasks();
+    updateDashboard();
+    showToast("Objetivo del día completado automáticamente (1h de sesión).");
+  } catch (error) {
+    console.error("Error autocompletando ocurrencia:", error);
   }
 }
 function openCallRegistration() {
@@ -3539,6 +3628,13 @@ document.getElementById("dashboardProjects").addEventListener("click", (event) =
   showPage("projects");
   openProjectDetail(button.dataset.dashboardProject);
 });
+document.getElementById("dashboardTasks").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-goto-task]");
+  if (!button) {
+    return;
+  }
+  goToTask(button.dataset.gotoTask);
+});
 function renderDashboardAlerts() {
   const container = document.getElementById("dashboardAlerts");
   if (!container) {
@@ -3633,7 +3729,12 @@ function renderDashboardTasks() {
   container.innerHTML = pending
     .map(
       (task) => `
-          <div class="dashboard-item">
+          <button
+            class="dashboard-item"
+            type="button"
+            style="text-align:left"
+            data-goto-task="${task.id}"
+          >
             <div class="dashboard-item-title">
               ${escapeHTML(task.title)}
             </div>
@@ -3646,12 +3747,11 @@ function renderDashboardTasks() {
               ·
               ${formatDate(task.deadline)}
             </div>
-          </div>
+          </button>
         `,
     )
     .join("");
 }
-
 // =====================================================
 // EQUIPO
 // =====================================================
@@ -3950,20 +4050,18 @@ function openTeamProfile(profileId) {
             ${pending.length}
           </span>
         </div>
-        ${
-          pending.length
+            ${
+          completed.length
             ? `
               <div class="member-task-list">
-                ${pending
+                ${completed
+                  .slice(0, 10)
                   .map(
                     (task) => `
-                      <div class="member-task-item">
+                      <div class="member-task-item member-task-item-clickable" data-goto-task="${task.id}">
                         <strong>
                           ${escapeHTML(task.title)}
                         </strong>
-                        <p>
-                          ${formatDate(task.deadline)}
-                        </p>
                       </div>
                     `,
                   )
@@ -3972,7 +4070,7 @@ function openTeamProfile(profileId) {
             `
             : `
               <p class="profile-empty">
-                No tiene tareas pendientes.
+                Todavía no hay tareas completadas.
               </p>
             `
         }
@@ -4021,6 +4119,13 @@ function openTeamProfile(profileId) {
   document.getElementById("profileAvatarEditButton")?.addEventListener("click", openAvatarPicker);
 }
 teamBackButton.addEventListener("click", showTeamOverview);
+teamProfileContent.addEventListener("click", (event) => {
+  const taskItem = event.target.closest("[data-goto-task]");
+  if (!taskItem) {
+    return;
+  }
+  goToTask(taskItem.dataset.gotoTask);
+});
 function showTeamOverview() {
   selectedTeamProfile = null;
   teamOverview.classList.remove("hidden");
