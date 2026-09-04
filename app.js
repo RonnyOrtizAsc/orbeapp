@@ -1096,6 +1096,133 @@ function highlightElement(selector) {
     element.classList.remove("highlight-flash");
   }, 1800);
 }
+function goToTemplate(templateId) {
+  showPage("tasks");
+  requestAnimationFrame(() => {
+    highlightElement(`[data-template-row="${templateId}"]`);
+  });
+}
+
+// =====================================================
+// INFO RÁPIDA DE TAREA (modal solo lectura)
+// =====================================================
+const taskInfoModal = document.getElementById("taskInfoModal");
+const taskInfoContent = document.getElementById("taskInfoContent");
+const taskInfoClose = document.getElementById("taskInfoClose");
+function openTaskInfoModal(taskId) {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task) {
+    showToast("No se encontró la tarea.");
+    return;
+  }
+  renderTaskInfoModal(task);
+  taskInfoModal?.classList.remove("hidden");
+}
+function closeTaskInfoModal() {
+  taskInfoModal?.classList.add("hidden");
+  if (taskInfoContent) {
+    taskInfoContent.innerHTML = "";
+  }
+}
+function renderTaskInfoModal(task) {
+  if (!taskInfoContent) {
+    return;
+  }
+  const project = projects.find((item) => item.id === task.project_id);
+  const members = getTaskMembers(task);
+  taskInfoContent.innerHTML = `
+    <h2>
+      ${escapeHTML(task.title)}
+    </h2>
+    <div class="task-info-meta-row">
+      <span class="badge ${escapeHTML(task.status)}">
+        ${escapeHTML(TASK_STATUS_LABELS[task.status] || task.status)}
+      </span>
+      <span class="badge ${escapeHTML(task.priority)}">
+        ${escapeHTML(PRIORITY_LABELS[task.priority] || task.priority)}
+      </span>
+    </div>
+    ${
+      project
+        ? `
+          <button type="button" class="task-info-project-link" data-info-goto-project="${project.id}">
+            📁 ${escapeHTML(project.name)}
+          </button>
+        `
+        : `
+          <p class="assignment-help">
+            Tarea general (sin proyecto)
+          </p>
+        `
+    }
+    ${
+      task.description
+        ? `
+          <p class="card-description" style="margin-top:10px">
+            ${escapeHTML(task.description)}
+          </p>
+        `
+        : ""
+    }
+    <div class="task-info-meta-row">
+      <span class="assignment-help">
+        ${formatDate(task.start_date)} → ${formatDate(task.deadline)}
+      </span>
+    </div>
+    <p class="assignment-help" style="margin-top:14px;margin-bottom:6px">
+      ASIGNADO A
+    </p>
+    <div class="task-info-members">
+      ${
+        members.length
+          ? members
+              .map(
+                (member) => `
+                  <button type="button" class="task-info-member" data-info-goto-profile="${member.id}">
+                    <div class="avatar">
+                      ${avatarMarkup(member)}
+                    </div>
+                    <div>
+                      <div class="task-info-member-name">
+                        ${escapeHTML(member.name)}
+                      </div>
+                      <div class="task-info-member-role">
+                        ${escapeHTML(roleLabel(member.role))}
+                      </div>
+                    </div>
+                  </button>
+                `,
+              )
+              .join("")
+          : `
+            <p class="profile-empty">
+              Sin asignar.
+            </p>
+          `
+      }
+    </div>
+  `;
+}
+taskInfoClose?.addEventListener("click", closeTaskInfoModal);
+taskInfoModal?.addEventListener("click", (event) => {
+  if (event.target === taskInfoModal) {
+    closeTaskInfoModal();
+  }
+});
+taskInfoContent?.addEventListener("click", (event) => {
+  const gotoProject = event.target.closest("[data-info-goto-project]");
+  const gotoProfile = event.target.closest("[data-info-goto-profile]");
+  if (gotoProject) {
+    closeTaskInfoModal();
+    goToProject(gotoProject.dataset.infoGotoProject);
+    return;
+  }
+  if (gotoProfile) {
+    closeTaskInfoModal();
+    showPage("team");
+    openTeamProfile(gotoProfile.dataset.infoGotoProfile);
+  }
+});
 
 // =====================================================
 // CARGAR DATOS
@@ -1405,6 +1532,17 @@ function closeProjectDetail() {
   document.querySelector("#page-projects .page-header").classList.remove("hidden");
 }
 projectDetailBack.addEventListener("click", closeProjectDetail);
+projectDetailContent.addEventListener("click", (event) => {
+  const gotoTemplate = event.target.closest("[data-goto-template]");
+  if (gotoTemplate) {
+    goToTemplate(gotoTemplate.dataset.gotoTemplate);
+    return;
+  }
+  const row = event.target.closest("[data-task-row]");
+  if (row) {
+    openTaskInfoModal(row.dataset.taskRow);
+  }
+});
 function renderProjectDetail(project) {
    const projectTasks = getProjectTasks(project.id);
   const projectTemplates = taskTemplates.filter(
@@ -1573,7 +1711,7 @@ function renderProjectDetail(project) {
 function renderProjectTask(task) {
   const members = getTaskMembers(task);
   return `
-    <div class="member-task-item" data-task-row="${task.id}">
+        <div class="member-task-item member-task-item-clickable" data-task-row="${task.id}">
       <div class="card-top">
         <strong>
           ${escapeHTML(task.title)}
@@ -1601,7 +1739,7 @@ function renderProjectTemplateItem(template) {
     ? getProfilesByIds([template.assigned_profile_id])
     : [];
   return `
-    <div class="member-task-item">
+    <div class="member-task-item member-task-item-clickable" data-goto-template="${template.id}">
       <div class="card-top">
         <strong>
           ${escapeHTML(template.title)}
@@ -2114,9 +2252,10 @@ function renderTaskCard(task) {
             class="task-project-label"
             ${project ? `data-goto-project="${project.id}"` : "disabled"}
           >
-            ${project ? escapeHTML(project.name) : "Tarea general"}
+         ${project ? escapeHTML(project.name) : "Tarea general"}
           </button>
         </div>
+        <div
           style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end"
         >
           ${
@@ -2226,6 +2365,11 @@ function renderTaskCard(task) {
     }
     if (remove) {
       deleteTask(remove.dataset.taskDelete);
+      return;
+    }
+    const row = event.target.closest("[data-task-row]");
+    if (row) {
+      openTaskInfoModal(row.dataset.taskRow);
     }
   });
 });
@@ -2989,7 +3133,7 @@ function renderRecurringTaskCard(template) {
   ).length;
   const timeStage = today ? getDayUrgencyStage() : "";
   return `
-    <article class="smart-task-card">
+    <article class="smart-task-card" data-template-row="${template.id}">
       <div class="smart-task-card-top">
         <div>
           <div class="smart-task-card-title">
@@ -3625,6 +3769,7 @@ document.getElementById("dashboardProjects").addEventListener("click", (event) =
   if (!button) {
     return;
   }
+  event.stopPropagation();
   showPage("projects");
   openProjectDetail(button.dataset.dashboardProject);
 });
@@ -3633,6 +3778,7 @@ document.getElementById("dashboardTasks").addEventListener("click", (event) => {
   if (!button) {
     return;
   }
+  event.stopPropagation();
   goToTask(button.dataset.gotoTask);
 });
 function renderDashboardAlerts() {
@@ -3925,7 +4071,7 @@ function openTeamProfile(profileId) {
                               const today = getOccurrenceForToday(template.id);
                               const percent = occurrenceProgressPercent(today);
                               return `
-                                <div class="member-task-item">
+                                                                <div class="member-task-item member-task-item-clickable" data-goto-template="${template.id}">
                                   <div class="card-top">
                                     <strong>
                                       ${escapeHTML(template.title)}
@@ -3967,7 +4113,7 @@ function openTeamProfile(profileId) {
                             .map((template) => {
                               const upcomingDate = getUpcomingDateForTemplate(template);
                               return `
-                                <div class="member-task-item">
+                                                                <div class="member-task-item member-task-item-clickable" data-goto-template="${template.id}">
                                   <div class="card-top">
                                     <strong>
                                       ${escapeHTML(template.title)}
@@ -4013,8 +4159,8 @@ function openTeamProfile(profileId) {
               <div class="member-project-list">
                 ${memberProjects
                   .map(
-                    (project) => `
-                      <div class="member-project-item">
+                   (project) => `
+                      <div class="member-project-item member-project-item-clickable" data-goto-project="${project.id}">
                         <div class="card-top">
                           <strong>
                             ${escapeHTML(project.name)}
@@ -4036,7 +4182,7 @@ function openTeamProfile(profileId) {
             `
         }
       </div>
-      <div class="profile-section">
+       <div class="profile-section">
         <div class="profile-section-header">
           <div>
             <p class="eyebrow">
@@ -4050,7 +4196,48 @@ function openTeamProfile(profileId) {
             ${pending.length}
           </span>
         </div>
-            ${
+        ${
+          pending.length
+            ? `
+              <div class="member-task-list">
+                ${pending
+                  .map(
+                    (task) => `
+                      <div class="member-task-item member-task-item-clickable" data-goto-task="${task.id}">
+                        <strong>
+                          ${escapeHTML(task.title)}
+                        </strong>
+                        <p>
+                          ${formatDate(task.deadline)}
+                        </p>
+                      </div>
+                    `,
+                  )
+                  .join("")}
+              </div>
+            `
+            : `
+              <p class="profile-empty">
+                No tiene tareas pendientes.
+              </p>
+            `
+        }
+      </div>
+      <div class="profile-section">
+        <div class="profile-section-header">
+          <div>
+            <p class="eyebrow">
+              COMPLETADAS
+            </p>
+            <h3>
+              Trabajo terminado
+            </h3>
+          </div>
+          <span class="badge completed">
+            ${completed.length}
+          </span>
+        </div>
+        ${
           completed.length
             ? `
               <div class="member-task-list">
@@ -4120,11 +4307,20 @@ function openTeamProfile(profileId) {
 }
 teamBackButton.addEventListener("click", showTeamOverview);
 teamProfileContent.addEventListener("click", (event) => {
-  const taskItem = event.target.closest("[data-goto-task]");
-  if (!taskItem) {
+  const gotoTask = event.target.closest("[data-goto-task]");
+  const gotoProject = event.target.closest("[data-goto-project]");
+  const gotoTemplate = event.target.closest("[data-goto-template]");
+  if (gotoTask) {
+    goToTask(gotoTask.dataset.gotoTask);
     return;
   }
-  goToTask(taskItem.dataset.gotoTask);
+  if (gotoProject) {
+    goToProject(gotoProject.dataset.gotoProject);
+    return;
+  }
+  if (gotoTemplate) {
+    goToTemplate(gotoTemplate.dataset.gotoTemplate);
+  }
 });
 function showTeamOverview() {
   selectedTeamProfile = null;
