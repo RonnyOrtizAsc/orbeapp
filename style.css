@@ -942,10 +942,40 @@ button.dashboard-item:hover { background: var(--surface-raised); }
 .badge.pending { background: var(--orange-bg); color: var(--orange); }
 .badge.active, .badge.in_progress { background: var(--blue-bg); color: var(--blue); }
 .badge.completed { background: var(--green-bg); color: var(--green); }
-.badge.low { background: var(--blue-bg); color: var(--blue); }
+.badge.low { background: var(--green-bg); color: var(--green); }
 .badge.medium { background: var(--orange-bg); color: var(--orange); }
 .badge.high { background: var(--red-bg); color: var(--red); }
+.badge.vencida { background: var(--red-bg); color: var(--red); }
 .badge.smart { background: var(--purple-bg); color: var(--purple); }
+
+/* Logo de la productora como icono dentro de los badges de
+   prioridad — mismo criterio de color que las barras de progreso. */
+.badge.low::before,
+.badge.medium::before,
+.badge.high::before,
+.badge.vencida::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  background: currentColor;
+  -webkit-mask: url("./Recursos/Imagenes/LogoPrincipal.png") center / contain no-repeat;
+  mask: url("./Recursos/Imagenes/LogoPrincipal.png") center / contain no-repeat;
+}
+
+/* Tarjetas de estadísticas del dashboard, ahora clicables */
+.stat-clickable {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.stat-clickable:hover {
+  border-color: var(--muted-dim);
+  transform: translateY(-2px);
+}
 
 /* =====================================================
    TASKS
