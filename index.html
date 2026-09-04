@@ -199,13 +199,12 @@
 
         <div class="dashboard-grid">
 
-          <section class="section-card">
+          <section class="section-card section-card-clickable" data-page-link="projects">
             <div class="section-header">
               <div>
                 <p class="eyebrow">PRODUCCIÓN</p>
                 <h3>Proyectos activos</h3>
               </div>
-              <button class="link-button" type="button" data-page-link="projects">Ver todos →</button>
             </div>
             <div id="dashboardProjects" class="dashboard-list"></div>
           </section>
@@ -220,19 +219,15 @@
             <div id="dashboardAlerts" class="dashboard-list"></div>
           </section>
 
-          <section class="section-card dashboard-wide">
+        <section class="section-card dashboard-wide section-card-clickable" data-page-link="tasks">
             <div class="section-header">
               <div>
                 <p class="eyebrow">HOY</p>
                 <h3>Tareas pendientes</h3>
               </div>
-              <button class="link-button" type="button" data-page-link="tasks">Ver tareas →</button>
             </div>
             <div id="dashboardTasks" class="dashboard-list"></div>
           </section>
-
-        </div>
-
       </section>
 
       <!-- ==================================================
@@ -464,9 +459,18 @@
        archivo elegido al bucket "avatars" en Supabase Storage. -->
   <input type="file" id="avatarFileInput" accept="image/*" class="hidden">
     <!-- Visor de foto de perfil en grande (lightbox). -->
-  <div id="avatarViewerModal" class="avatar-viewer-modal hidden">
+    <div id="avatarViewerModal" class="avatar-viewer-modal hidden">
     <button id="avatarViewerClose" class="avatar-viewer-close" type="button" aria-label="Cerrar">×</button>
     <img id="avatarViewerImage" class="avatar-viewer-image" alt="Foto de perfil">
+  </div>
+
+  <!-- Info rápida de una tarea (solo lectura) -->
+  <div id="taskInfoModal" class="modal hidden">
+    <div class="modal-box">
+      <button id="taskInfoClose" class="modal-close" type="button" aria-label="Cerrar">×</button>
+      <p class="eyebrow">TAREA</p>
+      <div id="taskInfoContent"></div>
+    </div>
   </div>
 
   <!-- ==================================================
