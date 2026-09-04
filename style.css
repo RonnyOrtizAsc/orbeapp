@@ -1555,3 +1555,74 @@ body.can-manage .manager-only { display: inline-flex; }
   .responsibility-people { align-items: flex-start; flex-direction: column; }
   .responsibility-person { width: 100%; }
 }
+/* =====================================================
+   TARJETAS CLICABLES (dashboard, perfil, tareas)
+===================================================== */
+
+.section-card-clickable { cursor: pointer; transition: border-color .15s ease, transform .15s ease; }
+.section-card-clickable:hover { border-color: var(--muted-dim); transform: translateY(-2px); }
+
+.task-row { cursor: pointer; }
+
+.member-task-item-clickable,
+.member-project-item-clickable {
+  cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease;
+}
+.member-task-item-clickable:hover,
+.member-project-item-clickable:hover {
+  border-color: var(--muted-dim);
+  transform: translateY(-1px);
+}
+
+@keyframes highlightFlash {
+  0% { box-shadow: 0 0 0 3px var(--amarillo); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.highlight-flash { animation: highlightFlash 1.6s ease; }
+
+.task-project-label {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.task-project-label:hover { text-decoration: underline; }
+.task-project-label:disabled { color: var(--muted); cursor: default; }
+.task-project-label:disabled:hover { text-decoration: none; }
+
+.task-info-meta-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+
+.task-info-project-link {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--blue);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.task-info-project-link:hover { text-decoration: underline; }
+
+.task-info-members { display: grid; gap: 8px; margin-top: 8px; }
+
+.task-info-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  background: var(--surface-soft);
+  text-align: left;
+}
+.task-info-member:hover { background: var(--surface-raised); }
+.task-info-member .avatar { width: 36px; height: 36px; font-size: 13px; }
+.task-info-member-name { font-size: 12.5px; font-weight: 800; color: var(--text); }
+.task-info-member-role { margin-top: 2px; color: var(--muted-dim); font-size: 10px; }
