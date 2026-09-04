@@ -327,51 +327,159 @@ function urgencyColorVar(deadline, status) {
 // asume que alguien la marcó así a propósito. Baja y media sí se
 // recalculan automáticamente (y pueden subir a alta si el deadline
 // se acerca).
-function computeAutoPriority(task) {
-  if (!task.deadline || task.status === "completed") {
-    return task.priority;
+// =====================================================
+// ESTADO Y PRIORIDAD AUTOMÁTICOS
+// =====================================================
+
+// Solo promovemos "pendiente" -> activo/en progreso cuando llega la
+// fecha de inicio. "completado" siempre es manual, y nunca se
+// revierte un estado ya activo de vuelta a pendiente.
+function computeAutoStatus(item, activeValue) {
+  if (item.status !== "pending") {
+    return item.status;
   }
-  const days = daysUntil(task.deadline);
-  if (days === null) {
-    return task.priority;
+  const start = dateOnly(item.start_date);
+  if (!start) {
+    return item.status;
   }
-  if (days <= 1) {
-    return "high";
+  return start <= startOfToday() ? activeValue : "pending";
+}
+
+// Antes de empezar: respeta lo que eligió el usuario (o "low" si no
+// tocó nada). Ya activa: "medium". Último tramo del periodo (25%
+// final de los días entre inicio y deadline, mínimo 1 día): "high".
+// Completado nunca se recalcula.
+function computeAutoPriority(item) {
+  if (item.status === "completed") {
+    return item.priority;
   }
-  if (days <= 4) {
+  const start = dateOnly(item.start_date);
+  const today = startOfToday();
+  if (start && today < start) {
+    return item.priority || "low";
+  }
+  const end = dateOnly(item.deadline);
+  if (!end) {
     return "medium";
   }
-  return "low";
+  const daysLeft = daysUntil(item.deadline);
+  if (daysLeft === null) {
+    return "medium";
+  }
+  const totalDays = start
+    ? Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000))
+    : 4;
+  const highThreshold = Math.max(1, Math.round(totalDays * 0.25));
+  return daysLeft <= highThreshold ? "high" : "medium";
 }
-async function autoAdjustPriorities() {
-  const updates = tasks
-    .filter((task) => task.status !== "completed" && task.priority !== "high")
-    .map((task) => ({ id: task.id, next: computeAutoPriority(task) }))
-    .filter((update) => update.next && update.next !== tasks.find((t) => t.id === update.id).priority);
-  if (!updates.length) {
+
+function computeTemplatePriority(template) {
+  const today = getOccurrenceForToday(template.id);
+  if (!today || today.status === "completed") {
+    return template.priority;
+  }
+  const hour = new Date().getHours();
+  return hour < 16 ? "medium" : "high";
+}
+
+async function autoAdjustStatuses() {
+  const taskUpdates = tasks
+    .filter((task) => task.status === "pending")
+    .map((task) => ({ id: task.id, next: computeAutoStatus(task, "in_progress") }))
+    .filter((u) => u.next !== "pending");
+  const projectUpdates = projects
+    .filter((project) => project.status === "pending")
+    .map((project) => ({ id: project.id, next: computeAutoStatus(project, "active") }))
+    .filter((u) => u.next !== "pending");
+  if (!taskUpdates.length && !projectUpdates.length) {
     return false;
   }
   try {
-    await Promise.all(
-      updates.map((update) => db.from("tasks").update({ priority: update.next }).eq("id", update.id)),
-    );
+    await Promise.all([
+      ...taskUpdates.map((u) => db.from("tasks").update({ status: u.next }).eq("id", u.id)),
+      ...projectUpdates.map((u) => db.from("projects").update({ status: u.next }).eq("id", u.id)),
+    ]);
+    return true;
+  } catch (error) {
+    console.error("Error ajustando estados automáticamente:", error);
+    return false;
+  }
+}
+
+async function autoAdjustPriorities() {
+  const taskUpdates = tasks
+    .filter((task) => task.status !== "completed")
+    .map((task) => ({ id: task.id, next: computeAutoPriority(task) }))
+    .filter((u) => u.next && u.next !== tasks.find((t) => t.id === u.id).priority);
+  const projectUpdates = projects
+    .filter((project) => project.status !== "completed")
+    .map((project) => ({ id: project.id, next: computeAutoPriority(project) }))
+    .filter((u) => u.next && u.next !== projects.find((p) => p.id === u.id).priority);
+  const templateUpdates = taskTemplates
+    .filter((template) => template.is_active !== false)
+    .map((template) => ({ id: template.id, next: computeTemplatePriority(template) }))
+    .filter((u) => u.next && u.next !== taskTemplates.find((t) => t.id === u.id).priority);
+  if (!taskUpdates.length && !projectUpdates.length && !templateUpdates.length) {
+    return false;
+  }
+  try {
+    await Promise.all([
+      ...taskUpdates.map((u) => db.from("tasks").update({ priority: u.next }).eq("id", u.id)),
+      ...projectUpdates.map((u) => db.from("projects").update({ priority: u.next }).eq("id", u.id)),
+      ...templateUpdates.map((u) => db.from("task_templates").update({ priority: u.next }).eq("id", u.id)),
+    ]);
     return true;
   } catch (error) {
     console.error("Error ajustando prioridades automáticamente:", error);
     return false;
   }
 }
+
+async function autoAdjustOverdueOccurrences() {
+  const todayISO = toISODate(new Date());
+  const updates = taskOccurrences.filter(
+    (occurrence) =>
+      occurrence.occurrence_date < todayISO &&
+      occurrence.status !== "completed" &&
+      occurrence.status !== "vencida",
+  );
+  if (!updates.length) {
+    return false;
+  }
+  try {
+    await Promise.all(
+      updates.map((occurrence) =>
+        db.from("task_occurrences").update({ status: "vencida" }).eq("id", occurrence.id),
+      ),
+    );
+    return true;
+  } catch (error) {
+    console.error("Error marcando ocurrencias vencidas:", error);
+    return false;
+  }
+}
+
 function startAutoPriorityWatcher() {
   if (autoPriorityInterval) {
     return;
   }
   autoPriorityInterval = setInterval(async () => {
-    const changed = await autoAdjustPriorities();
-    if (changed) {
-      await loadTasks();
+    const statusChanged = await autoAdjustStatuses();
+    const priorityChanged = await autoAdjustPriorities();
+    const overdueChanged = await autoAdjustOverdueOccurrences();
+    if (statusChanged || priorityChanged || overdueChanged) {
+      await Promise.all([loadTasks(), loadProjects(), loadTaskTemplates(), loadTaskOccurrences()]);
       renderTasks();
       renderRecurringTasks();
+      renderProjects();
       updateDashboard();
+      if (selectedProject) {
+        const fresh = projects.find((p) => p.id === selectedProject.id);
+        if (fresh) {
+          selectedProject = fresh;
+          renderProjectDetail(fresh);
+        }
+      }
     }
   }, 5 * 60 * 1000);
 }
@@ -981,6 +1089,30 @@ document.querySelectorAll("[data-page-link]").forEach((button) => {
     showPage(button.dataset.pageLink);
   });
 });
+document.querySelector(".stats")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-stat-link]");
+  if (!button) {
+    return;
+  }
+  const link = button.dataset.statLink;
+  if (link === "projects-all") {
+    showPage("projects");
+    document.getElementById("projectFilter").value = "all";
+    renderProjects();
+  } else if (link === "projects-active") {
+    showPage("projects");
+    document.getElementById("projectFilter").value = "active";
+    renderProjects();
+  } else if (link === "tasks-pending") {
+    showPage("tasks");
+    document.getElementById("taskStatusFilter").value = "pending";
+    renderTasks();
+  } else if (link === "tasks-completed") {
+    showPage("tasks");
+    document.getElementById("taskStatusFilter").value = "completed";
+    renderTasks();
+  }
+});
 menuToggle.addEventListener("click", openSidebar);
 closeSidebarButton.addEventListener("click", closeSidebar);
 sidebarBackdrop.addEventListener("click", closeSidebar);
@@ -1244,10 +1376,19 @@ async function loadAllData() {
       console.error("Error cargando módulo:", result.reason);
     }
   });
+   const statusChanged = await autoAdjustStatuses();
+  if (statusChanged) {
+    await loadTasks();
+    await loadProjects();
+  }
   const priorityChanged = await autoAdjustPriorities();
   if (priorityChanged) {
     await loadTasks();
+    await loadProjects();
+    await loadTaskTemplates();
   }
+  await autoAdjustOverdueOccurrences();
+  await loadTaskOccurrences();
   renderProjects();
   renderTasks();
   renderRecurringTasks();
@@ -1399,9 +1540,14 @@ function renderProjectCard(project) {
             ${escapeHTML(project.client || "Sin cliente")}
           </span>
         </div>
-        <span class="badge ${escapeHTML(project.status)}">
-          ${escapeHTML(PROJECT_STATUS_LABELS[project.status] || project.status)}
-        </span>
+            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+          <span class="badge ${escapeHTML(project.status)}">
+            ${escapeHTML(PROJECT_STATUS_LABELS[project.status] || project.status)}
+          </span>
+          <span class="badge ${escapeHTML(project.priority || "medium")}">
+            ${escapeHTML(PRIORITY_LABELS[project.priority] || PRIORITY_LABELS.medium)}
+          </span>
+        </div>
       </div>
       <p class="card-description">
         ${escapeHTML(project.description || "Sin descripción.")}
@@ -1565,9 +1711,14 @@ function renderProjectDetail(project) {
             ${escapeHTML(project.client || "Sin cliente")}
           </p>
         </div>
-        <span class="badge ${escapeHTML(project.status)}">
-          ${escapeHTML(PROJECT_STATUS_LABELS[project.status] || project.status)}
-        </span>
+               <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          <span class="badge ${escapeHTML(project.status)}">
+            ${escapeHTML(PROJECT_STATUS_LABELS[project.status] || project.status)}
+          </span>
+          <span class="badge ${escapeHTML(project.priority || "medium")}">
+            ${escapeHTML(PRIORITY_LABELS[project.priority] || PRIORITY_LABELS.medium)}
+          </span>
+        </div>
       </div>
       ${
         project.description
@@ -1962,6 +2113,22 @@ function buildProjectForm(project = null) {
           Completado
         </option>
       </select>
+      <p class="assignment-help">
+        Se recalcula sola: pasa a "En producción" apenas llega la fecha de inicio. "Completado" es siempre manual.
+      </p>
+    </div>
+    <div class="modal-field">
+      <label for="projectPriority">
+        Prioridad
+      </label>
+      <select id="projectPriority">
+        <option value="low">Baja</option>
+        <option value="medium">Media</option>
+        <option value="high">Alta</option>
+      </select>
+      <p class="assignment-help">
+        Solo se usa mientras no ha empezado. Luego sube sola: media en marcha, alta cerca del deadline.
+      </p>
     </div>
     <div class="modal-field">
       <label>
@@ -1984,6 +2151,7 @@ function editProject(projectId) {
   modalTitle.textContent = "Editar proyecto";
   modalFields.innerHTML = buildProjectForm(project);
   document.getElementById("projectStatus").value = project.status;
+  document.getElementById("projectPriority").value = project.priority || "medium";
   openModal();
 }
 
@@ -2084,6 +2252,7 @@ async function saveProject() {
     start_date: startDate,
     deadline: deadline,
     status: document.getElementById("projectStatus").value,
+    priority: document.getElementById("projectPriority").value,
   };
   try {
     let projectId;
@@ -3132,6 +3301,7 @@ function renderRecurringTaskCard(template) {
     (occurrence) => occurrence.status === "completed",
   ).length;
   const timeStage = today ? getDayUrgencyStage() : "";
+  const isOverdueToday = today?.status === "vencida";
   return `
     <article class="smart-task-card" data-template-row="${template.id}">
       <div class="smart-task-card-top">
@@ -3209,6 +3379,15 @@ function renderRecurringTaskCard(template) {
                   style="width:${getDayTimeProgress()}%"
                 ></div>
               </div>
+            </div>
+          `
+          : ""
+      }
+            ${
+        isOverdueToday
+          ? `
+            <div class="task-overdue">
+              ⚠ El objetivo de hoy quedó vencido (no se completó a tiempo)
             </div>
           `
           : ""
