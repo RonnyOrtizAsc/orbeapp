@@ -723,8 +723,8 @@ button.dashboard-item:hover { background: var(--surface-raised); }
   height: 20px;
   background: currentColor;
   transform: translateY(-50%);
-  -webkit-mask: url("./Recursos/Imagenes/LogoPrincipal.png") center / contain no-repeat;
-  mask: url("./Recursos/Imagenes/LogoPrincipal.png") center / contain no-repeat;
+  -webkit-mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
+  mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
   color: var(--amarillo);
   filter: drop-shadow(0 0 5px rgba(0, 0, 0, .5));
 }
@@ -961,8 +961,8 @@ button.dashboard-item:hover { background: var(--surface-raised); }
   margin-right: 4px;
   vertical-align: -1px;
   background: currentColor;
-  -webkit-mask: url("./Recursos/Imagenes/LogoPrincipal.png") center / contain no-repeat;
-  mask: url("./Recursos/Imagenes/LogoPrincipal.png") center / contain no-repeat;
+  -webkit-mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
+  mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
 }
 
 /* Tarjetas de estadísticas del dashboard, ahora clicables */
