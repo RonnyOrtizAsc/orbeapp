@@ -347,6 +347,17 @@ function urgencyColorVar(deadline, status) {
   }
   return "var(--amarillo)";
 }
+// Color de la barra de progreso de un proyecto según % de tareas
+// completadas: 0-40% verde, 40-70% naranja, 70-100% rojo.
+function projectProgressColorClass(percent) {
+  if (percent >= 70) {
+    return "time-red";
+  }
+  if (percent >= 40) {
+    return "time-orange";
+  }
+  return "time-green";
+}
 // Prioridad sugerida según lo cerca que está el deadline. Regla de
 // negocio pedida: si la tarea YA está en "alta" no se toca — se
 // asume que alguien la marcó así a propósito. Baja y media sí se
@@ -1597,7 +1608,7 @@ function renderProjectCard(project) {
           ${formatDate(project.deadline)}
         </span>
       </div>
-      <div class="progress-wrap">
+       <div class="progress-wrap">
         <div class="progress-label">
           <span>
             PROGRESO
@@ -1608,7 +1619,7 @@ function renderProjectCard(project) {
         </div>
         <div class="progress-track">
           <div
-            class="progress-bar"
+            class="progress-bar ${projectProgressColorClass(progress)}"
             style="width:${progress}%"
           ></div>
         </div>
@@ -1809,7 +1820,7 @@ function renderProjectDetail(project) {
         </div>
         <div class="progress-track">
           <div
-            class="progress-bar"
+            class="progress-bar ${projectProgressColorClass(progress)}"
             style="width:${progress}%"
           ></div>
         </div>
@@ -4116,11 +4127,17 @@ function renderDashboardAlerts() {
     });
   });
 
-  // Objetivos de tareas inteligentes (llamadas, etc.) vencidos hoy o antes.
-  const overdueSmartOccurrences = taskOccurrences.filter(
-    (occurrence) => occurrence.status === "vencida",
-  );
-  overdueSmartOccurrences.slice(0, 5).forEach((occurrence) => {
+  // Objetivos de tareas inteligentes (llamadas, etc.) vencidos — solo
+  const overdueSmartByTemplate = new Map();
+  taskOccurrences
+    .filter((occurrence) => occurrence.status === "vencida")
+    .forEach((occurrence) => {
+      const existing = overdueSmartByTemplate.get(occurrence.template_id);
+      if (!existing || occurrence.occurrence_date > existing.occurrence_date) {
+        overdueSmartByTemplate.set(occurrence.template_id, occurrence);
+      }
+    });
+  [...overdueSmartByTemplate.values()].slice(0, 5).forEach((occurrence) => {
     const template = getTemplateById(occurrence.template_id);
     alerts.push({
       danger: true,
