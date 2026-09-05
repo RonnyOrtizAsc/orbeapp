@@ -4835,6 +4835,7 @@ function renderOrganization() {
   const overlay = document.getElementById("orbeGameOverlay");
   const overlayTitle = document.getElementById("orbeGameOverlayTitle");
   const overlayButton = document.getElementById("orbeGameOverlayButton");
+  const shipOptions = document.querySelectorAll(".orbe-ship-option");
   const btnUp = document.getElementById("orbeGameBtnUp");
   const btnDown = document.getElementById("orbeGameBtnDown");
   const btnShoot = document.getElementById("orbeGameBtnShoot");
@@ -4842,13 +4843,22 @@ function renderOrganization() {
   const W = canvas.width;
   const H = canvas.height;
 
-  const shipImage = new Image();
-  shipImage.src = "./Recursos/Imagenes/Logotipo.png";
+  const logoImage = new Image();
+  logoImage.src = "./Recursos/Imagenes/Logotipo.png";
+
+  const SHIP_MODELS = {
+    veloz: { name: "Interceptor", color: "#79ABF2", moveSpeed: 7, fireCooldown: 250, damage: 1 },
+    sensible: { name: "Colibrí", color: "#58D98F", moveSpeed: 5.5, fireCooldown: 140, damage: 1 },
+    pistola: { name: "Artillera", color: "#FF6E6E", moveSpeed: 4.5, fireCooldown: 420, damage: 2 },
+  };
+  let selectedShipId = "veloz";
 
   let ship, lasers, obstacles, bgStars, score, speed, spawnTimer, lastShot, running, loopId;
+  const pressedKeys = new Set();
 
   function resetGame() {
-    ship = { x: 50, y: H / 2, size: 30, speed: 4 };
+    const model = SHIP_MODELS[selectedShipId];
+    ship = { x: 55, y: H / 2, size: 30, model };
     lasers = [];
     obstacles = [];
     bgStars = Array.from({ length: 40 }, () => ({
@@ -4862,36 +4872,59 @@ function renderOrganization() {
     lastShot = 0;
   }
 
+  function makeRockShape(size) {
+    const points = 9;
+    const shape = [];
+    for (let i = 0; i < points; i += 1) {
+      const angle = (Math.PI * 2 * i) / points;
+      const radius = size * (0.75 + Math.random() * 0.35);
+      shape.push({ angle, radius });
+    }
+    return shape;
+  }
+
   function spawnObstacle() {
     const roll = Math.random();
-    const type = roll < 0.35 ? "planet" : roll < 0.55 ? "star-obst" : "rock-big";
-    const size = type === "planet" ? 34 : type === "star-obst" ? 16 : 24;
+    const type = roll < 0.32 ? "planet" : roll < 0.55 ? "star-obst" : "rock-big";
+    const size = type === "planet" ? 32 : type === "star-obst" ? 15 : 24;
     obstacles.push({
       type,
       x: W + size,
       y: Math.random() * (H - size * 2) + size,
       size,
-      hits: 0,
-      hitsNeeded: type === "rock-big" ? 3 : type === "rock-small" ? 2 : Infinity,
+      hp: type === "rock-big" ? 3 : type === "rock-small" ? 2 : Infinity,
       vy: (Math.random() - 0.5) * 0.6,
+      rockShape: type.startsWith("rock") ? makeRockShape(size) : null,
+      planetHue: type === "planet" ? Math.floor(Math.random() * 4) : null,
+      rotation: Math.random() * Math.PI * 2,
     });
   }
 
   function splitRock(rock) {
     for (let i = 0; i < 2; i += 1) {
+      const size = 13;
       obstacles.push({
         type: "rock-small",
         x: rock.x,
         y: rock.y + (i === 0 ? -14 : 14),
-        size: 13,
-        hits: 0,
-        hitsNeeded: 2,
+        size,
+        hp: 2,
         vy: (i === 0 ? -1 : 1) * 0.8,
+        rockShape: makeRockShape(size),
+        rotation: Math.random() * Math.PI * 2,
       });
     }
   }
 
   function update() {
+    if (pressedKeys.has("up")) {
+      ship.y -= ship.model.moveSpeed;
+    }
+    if (pressedKeys.has("down")) {
+      ship.y += ship.model.moveSpeed;
+    }
+    ship.y = Math.max(ship.size, Math.min(H - ship.size, ship.y));
+
     spawnTimer += 1;
     const spawnEvery = Math.max(35, 70 - Math.floor(score / 5));
     if (spawnTimer >= spawnEvery) {
@@ -4900,12 +4933,13 @@ function renderOrganization() {
     }
     speed = Math.min(7, 2.5 + score / 60);
 
-    lasers.forEach((laser) => { laser.x += 8; });
+    lasers.forEach((laser) => { laser.x += 9; });
     lasers = lasers.filter((laser) => laser.x < W + 20);
 
     obstacles.forEach((obstacle) => {
       obstacle.x -= speed;
       obstacle.y += obstacle.vy;
+      obstacle.rotation += 0.01;
       if (obstacle.y < obstacle.size || obstacle.y > H - obstacle.size) {
         obstacle.vy *= -1;
       }
@@ -4923,20 +4957,20 @@ function renderOrganization() {
         const dy = laser.y - obstacle.y;
         if (Math.sqrt(dx * dx + dy * dy) < obstacle.size) {
           laser.hit = true;
-          obstacle.hits += 1;
+          obstacle.hp -= laser.damage;
         }
       });
     });
     lasers = lasers.filter((laser) => !laser.hit);
 
-    const destroyed = obstacles.filter((obstacle) => obstacle.hits >= obstacle.hitsNeeded);
+    const destroyed = obstacles.filter((obstacle) => obstacle.hp <= 0);
     destroyed.forEach((obstacle) => {
       score += obstacle.type === "rock-big" ? 20 : 10;
       if (obstacle.type === "rock-big") {
         splitRock(obstacle);
       }
     });
-    obstacles = obstacles.filter((obstacle) => obstacle.hits < obstacle.hitsNeeded && obstacle.x > -50);
+    obstacles = obstacles.filter((obstacle) => obstacle.hp > 0 && obstacle.x > -50);
 
     const crashed = obstacles.some((obstacle) => {
       const dx = obstacle.x - ship.x;
@@ -4948,6 +4982,125 @@ function renderOrganization() {
       return;
     }
     score += 0.05;
+  }
+
+  function drawRock(obstacle) {
+    ctx.save();
+    ctx.translate(obstacle.x, obstacle.y);
+    ctx.rotate(obstacle.rotation);
+    ctx.beginPath();
+    obstacle.rockShape.forEach((point, index) => {
+      const x = Math.cos(point.angle) * point.radius;
+      const y = Math.sin(point.angle) * point.radius;
+      if (index === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    });
+    ctx.closePath();
+    ctx.fillStyle = "#8b8578";
+    ctx.fill();
+    ctx.strokeStyle = "#3a3831";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawPlanet(obstacle) {
+    const palettes = [
+      ["#79ABF2", "#1E2C46"],
+      ["#B79CF5", "#302849"],
+      ["#F0A63C", "#46330F"],
+      ["#58D98F", "#1D3A28"],
+    ];
+    const [light, dark] = palettes[obstacle.planetHue] || palettes[0];
+    const gradient = ctx.createRadialGradient(
+      obstacle.x - obstacle.size * 0.3,
+      obstacle.y - obstacle.size * 0.3,
+      obstacle.size * 0.1,
+      obstacle.x,
+      obstacle.y,
+      obstacle.size,
+    );
+    gradient.addColorStop(0, light);
+    gradient.addColorStop(1, dark);
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(obstacle.x, obstacle.y, obstacle.size * 1.5, obstacle.size * 0.35, -0.4, 0, Math.PI * 2);
+    ctx.strokeStyle = light;
+    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(obstacle.x, obstacle.y, obstacle.size, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(obstacle.x - obstacle.size * 0.3, obstacle.y + obstacle.size * 0.2, obstacle.size * 0.18, 0, Math.PI * 2);
+    ctx.fillStyle = dark;
+    ctx.globalAlpha = 0.5;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawStarObstacle(obstacle) {
+    ctx.save();
+    ctx.translate(obstacle.x, obstacle.y);
+    ctx.rotate(obstacle.rotation);
+    ctx.beginPath();
+    const spikes = 5;
+    const outerR = obstacle.size;
+    const innerR = obstacle.size * 0.45;
+    for (let i = 0; i < spikes * 2; i += 1) {
+      const r = i % 2 === 0 ? outerR : innerR;
+      const angle = (Math.PI * i) / spikes;
+      const x = Math.cos(angle) * r;
+      const y = Math.sin(angle) * r;
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+    ctx.closePath();
+    ctx.fillStyle = "#FFF06A";
+    ctx.shadowColor = "#F5D825";
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawShip() {
+    const model = ship.model;
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.beginPath();
+    ctx.moveTo(ship.size * 0.7, 0);
+    ctx.lineTo(-ship.size * 0.5, -ship.size * 0.5);
+    ctx.lineTo(-ship.size * 0.2, 0);
+    ctx.lineTo(-ship.size * 0.5, ship.size * 0.5);
+    ctx.closePath();
+    ctx.fillStyle = model.color;
+    ctx.fill();
+    ctx.strokeStyle = "#141312";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    const badgeR = ship.size * 0.28;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(-ship.size * 0.05, 0, badgeR, 0, Math.PI * 2);
+    ctx.fillStyle = "#141312";
+    ctx.fill();
+    ctx.clip();
+    if (logoImage.complete && logoImage.naturalWidth) {
+      ctx.drawImage(logoImage, -ship.size * 0.05 - badgeR, -badgeR, badgeR * 2, badgeR * 2);
+    }
+    ctx.restore();
+    ctx.restore();
   }
 
   function draw() {
@@ -4968,25 +5121,21 @@ function renderOrganization() {
 
     ctx.fillStyle = "#F5D825";
     lasers.forEach((laser) => {
-      ctx.fillRect(laser.x, laser.y - 2, 16, 4);
+      const isPistola = laser.damage > 1;
+      ctx.fillRect(laser.x, laser.y - (isPistola ? 3 : 2), isPistola ? 20 : 16, isPistola ? 6 : 4);
     });
 
     obstacles.forEach((obstacle) => {
-      ctx.beginPath();
-      ctx.arc(obstacle.x, obstacle.y, obstacle.size, 0, Math.PI * 2);
-      ctx.fillStyle =
-        obstacle.type === "planet" ? "#79ABF2" : obstacle.type === "star-obst" ? "#FFF06A" : "#948F80";
-      ctx.fill();
+      if (obstacle.type === "planet") {
+        drawPlanet(obstacle);
+      } else if (obstacle.type === "star-obst") {
+        drawStarObstacle(obstacle);
+      } else {
+        drawRock(obstacle);
+      }
     });
 
-    if (shipImage.complete && shipImage.naturalWidth) {
-      ctx.drawImage(shipImage, ship.x - ship.size / 2, ship.y - ship.size / 2, ship.size, ship.size);
-    } else {
-      ctx.fillStyle = "#F5D825";
-      ctx.beginPath();
-      ctx.arc(ship.x, ship.y, ship.size / 2, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    drawShip();
 
     if (scoreLabel) {
       scoreLabel.textContent = Math.floor(score);
@@ -5008,6 +5157,7 @@ function renderOrganization() {
   function endGame() {
     running = false;
     cancelAnimationFrame(loopId);
+    document.getElementById("orbeShipSelect").classList.add("hidden");
     overlayTitle.textContent = `Nave destruida — puntaje: ${Math.floor(score)}`;
     overlayButton.textContent = "Volver a intentar";
     overlay.classList.remove("hidden");
@@ -5015,34 +5165,50 @@ function renderOrganization() {
 
   function shoot() {
     const now = Date.now();
-    if (now - lastShot < 250) {
+    if (now - lastShot < ship.model.fireCooldown) {
       return;
     }
     lastShot = now;
-    lasers.push({ x: ship.x + ship.size / 2, y: ship.y });
+    lasers.push({ x: ship.x + ship.size * 0.7, y: ship.y, damage: ship.model.damage });
   }
 
-  function moveShip(direction) {
-    ship.y = Math.max(ship.size, Math.min(H - ship.size, ship.y + direction * ship.speed * 6));
-  }
+  shipOptions.forEach((button) => {
+    button.addEventListener("click", () => {
+      selectedShipId = button.dataset.ship;
+      shipOptions.forEach((option) => option.classList.remove("selected"));
+      button.classList.add("selected");
+    });
+  });
+  document.querySelector(`.orbe-ship-option[data-ship="${selectedShipId}"]`)?.classList.add("selected");
 
   document.addEventListener("keydown", (event) => {
-    if (!running) {
-      return;
-    }
     if (event.code === "ArrowUp" || event.code === "KeyW") {
-      moveShip(-1);
+      pressedKeys.add("up");
     }
     if (event.code === "ArrowDown" || event.code === "KeyS") {
-      moveShip(1);
+      pressedKeys.add("down");
     }
-    if (event.code === "Space") {
+    if (event.code === "Space" && running) {
       event.preventDefault();
       shoot();
     }
   });
-  btnUp?.addEventListener("click", () => running && moveShip(-1));
-  btnDown?.addEventListener("click", () => running && moveShip(1));
+  document.addEventListener("keyup", (event) => {
+    if (event.code === "ArrowUp" || event.code === "KeyW") {
+      pressedKeys.delete("up");
+    }
+    if (event.code === "ArrowDown" || event.code === "KeyS") {
+      pressedKeys.delete("down");
+    }
+  });
+  ["mousedown", "touchstart"].forEach((eventName) => {
+    btnUp?.addEventListener(eventName, () => pressedKeys.add("up"));
+    btnDown?.addEventListener(eventName, () => pressedKeys.add("down"));
+  });
+  ["mouseup", "mouseleave", "touchend"].forEach((eventName) => {
+    btnUp?.addEventListener(eventName, () => pressedKeys.delete("up"));
+    btnDown?.addEventListener(eventName, () => pressedKeys.delete("down"));
+  });
   btnShoot?.addEventListener("click", () => running && shoot());
 
   overlayButton?.addEventListener("click", () => {
