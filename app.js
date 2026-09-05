@@ -4115,6 +4115,39 @@ function renderDashboardAlerts() {
       text: task.title,
     });
   });
+
+  // Objetivos de tareas inteligentes (llamadas, etc.) vencidos hoy o antes.
+  const overdueSmartOccurrences = taskOccurrences.filter(
+    (occurrence) => occurrence.status === "vencida",
+  );
+  overdueSmartOccurrences.slice(0, 5).forEach((occurrence) => {
+    const template = getTemplateById(occurrence.template_id);
+    alerts.push({
+      danger: true,
+      title: "Objetivo vencido",
+      text: template ? `${template.title} (${formatDate(occurrence.occurrence_date)})` : "Tarea inteligente",
+    });
+  });
+
+  // Objetivos de hoy que aún no se completan (para que se vean antes de vencerse).
+  const todayISO = toISODate(new Date());
+  const pendingTodaySmart = taskOccurrences.filter(
+    (occurrence) =>
+      occurrence.occurrence_date === todayISO &&
+      occurrence.status !== "completed" &&
+      occurrence.status !== "vencida",
+  );
+  pendingTodaySmart.slice(0, 5).forEach((occurrence) => {
+    const template = getTemplateById(occurrence.template_id);
+    if (!template) return;
+    const percent = occurrenceProgressPercent(occurrence);
+    alerts.push({
+      danger: false,
+      title: "Objetivo de hoy",
+      text: `${template.title} · ${percent}%`,
+    });
+  });
+
   projects
     .filter((project) => {
       if (project.status === "completed") {
