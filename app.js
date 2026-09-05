@@ -4824,4 +4824,237 @@ function renderOrganization() {
 // =====================================================
 // ARRANQUE
 // =====================================================
+// ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) =====
+(function setupOrbeGame() {
+  const canvas = document.getElementById("orbeGameCanvas");
+  if (!canvas) {
+    return;
+  }
+  const ctx = canvas.getContext("2d");
+  const scoreLabel = document.getElementById("orbeGameScore");
+  const overlay = document.getElementById("orbeGameOverlay");
+  const overlayTitle = document.getElementById("orbeGameOverlayTitle");
+  const overlayButton = document.getElementById("orbeGameOverlayButton");
+  const btnUp = document.getElementById("orbeGameBtnUp");
+  const btnDown = document.getElementById("orbeGameBtnDown");
+  const btnShoot = document.getElementById("orbeGameBtnShoot");
+
+  const W = canvas.width;
+  const H = canvas.height;
+
+  const shipImage = new Image();
+  shipImage.src = "./Recursos/Imagenes/Logotipo.png";
+
+  let ship, lasers, obstacles, bgStars, score, speed, spawnTimer, lastShot, running, loopId;
+
+  function resetGame() {
+    ship = { x: 50, y: H / 2, size: 30, speed: 4 };
+    lasers = [];
+    obstacles = [];
+    bgStars = Array.from({ length: 40 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.5 + 0.5,
+    }));
+    score = 0;
+    speed = 2.5;
+    spawnTimer = 0;
+    lastShot = 0;
+  }
+
+  function spawnObstacle() {
+    const roll = Math.random();
+    const type = roll < 0.35 ? "planet" : roll < 0.55 ? "star-obst" : "rock-big";
+    const size = type === "planet" ? 34 : type === "star-obst" ? 16 : 24;
+    obstacles.push({
+      type,
+      x: W + size,
+      y: Math.random() * (H - size * 2) + size,
+      size,
+      hits: 0,
+      hitsNeeded: type === "rock-big" ? 3 : type === "rock-small" ? 2 : Infinity,
+      vy: (Math.random() - 0.5) * 0.6,
+    });
+  }
+
+  function splitRock(rock) {
+    for (let i = 0; i < 2; i += 1) {
+      obstacles.push({
+        type: "rock-small",
+        x: rock.x,
+        y: rock.y + (i === 0 ? -14 : 14),
+        size: 13,
+        hits: 0,
+        hitsNeeded: 2,
+        vy: (i === 0 ? -1 : 1) * 0.8,
+      });
+    }
+  }
+
+  function update() {
+    spawnTimer += 1;
+    const spawnEvery = Math.max(35, 70 - Math.floor(score / 5));
+    if (spawnTimer >= spawnEvery) {
+      spawnTimer = 0;
+      spawnObstacle();
+    }
+    speed = Math.min(7, 2.5 + score / 60);
+
+    lasers.forEach((laser) => { laser.x += 8; });
+    lasers = lasers.filter((laser) => laser.x < W + 20);
+
+    obstacles.forEach((obstacle) => {
+      obstacle.x -= speed;
+      obstacle.y += obstacle.vy;
+      if (obstacle.y < obstacle.size || obstacle.y > H - obstacle.size) {
+        obstacle.vy *= -1;
+      }
+    });
+
+    obstacles.forEach((obstacle) => {
+      if (obstacle.type === "planet" || obstacle.type === "star-obst") {
+        return;
+      }
+      lasers.forEach((laser) => {
+        if (laser.hit) {
+          return;
+        }
+        const dx = laser.x - obstacle.x;
+        const dy = laser.y - obstacle.y;
+        if (Math.sqrt(dx * dx + dy * dy) < obstacle.size) {
+          laser.hit = true;
+          obstacle.hits += 1;
+        }
+      });
+    });
+    lasers = lasers.filter((laser) => !laser.hit);
+
+    const destroyed = obstacles.filter((obstacle) => obstacle.hits >= obstacle.hitsNeeded);
+    destroyed.forEach((obstacle) => {
+      score += obstacle.type === "rock-big" ? 20 : 10;
+      if (obstacle.type === "rock-big") {
+        splitRock(obstacle);
+      }
+    });
+    obstacles = obstacles.filter((obstacle) => obstacle.hits < obstacle.hitsNeeded && obstacle.x > -50);
+
+    const crashed = obstacles.some((obstacle) => {
+      const dx = obstacle.x - ship.x;
+      const dy = obstacle.y - ship.y;
+      return Math.sqrt(dx * dx + dy * dy) < obstacle.size * 0.7 + ship.size * 0.5;
+    });
+    if (crashed) {
+      endGame();
+      return;
+    }
+    score += 0.05;
+  }
+
+  function draw() {
+    ctx.fillStyle = "#05050a";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#ffffff";
+    bgStars.forEach((star) => {
+      star.x -= 0.4;
+      if (star.x < 0) {
+        star.x = W;
+      }
+      ctx.globalAlpha = 0.6;
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = "#F5D825";
+    lasers.forEach((laser) => {
+      ctx.fillRect(laser.x, laser.y - 2, 16, 4);
+    });
+
+    obstacles.forEach((obstacle) => {
+      ctx.beginPath();
+      ctx.arc(obstacle.x, obstacle.y, obstacle.size, 0, Math.PI * 2);
+      ctx.fillStyle =
+        obstacle.type === "planet" ? "#79ABF2" : obstacle.type === "star-obst" ? "#FFF06A" : "#948F80";
+      ctx.fill();
+    });
+
+    if (shipImage.complete && shipImage.naturalWidth) {
+      ctx.drawImage(shipImage, ship.x - ship.size / 2, ship.y - ship.size / 2, ship.size, ship.size);
+    } else {
+      ctx.fillStyle = "#F5D825";
+      ctx.beginPath();
+      ctx.arc(ship.x, ship.y, ship.size / 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (scoreLabel) {
+      scoreLabel.textContent = Math.floor(score);
+    }
+  }
+
+  function loop() {
+    if (!running) {
+      return;
+    }
+    update();
+    if (!running) {
+      return;
+    }
+    draw();
+    loopId = requestAnimationFrame(loop);
+  }
+
+  function endGame() {
+    running = false;
+    cancelAnimationFrame(loopId);
+    overlayTitle.textContent = `Nave destruida — puntaje: ${Math.floor(score)}`;
+    overlayButton.textContent = "Volver a intentar";
+    overlay.classList.remove("hidden");
+  }
+
+  function shoot() {
+    const now = Date.now();
+    if (now - lastShot < 250) {
+      return;
+    }
+    lastShot = now;
+    lasers.push({ x: ship.x + ship.size / 2, y: ship.y });
+  }
+
+  function moveShip(direction) {
+    ship.y = Math.max(ship.size, Math.min(H - ship.size, ship.y + direction * ship.speed * 6));
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (!running) {
+      return;
+    }
+    if (event.code === "ArrowUp" || event.code === "KeyW") {
+      moveShip(-1);
+    }
+    if (event.code === "ArrowDown" || event.code === "KeyS") {
+      moveShip(1);
+    }
+    if (event.code === "Space") {
+      event.preventDefault();
+      shoot();
+    }
+  });
+  btnUp?.addEventListener("click", () => running && moveShip(-1));
+  btnDown?.addEventListener("click", () => running && moveShip(1));
+  btnShoot?.addEventListener("click", () => running && shoot());
+
+  overlayButton?.addEventListener("click", () => {
+    resetGame();
+    running = true;
+    overlay.classList.add("hidden");
+    loop();
+  });
+
+  resetGame();
+  running = false;
+  draw();
+})();
+// ===== FIN MINIJUEGO ORBE =====
 checkSession();
