@@ -160,6 +160,30 @@ const PRIORITY_LABELS = {
   medium: "Media",
   high: "Alta",
 };
+// Fecha + hora legible, para timestamps como los de las sesiones
+// (start_at/ended_at), a diferencia de formatDate() que es solo día.
+function formatDateTime(value) {
+  if (!value) {
+    return "Sin fecha";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString("es-ES", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+function getLastSessionForProfile(profileId) {
+  return workSessions
+    .filter((session) => session.profile_id === profileId)
+    .slice()
+    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())[0] || null;
+}
 function formatDate(value) {
   if (!value) {
     return "Sin fecha";
@@ -4335,6 +4359,54 @@ function openTeamProfile(profileId) {
           </strong>
         </div>
       </div>
+      ${
+        isAdmin(currentProfile)
+          ? (() => {
+              const lastSession = getLastSessionForProfile(profile.id);
+              if (!lastSession) {
+                return `
+                  <div class="profile-section">
+                    <div class="profile-section-header">
+                      <div>
+                        <p class="eyebrow">ACTIVIDAD</p>
+                        <h3>Última sesión</h3>
+                      </div>
+                    </div>
+                    <p class="profile-empty">
+                      Todavía no ha registrado ninguna sesión.
+                    </p>
+                  </div>
+                `;
+              }
+              const occurrence = taskOccurrences.find((item) => item.id === lastSession.occurrence_id);
+              const template = occurrence ? getTemplateById(occurrence.template_id) : null;
+              const isOpen = !lastSession.ended_at;
+              return `
+                <div class="profile-section">
+                  <div class="profile-section-header">
+                    <div>
+                      <p class="eyebrow">ACTIVIDAD</p>
+                      <h3>Última sesión</h3>
+                    </div>
+                  </div>
+                  <div class="member-task-item">
+                    <strong>
+                      ${escapeHTML(template?.title || "Tarea inteligente")}
+                    </strong>
+                    <p>
+                      ${formatDateTime(lastSession.started_at)}
+                      ${
+                        isOpen
+                          ? "· sesión abierta ahora mismo"
+                          : `· terminó ${formatDateTime(lastSession.ended_at)}`
+                      }
+                    </p>
+                  </div>
+                </div>
+              `;
+            })()
+          : ""
+      }
            ${
         memberSmartTemplates.length
           ? (() => {
