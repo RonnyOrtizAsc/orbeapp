@@ -3693,7 +3693,7 @@ function checkAutoCompleteCallSession() {
   if (!currentCallSession || !currentCallOccurrence) {
     return;
   }
-  if (currentCallOccurrence.status === "completed") {
+  if (currentCallOccurrence.status === "completed" || currentCallOccurrence.status === "vencida") {
     return;
   }
   const startedAt = new Date(currentCallSession.started_at).getTime();
@@ -3703,11 +3703,16 @@ function checkAutoCompleteCallSession() {
   }
 }
 async function autoCompleteCurrentOccurrence() {
+  // Si en la hora sí se alcanzó la meta, deja que el estado que ya
+  // puso saveCallActivity ("completed") se quede tal cual.
+  if (getOccurrenceActualValue(currentCallOccurrence) >= normalizeNumericValue(currentCallOccurrence.target_value)) {
+    return;
+  }
   try {
     const { error } = await db
       .from("task_occurrences")
       .update({
-        status: "completed",
+        status: "vencida",
       })
       .eq("id", currentCallOccurrence.id);
     if (error) {
@@ -3715,21 +3720,21 @@ async function autoCompleteCurrentOccurrence() {
     }
     currentCallOccurrence = {
       ...currentCallOccurrence,
-      status: "completed",
+      status: "vencida",
     };
     const index = taskOccurrences.findIndex((item) => item.id === currentCallOccurrence.id);
     if (index !== -1) {
       taskOccurrences[index] = {
         ...taskOccurrences[index],
-        status: "completed",
+        status: "vencida",
       };
     }
     updateCallSessionUI();
     renderRecurringTasks();
     updateDashboard();
-    showToast("Objetivo del día completado automáticamente (1h de sesión).");
+    showToast("Se cumplió la hora de sesión sin llegar a la meta: el objetivo quedó vencido.");
   } catch (error) {
-    console.error("Error autocompletando ocurrencia:", error);
+    console.error("Error marcando ocurrencia vencida:", error);
   }
 }
 function openCallRegistration() {
