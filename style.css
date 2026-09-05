@@ -718,7 +718,7 @@ button.dashboard-item:hover { background: var(--surface-raised); }
   content: "";
   position: absolute;
   top: 50%;
-  right: -13px;
+  right: -15px;
   width: 20px;
   height: 20px;
   background: currentColor;
