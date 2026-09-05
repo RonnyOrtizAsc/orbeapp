@@ -1764,4 +1764,5 @@ body.can-manage .manager-only { display: inline-flex; }
   border-radius: 50%;
   box-shadow: 0 0 8px rgba(0,0,0,.4);
 }
+.orbe-game-overlay-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 /* ===== FIN MINIJUEGO ORBE ===== */
