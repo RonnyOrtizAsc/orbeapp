@@ -709,11 +709,13 @@ button.dashboard-item:hover { background: var(--surface-raised); }
   overflow: visible;
   border-radius: inherit;
   background: var(--amarillo);
-  transition: width .4s ease, background-color .4s ease;
+  color: var(--amarillo);
+  transition: width .4s ease, background-color .4s ease, color .4s ease;
 }
 
 /* "Carrito" — el logo de la productora marcando el punto de
-   avance de la barra. Sigue el color del progreso. */
+   avance de la barra. Sigue el color del progreso (heredado
+   del elemento padre .progress-bar, NO fijo). */
 .progress-bar::after {
   content: "";
   position: absolute;
@@ -725,7 +727,6 @@ button.dashboard-item:hover { background: var(--surface-raised); }
   transform: translateY(-50%);
   -webkit-mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
   mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
-  color: var(--amarillo);
   filter: drop-shadow(0 0 5px rgba(0, 0, 0, .5));
 }
 
