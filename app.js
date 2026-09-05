@@ -4943,58 +4943,7 @@ function renderOrganization() {
     }
   }
   renderOrbeScoreboardFromCache();
-
-  const ORBE_SCOREBOARD_NAMES = ["Dani", "Ronny", "Mauri"];
-  function findOrbeProfileByNamePart(part) {
-    const lower = part.toLowerCase();
-    return profiles.find((profile) => (profile.name || "").toLowerCase().includes(lower));
-  }
-  async function loadOrbeHighScores() {
-    if (!scoreboardBody) return;
-    const rows = await Promise.all(
-      ORBE_SCOREBOARD_NAMES.map(async (namePart) => {
-        const profile = findOrbeProfileByNamePart(namePart);
-        let best = 0;
-        if (profile) {
-          try {
-            const result = await window.storage.get(`orbe-high-score:${profile.id}`, true);
-            best = result ? Number(result.value) || 0 : 0;
-          } catch {
-            best = 0;
-          }
-        }
-        return { displayName: profile?.name || namePart, best };
-      }),
-    );
-    rows.sort((a, b) => b.best - a.best);
-    scoreboardBody.innerHTML = rows
-      .map(
-        (row, i) => `
-        <tr>
-          <td>${i === 0 && row.best > 0 ? "🏆 " : ""}${escapeHTML(row.displayName)}</td>
-          <td>${row.best}</td>
-        </tr>`,
-      )
-      .join("");
-  }
-  async function maybeSaveOrbeHighScore(finalScore) {
-    const profile = currentProfile;
-    if (!profile) return;
-    const key = `orbe-high-score:${profile.id}`;
-    try {
-      const existing = await window.storage.get(key, true).catch(() => null);
-      const currentBest = existing ? Number(existing.value) || 0 : 0;
-      if (finalScore > currentBest) {
-        await window.storage.set(key, String(Math.floor(finalScore)), true);
-      }
-    } catch (error) {
-      console.error("No se pudo guardar el puntaje del juego:", error);
-    } finally {
-      loadOrbeHighScores();
-    }
-  }
-  loadOrbeHighScores();
-
+  
   const W = canvas.width;
   const H = canvas.height;
   const START_LIVES = 2;
