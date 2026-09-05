@@ -440,6 +440,34 @@
 
         <div id="organizationChart" class="organization-chart"></div>
 
+        <!-- ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== -->
+<div class="section-card orbe-game-card">
+  <div class="section-header">
+    <div>
+      <p class="eyebrow">RECREO</p>
+      <h3>Orbe Rider — minijuego espacial</h3>
+    </div>
+    <span class="eyebrow">PUNTAJE: <strong id="orbeGameScore">0</strong></span>
+  </div>
+  <p style="color:var(--muted);font-size:12px;margin-bottom:12px">
+    Flechas ↑ ↓ (o W/S) para moverte, espacio para disparar. 3 disparos destruyen una roca grande
+    (se parte en 2 rocas chicas), 2 disparos destruyen una roca chica. Evita chocar con planetas y estrellas.
+  </p>
+  <div class="orbe-game-canvas-wrap">
+    <canvas id="orbeGameCanvas" width="700" height="300"></canvas>
+    <div id="orbeGameOverlay" class="orbe-game-overlay">
+      <h3 id="orbeGameOverlayTitle">Orbe Rider</h3>
+      <button type="button" id="orbeGameOverlayButton" class="button button-dark">Jugar</button>
+    </div>
+  </div>
+  <div class="orbe-game-controls">
+    <button type="button" id="orbeGameBtnUp" class="smart-task-action">▲</button>
+    <button type="button" id="orbeGameBtnDown" class="smart-task-action">▼</button>
+    <button type="button" id="orbeGameBtnShoot" class="smart-task-action primary">🔫 Disparar</button>
+  </div>
+</div>
+<!-- ===== FIN MINIJUEGO ORBE ===== -->
+
       </section>
 
     </main>
