@@ -4701,53 +4701,6 @@ function showTeamOverview() {
 function getProfileById(id) {
   return profiles.find((profile) => profile.id === id);
 }
-const SCOREBOARD_NAMES = ["Dani", "Ronny", "Mauri"];
-function findProfileByNamePart(part) {
-  const lower = part.toLowerCase();
-  return profiles.find((profile) => (profile.name || "").toLowerCase().includes(lower));
-}
-function getProfileScore(profile) {
-  if (!profile) return 0;
-  const completedTasks = tasks.filter(
-    (task) => task.status === "completed" && getTaskMemberIds(task).includes(profile.id),
-  ).length;
-  const completedOccurrences = taskOccurrences.filter((occurrence) => {
-    if (occurrence.status !== "completed") return false;
-    const template = getTemplateById(occurrence.template_id);
-    return template?.assigned_profile_id === profile.id;
-  }).length;
-  return completedTasks + completedOccurrences;
-}
-function renderOrganizationScoreboard() {
-  const container = document.getElementById("organizationScoreboard");
-  if (!container) return;
-  const rows = SCOREBOARD_NAMES.map((namePart) => {
-    const profile = findProfileByNamePart(namePart);
-    return { displayName: profile?.name || namePart, score: getProfileScore(profile) };
-  }).sort((a, b) => b.score - a.score);
-  container.innerHTML = `
-    <div class="section-header">
-      <div>
-        <p class="eyebrow">PRODUCTIVIDAD</p>
-        <h3>Marcador del equipo</h3>
-      </div>
-    </div>
-    <table class="score-table">
-      <thead><tr><th>Nombre</th><th>Puntaje</th></tr></thead>
-      <tbody>
-        ${rows
-          .map(
-            (row, i) => `
-            <tr>
-              <td>${i === 0 && row.score > 0 ? "🏆 " : ""}${escapeHTML(row.displayName)}</td>
-              <td>${row.score}</td>
-            </tr>`,
-          )
-          .join("")}
-      </tbody>
-    </table>
-  `;
-}
 // Nombres que aún no queremos mostrar en el organigrama (delegación pendiente).
 const ORG_HIDDEN_NAME_PARTS = ["mauri", "ronny"];
 function isOrgHiddenProfile(profile) {
@@ -4776,7 +4729,6 @@ function renderOrganization() {
   if (!organizationChart) {
     return;
   }
-  renderOrganizationScoreboard();
   if (!organizationAreas.length) {
     organizationChart.innerHTML = `
       <div class="organization-empty">
@@ -4888,9 +4840,61 @@ function renderOrganization() {
   const menuButton = document.getElementById("orbeGameMenuButton");
   const shipSelect = document.getElementById("orbeShipSelect");
   const shipOptions = document.querySelectorAll(".orbe-ship-option");
-  const btnUp = document.getElementById("orbeGameBtnUp");
+   const btnUp = document.getElementById("orbeGameBtnUp");
   const btnDown = document.getElementById("orbeGameBtnDown");
   const btnShoot = document.getElementById("orbeGameBtnShoot");
+  const scoreboardBody = document.getElementById("orbeScoreboardBody");
+
+  const ORBE_SCOREBOARD_NAMES = ["Dani", "Ronny", "Mauri"];
+  function findOrbeProfileByNamePart(part) {
+    const lower = part.toLowerCase();
+    return profiles.find((profile) => (profile.name || "").toLowerCase().includes(lower));
+  }
+  async function loadOrbeHighScores() {
+    if (!scoreboardBody) return;
+    const rows = await Promise.all(
+      ORBE_SCOREBOARD_NAMES.map(async (namePart) => {
+        const profile = findOrbeProfileByNamePart(namePart);
+        let best = 0;
+        if (profile) {
+          try {
+            const result = await window.storage.get(`orbe-high-score:${profile.id}`, true);
+            best = result ? Number(result.value) || 0 : 0;
+          } catch {
+            best = 0;
+          }
+        }
+        return { displayName: profile?.name || namePart, best };
+      }),
+    );
+    rows.sort((a, b) => b.best - a.best);
+    scoreboardBody.innerHTML = rows
+      .map(
+        (row, i) => `
+        <tr>
+          <td>${i === 0 && row.best > 0 ? "🏆 " : ""}${escapeHTML(row.displayName)}</td>
+          <td>${row.best}</td>
+        </tr>`,
+      )
+      .join("");
+  }
+  async function maybeSaveOrbeHighScore(finalScore) {
+    const profile = currentProfile;
+    if (!profile) return;
+    const key = `orbe-high-score:${profile.id}`;
+    try {
+      const existing = await window.storage.get(key, true).catch(() => null);
+      const currentBest = existing ? Number(existing.value) || 0 : 0;
+      if (finalScore > currentBest) {
+        await window.storage.set(key, String(Math.floor(finalScore)), true);
+      }
+    } catch (error) {
+      console.error("No se pudo guardar el puntaje del juego:", error);
+    } finally {
+      loadOrbeHighScores();
+    }
+  }
+  loadOrbeHighScores();
 
   const W = canvas.width;
   const H = canvas.height;
@@ -5321,6 +5325,7 @@ function renderOrganization() {
     overlayButton.textContent = "Volver a intentar";
     menuButton.classList.remove("hidden");
     overlay.classList.remove("hidden");
+    maybeSaveOrbeHighScore(score);
   }
 
   function shoot() {
