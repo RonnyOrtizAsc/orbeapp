@@ -1687,17 +1687,51 @@ body.can-manage .manager-only { display: inline-flex; }
 
 #smartCompletedCard strong { font-size: 26px; color: var(--green); }
 #smartOverdueCard strong { font-size: 26px; color: var(--red); }
+/* ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== */
+.orbe-game-card { margin-bottom: 20px; }
 
-.occurrence-list-item {
-  padding: 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: 9px;
-  background: var(--surface-soft);
-  margin-bottom: 9px;
+.orbe-game-canvas-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  margin: 0 auto;
 }
-.occurrence-list-item strong { display: block; font-size: 12.5px; color: var(--text); }
-.occurrence-list-item p { margin-top: 4px; color: var(--muted); font-size: 11px; }
 
+#orbeGameCanvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 700 / 300;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #05050a;
+}
+
+.orbe-game-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(5, 5, 10, .78);
+  border-radius: var(--radius-sm);
+  color: var(--papel);
+  text-align: center;
+  padding: 20px;
+}
+
+.orbe-game-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+@media (max-width: 650px) {
+  .orbe-game-controls { flex-wrap: wrap; }
+}
 .orbe-ship-select {
   display: flex;
   gap: 10px;
@@ -1730,3 +1764,4 @@ body.can-manage .manager-only { display: inline-flex; }
   border-radius: 50%;
   box-shadow: 0 0 8px rgba(0,0,0,.4);
 }
+/* ===== FIN MINIJUEGO ORBE ===== */
