@@ -348,15 +348,15 @@ function urgencyColorVar(deadline, status) {
   return "var(--amarillo)";
 }
 // Color de la barra de progreso de un proyecto según % de tareas
-// completadas: 0-40% verde, 40-70% naranja, 70-100% rojo.
+// completadas: 0-40% amarillo (default), 40-70% naranja, 70-100% verde.
 function projectProgressColorClass(percent) {
   if (percent >= 70) {
-    return "time-red";
+    return "time-green";
   }
   if (percent >= 40) {
     return "time-orange";
   }
-  return "time-green";
+  return "";
 }
 // Prioridad sugerida según lo cerca que está el deadline. Regla de
 // negocio pedida: si la tarea YA está en "alta" no se toca — se
