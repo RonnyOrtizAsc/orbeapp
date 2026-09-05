@@ -440,11 +440,11 @@
 
         <div id="organizationChart" class="organization-chart"></div>
 
-        <!-- ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== -->
+      <!-- ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== -->
 <div class="section-card orbe-game-card">
   <div class="section-header">
     <div>
-      <p class="eyebrow">RECREO</p>
+      <p class="eyebrow">JUEGOS ORBE C</p>
       <h3>Orbe Rider — minijuego espacial</h3>
     </div>
     <span class="eyebrow">PUNTAJE: <strong id="orbeGameScore">0</strong></span>
@@ -456,7 +456,24 @@
   <div class="orbe-game-canvas-wrap">
     <canvas id="orbeGameCanvas" width="700" height="300"></canvas>
     <div id="orbeGameOverlay" class="orbe-game-overlay">
-      <h3 id="orbeGameOverlayTitle">Orbe Rider</h3>
+      <h3 id="orbeGameOverlayTitle">Elige tu nave</h3>
+      <div class="orbe-ship-select" id="orbeShipSelect">
+        <button type="button" class="orbe-ship-option" data-ship="veloz">
+          <span class="orbe-ship-swatch" style="background:#79ABF2"></span>
+          <strong>Interceptor</strong>
+          <small>La más veloz esquivando</small>
+        </button>
+        <button type="button" class="orbe-ship-option" data-ship="sensible">
+          <span class="orbe-ship-swatch" style="background:#58D98F"></span>
+          <strong>Colibrí</strong>
+          <small>Muy sensible, dispara rapidísimo</small>
+        </button>
+        <button type="button" class="orbe-ship-option" data-ship="pistola">
+          <span class="orbe-ship-swatch" style="background:#FF6E6E"></span>
+          <strong>Artillera</strong>
+          <small>Pistola de plasma, pega más fuerte</small>
+        </button>
+      </div>
       <button type="button" id="orbeGameOverlayButton" class="button button-dark">Jugar</button>
     </div>
   </div>
