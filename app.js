@@ -1451,7 +1451,7 @@ async function loadTasks() {
   tasks = data || [];
 }
 async function loadProfiles() {
-  const { data, error } = await db.from("profiles").select("id,name,role,avatar_url").order("name");
+  const { data, error } = await db.from("profiles").select("id,name,role,avatar_url,game_high_score").order("name");
   if (error) {
     throw error;
   }
@@ -4890,10 +4890,59 @@ function renderOrganization() {
   const menuButton = document.getElementById("orbeGameMenuButton");
   const shipSelect = document.getElementById("orbeShipSelect");
   const shipOptions = document.querySelectorAll(".orbe-ship-option");
-   const btnUp = document.getElementById("orbeGameBtnUp");
+  const btnUp = document.getElementById("orbeGameBtnUp");
   const btnDown = document.getElementById("orbeGameBtnDown");
   const btnShoot = document.getElementById("orbeGameBtnShoot");
   const scoreboardBody = document.getElementById("orbeScoreboardBody");
+
+  const ORBE_SCOREBOARD_NAMES = ["Dani", "Ronny", "Mauri"];
+  function findOrbeProfileByNamePart(part) {
+    const lower = part.toLowerCase();
+    return profiles.find((profile) => (profile.name || "").toLowerCase().includes(lower));
+  }
+  function renderOrbeScoreboardFromCache() {
+    if (!scoreboardBody) return;
+    const rows = ORBE_SCOREBOARD_NAMES.map((namePart) => {
+      const profile = findOrbeProfileByNamePart(namePart);
+      return { displayName: profile?.name || namePart, best: profile?.game_high_score || 0 };
+    });
+    rows.sort((a, b) => b.best - a.best);
+    scoreboardBody.innerHTML = rows
+      .map(
+        (row, i) => `
+        <tr>
+          <td>${i === 0 && row.best > 0 ? "🏆 " : ""}${escapeHTML(row.displayName)}</td>
+          <td>${row.best}</td>
+        </tr>`,
+      )
+      .join("");
+  }
+  async function maybeSaveOrbeHighScore(finalScore) {
+    if (!currentUser || !currentProfile) return;
+    const rounded = Math.floor(finalScore);
+    if (rounded <= (currentProfile.game_high_score || 0)) {
+      return;
+    }
+    try {
+      const { error } = await db
+        .from("profiles")
+        .update({ game_high_score: rounded })
+        .eq("id", currentUser.id);
+      if (error) {
+        throw error;
+      }
+      currentProfile.game_high_score = rounded;
+      const profileIndex = profiles.findIndex((p) => p.id === currentUser.id);
+      if (profileIndex !== -1) {
+        profiles[profileIndex] = { ...profiles[profileIndex], game_high_score: rounded };
+      }
+    } catch (error) {
+      console.error("No se pudo guardar el puntaje del juego:", error);
+    } finally {
+      renderOrbeScoreboardFromCache();
+    }
+  }
+  renderOrbeScoreboardFromCache();
 
   const ORBE_SCOREBOARD_NAMES = ["Dani", "Ronny", "Mauri"];
   function findOrbeProfileByNamePart(part) {
