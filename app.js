@@ -4701,7 +4701,60 @@ function showTeamOverview() {
 function getProfileById(id) {
   return profiles.find((profile) => profile.id === id);
 }
+const SCOREBOARD_NAMES = ["Dani", "Ronny", "Mauri"];
+function findProfileByNamePart(part) {
+  const lower = part.toLowerCase();
+  return profiles.find((profile) => (profile.name || "").toLowerCase().includes(lower));
+}
+function getProfileScore(profile) {
+  if (!profile) return 0;
+  const completedTasks = tasks.filter(
+    (task) => task.status === "completed" && getTaskMemberIds(task).includes(profile.id),
+  ).length;
+  const completedOccurrences = taskOccurrences.filter((occurrence) => {
+    if (occurrence.status !== "completed") return false;
+    const template = getTemplateById(occurrence.template_id);
+    return template?.assigned_profile_id === profile.id;
+  }).length;
+  return completedTasks + completedOccurrences;
+}
+function renderOrganizationScoreboard() {
+  const container = document.getElementById("organizationScoreboard");
+  if (!container) return;
+  const rows = SCOREBOARD_NAMES.map((namePart) => {
+    const profile = findProfileByNamePart(namePart);
+    return { displayName: profile?.name || namePart, score: getProfileScore(profile) };
+  }).sort((a, b) => b.score - a.score);
+  container.innerHTML = `
+    <div class="section-header">
+      <div>
+        <p class="eyebrow">PRODUCTIVIDAD</p>
+        <h3>Marcador del equipo</h3>
+      </div>
+    </div>
+    <table class="score-table">
+      <thead><tr><th>Nombre</th><th>Puntaje</th></tr></thead>
+      <tbody>
+        ${rows
+          .map(
+            (row, i) => `
+            <tr>
+              <td>${i === 0 && row.score > 0 ? "🏆 " : ""}${escapeHTML(row.displayName)}</td>
+              <td>${row.score}</td>
+            </tr>`,
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
 // Nombres que aún no queremos mostrar en el organigrama (delegación pendiente).
+const ORG_HIDDEN_NAME_PARTS = ["mauri", "ronny"];
+function isOrgHiddenProfile(profile) {
+  if (!profile?.name) return false;
+  const name = profile.name.toLowerCase();
+  return ORG_HIDDEN_NAME_PARTS.some((part) => name.includes(part));
+}
 const ORG_HIDDEN_NAME_PARTS = ["mauri", "ronny"];
 function isOrgHiddenProfile(profile) {
   if (!profile?.name) return false;
@@ -4729,6 +4782,7 @@ function renderOrganization() {
   if (!organizationChart) {
     return;
   }
+  renderOrganizationScoreboard();
   if (!organizationAreas.length) {
     organizationChart.innerHTML = `
       <div class="organization-empty">
@@ -4784,8 +4838,8 @@ function renderOrganization() {
                                   : ""
                               }
                             </div>
-                        <div class="responsibility-people">
-  ${
+                       <div class="responsibility-people">
+    ${
     (() => {
       const peopleHTML = [
         responsibility.primary_profile_id
@@ -4801,9 +4855,9 @@ function renderOrganization() {
       return peopleHTML.trim()
         ? peopleHTML
         : `<span class="no-members">Aún sin asignar</span>`;
-    })()
-  }
-</div>
+          })()
+          }
+            </div>
                           </div>
                         `,
                         )
@@ -5293,25 +5347,32 @@ function renderOrganization() {
   });
   document.querySelector(`.orbe-ship-option[data-ship="${selectedShipId}"]`)?.classList.add("selected");
 
+    function isTypingTarget(target) {
+    if (!target) return false;
+    const tag = target.tagName;
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || target.isContentEditable;
+  }
+  function isOrgPageVisible() {
+    const page = document.getElementById("page-organization");
+    return page && !page.classList.contains("hidden");
+  }
+
   document.addEventListener("keydown", (event) => {
-    if (event.code === "ArrowUp" || event.code === "KeyW") {
-      pressedKeys.add("up");
+    const isGameKey =
+      event.code === "ArrowUp" || event.code === "ArrowDown" ||
+      event.code === "KeyW" || event.code === "KeyS" || event.code === "Space";
+    if (!isGameKey) return;
+    if (!running || !isOrgPageVisible() || isTypingTarget(event.target)) {
+      return;
     }
-    if (event.code === "ArrowDown" || event.code === "KeyS") {
-      pressedKeys.add("down");
-    }
-    if (event.code === "Space" && running) {
-      event.preventDefault();
-      shoot();
-    }
+    event.preventDefault();
+    if (event.code === "ArrowUp" || event.code === "KeyW") pressedKeys.add("up");
+    if (event.code === "ArrowDown" || event.code === "KeyS") pressedKeys.add("down");
+    if (event.code === "Space") shoot();
   });
   document.addEventListener("keyup", (event) => {
-    if (event.code === "ArrowUp" || event.code === "KeyW") {
-      pressedKeys.delete("up");
-    }
-    if (event.code === "ArrowDown" || event.code === "KeyS") {
-      pressedKeys.delete("down");
-    }
+    if (event.code === "ArrowUp" || event.code === "KeyW") pressedKeys.delete("up");
+    if (event.code === "ArrowDown" || event.code === "KeyS") pressedKeys.delete("down");
   });
   ["mousedown", "touchstart"].forEach((eventName) => {
     btnUp?.addEventListener(eventName, () => pressedKeys.add("up"));
