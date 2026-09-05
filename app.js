@@ -4755,12 +4755,6 @@ function isOrgHiddenProfile(profile) {
   const name = profile.name.toLowerCase();
   return ORG_HIDDEN_NAME_PARTS.some((part) => name.includes(part));
 }
-const ORG_HIDDEN_NAME_PARTS = ["mauri", "ronny"];
-function isOrgHiddenProfile(profile) {
-  if (!profile?.name) return false;
-  const name = profile.name.toLowerCase();
-  return ORG_HIDDEN_NAME_PARTS.some((part) => name.includes(part));
-}
 function responsibilityPersonHTML(profileId, label, primary = false) {
   const profile = getProfileById(profileId);
   if (!profile || isOrgHiddenProfile(profile)) {
