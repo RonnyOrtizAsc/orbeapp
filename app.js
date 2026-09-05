@@ -4701,9 +4701,16 @@ function showTeamOverview() {
 function getProfileById(id) {
   return profiles.find((profile) => profile.id === id);
 }
+// Nombres que aún no queremos mostrar en el organigrama (delegación pendiente).
+const ORG_HIDDEN_NAME_PARTS = ["mauri", "ronny"];
+function isOrgHiddenProfile(profile) {
+  if (!profile?.name) return false;
+  const name = profile.name.toLowerCase();
+  return ORG_HIDDEN_NAME_PARTS.some((part) => name.includes(part));
+}
 function responsibilityPersonHTML(profileId, label, primary = false) {
   const profile = getProfileById(profileId);
-  if (!profile) {
+  if (!profile || isOrgHiddenProfile(profile)) {
     return "";
   }
   return `
@@ -4777,33 +4784,26 @@ function renderOrganization() {
                                   : ""
                               }
                             </div>
-                            <div class="responsibility-people">
-                              ${
-                                responsibility.primary_profile_id
-                                  ? responsibilityPersonHTML(
-                                      responsibility.primary_profile_id,
-                                      "Encargado",
-                                      true,
-                                    )
-                                  : ""
-                              }
-                              ${
-                                responsibility.backup_profile_id
-                                  ? responsibilityPersonHTML(
-                                      responsibility.backup_profile_id,
-                                      "Respaldo",
-                                    )
-                                  : ""
-                              }
-                              ${
-                                responsibility.backup2_profile_id
-                                  ? responsibilityPersonHTML(
-                                      responsibility.backup2_profile_id,
-                                      "Segundo respaldo",
-                                    )
-                                  : ""
-                              }
-                            </div>
+                        <div class="responsibility-people">
+  ${
+    (() => {
+      const peopleHTML = [
+        responsibility.primary_profile_id
+          ? responsibilityPersonHTML(responsibility.primary_profile_id, "Encargado", true)
+          : "",
+        responsibility.backup_profile_id
+          ? responsibilityPersonHTML(responsibility.backup_profile_id, "Respaldo")
+          : "",
+        responsibility.backup2_profile_id
+          ? responsibilityPersonHTML(responsibility.backup2_profile_id, "Segundo respaldo")
+          : "",
+      ].join("");
+      return peopleHTML.trim()
+        ? peopleHTML
+        : `<span class="no-members">Aún sin asignar</span>`;
+    })()
+  }
+</div>
                           </div>
                         `,
                         )
