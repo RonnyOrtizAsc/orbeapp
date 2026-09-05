@@ -69,6 +69,7 @@ let taskOccurrences = [];
 let organizationAreas = [];
 let responsibilities = [];
 let activityLogs = [];
+let workSessions = [];
 let presenceChannel = null;
 let currentCallSession = null;
 let currentCallTemplate = null;
@@ -1370,6 +1371,7 @@ async function loadAllData() {
     loadTaskOccurrences(),
     loadOrganization(),
     loadActivityLogs(),
+    loadWorkSessions(),
   ]);
   results.forEach((result) => {
     if (result.status === "rejected") {
@@ -1460,6 +1462,15 @@ async function loadActivityLogs() {
     throw error;
   }
   activityLogs = data || [];
+}
+async function loadWorkSessions() {
+  const { data, error } = await db.from("work_sessions").select("*").order("started_at", {
+    ascending: false,
+  });
+  if (error) {
+    throw error;
+  }
+  workSessions = data || [];
 }
 async function loadOrganization() {
   const [areasResult, responsibilitiesResult] = await Promise.all([
@@ -3218,6 +3229,16 @@ function getTemplateById(templateId) {
 function getTemplateOccurrences(templateId) {
   return taskOccurrences.filter((occurrence) => occurrence.template_id === templateId);
 }
+function getSessionsForTemplate(templateId) {
+  const occurrenceIds = new Set(getTemplateOccurrences(templateId).map((occurrence) => occurrence.id));
+  return workSessions.filter((session) => occurrenceIds.has(session.occurrence_id));
+}
+function getLastSessionForTemplate(templateId) {
+  const sessions = getSessionsForTemplate(templateId).slice().sort(
+    (a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime(),
+  );
+  return sessions[0] || null;
+}
 function getOccurrenceForToday(templateId) {
   const today = toISODate(new Date());
   return taskOccurrences.find(
@@ -3265,7 +3286,72 @@ function getTemplateResponsibleIds(template) {
     : null;
   return generatedTask ? getTaskMemberIds(generatedTask) : [];
 }
+function getAllOccurrencesByStatus(status) {
+  return taskOccurrences
+    .filter((occurrence) => occurrence.status === status)
+    .sort((a, b) => b.occurrence_date.localeCompare(a.occurrence_date));
+}
+function renderSmartSummaryCounts() {
+  const completedEl = document.getElementById("smartCompletedCount");
+  const overdueEl = document.getElementById("smartOverdueCount");
+  if (completedEl) {
+    completedEl.textContent = getAllOccurrencesByStatus("completed").length;
+  }
+  if (overdueEl) {
+    overdueEl.textContent = getAllOccurrencesByStatus("vencida").length;
+  }
+}
+function openOccurrencesModal(status) {
+  const list = getAllOccurrencesByStatus(status);
+  const title = status === "completed" ? "Tareas completadas" : "Tareas vencidas";
+  document.getElementById("occurrencesModalTitle").textContent = title;
+  const content = document.getElementById("occurrencesModalContent");
+  if (!list.length) {
+    content.innerHTML = `
+      <p class="profile-empty">
+        Todavía no hay ocurrencias ${status === "completed" ? "completadas" : "vencidas"}.
+      </p>
+    `;
+  } else {
+    content.innerHTML = list
+      .map((occurrence) => {
+        const template = getTemplateById(occurrence.template_id);
+        const session = workSessions.find((item) => item.occurrence_id === occurrence.id);
+        const profile = template?.assigned_profile_id
+          ? getProfileById(template.assigned_profile_id)
+          : session
+          ? getProfileById(session.profile_id)
+          : null;
+        return `
+          <div class="occurrence-list-item">
+            <strong>${escapeHTML(template?.title || "Tarea inteligente")}</strong>
+            <p>
+              ${formatDate(occurrence.occurrence_date)}
+              ·
+              ${escapeHTML(profile?.name || "Sin asignar")}
+              ·
+              ${formatNumber(occurrence.actual_value)} / ${formatNumber(occurrence.target_value)}
+              ${escapeHTML(template?.target_unit || "")}
+            </p>
+          </div>
+        `;
+      })
+      .join("");
+  }
+  document.getElementById("occurrencesModal")?.classList.remove("hidden");
+}
+document.getElementById("smartCompletedCard")?.addEventListener("click", () => openOccurrencesModal("completed"));
+document.getElementById("smartOverdueCard")?.addEventListener("click", () => openOccurrencesModal("vencida"));
+document.getElementById("occurrencesModalClose")?.addEventListener("click", () => {
+  document.getElementById("occurrencesModal")?.classList.add("hidden");
+});
+document.getElementById("occurrencesModal")?.addEventListener("click", (event) => {
+  if (event.target.id === "occurrencesModal") {
+    document.getElementById("occurrencesModal").classList.add("hidden");
+  }
+});
 function renderRecurringTasks() {
+  renderSmartSummaryCounts();
   if (!recurringTasksList) {
     return;
   }
@@ -3300,8 +3386,16 @@ function renderRecurringTaskCard(template) {
   const completedCount = occurrences.filter(
     (occurrence) => occurrence.status === "completed",
   ).length;
-  const timeStage = today ? getDayUrgencyStage() : "";
+   const timeStage = today ? getDayUrgencyStage() : "";
   const isOverdueToday = today?.status === "vencida";
+  const isDoneToday = today?.status === "completed";
+  const lastSession = getLastSessionForTemplate(template.id);
+  const lastSessionProfile = lastSession ? getProfileById(lastSession.profile_id) : null;
+  const lastSessionText = lastSession
+    ? `${lastSessionProfile?.name || "—"} · ${formatDate(lastSession.started_at)}${
+        lastSession.ended_at ? "" : " (sesión abierta ahora)"
+      }`
+    : "Sin sesiones registradas todavía";
   return `
     <article class="smart-task-card" data-template-row="${template.id}">
       <div class="smart-task-card-top">
@@ -3325,9 +3419,18 @@ function renderRecurringTaskCard(template) {
             ${escapeHTML(template.target_unit || "unidades")}
           </strong>
         </span>
-        <span class="smart-task-detail">
+               <span class="smart-task-detail">
           ${escapeHTML(weekdaysLabel(template.weekdays))}
         </span>
+        ${
+          isAdmin(currentProfile)
+            ? `
+              <span class="smart-task-detail">
+                Última sesión: ${escapeHTML(lastSessionText)}
+              </span>
+            `
+            : ""
+        }
         <span class="smart-task-detail">
           ${formatDate(template.start_date)}
           →
@@ -3393,9 +3496,9 @@ function renderRecurringTaskCard(template) {
           : ""
       }
       ${members.length ? assignedMembersHTML(members) : ""}
-      <div class="smart-task-actions">
+          <div class="smart-task-actions">
         ${
-          today
+          today && !isDoneToday && !isOverdueToday
             ? `
               <button
                 class="smart-task-action primary"
@@ -3669,6 +3772,13 @@ async function startCallSession() {
 }
 async function endCallSession() {
   if (!currentCallSession) {
+    return;
+  }
+  const elapsedMs = Date.now() - new Date(currentCallSession.started_at).getTime();
+  const minMs = 60 * 60 * 1000;
+  if (elapsedMs < minMs) {
+    const remaining = Math.ceil((minMs - elapsedMs) / 60000);
+    showToast(`La sesión debe durar al menos 1 hora. Faltan ${remaining} minuto(s).`);
     return;
   }
   try {
