@@ -1656,3 +1656,44 @@ body.can-manage .manager-only { display: inline-flex; }
 .task-info-member .avatar { width: 36px; height: 36px; font-size: 13px; }
 .task-info-member-name { font-size: 12.5px; font-weight: 800; color: var(--text); }
 .task-info-member-role { margin-top: 2px; color: var(--muted-dim); font-size: 10px; }
+
+/* =====================================================
+   RESUMEN DE TAREAS INTELIGENTES (completadas / vencidas)
+===================================================== */
+
+.smart-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+.smart-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, transform .15s ease;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.smart-summary-card:hover { border-color: var(--muted-dim); transform: translateY(-2px); }
+
+.smart-summary-label {
+  color: var(--muted-dim);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+#smartCompletedCard strong { font-size: 26px; color: var(--green); }
+#smartOverdueCard strong { font-size: 26px; color: var(--red); }
+
+.occurrence-list-item {
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  background: var(--surface-soft);
+  margin-bottom: 9px;
+}
+.occurrence-list-item strong { display: block; font-size: 12.5px; color: var(--text); }
+.occurrence-list-item p { margin-top: 4px; color: var(--muted); font-size: 11px; }
