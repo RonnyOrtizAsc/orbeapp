@@ -4824,6 +4824,7 @@ function renderOrganization() {
 // =====================================================
 // ARRANQUE
 // =====================================================
+
 // ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) =====
 (function setupOrbeGame() {
   const canvas = document.getElementById("orbeGameCanvas");
@@ -4832,9 +4833,12 @@ function renderOrganization() {
   }
   const ctx = canvas.getContext("2d");
   const scoreLabel = document.getElementById("orbeGameScore");
+  const livesLabel = document.getElementById("orbeGameLives");
   const overlay = document.getElementById("orbeGameOverlay");
   const overlayTitle = document.getElementById("orbeGameOverlayTitle");
   const overlayButton = document.getElementById("orbeGameOverlayButton");
+  const menuButton = document.getElementById("orbeGameMenuButton");
+  const shipSelect = document.getElementById("orbeShipSelect");
   const shipOptions = document.querySelectorAll(".orbe-ship-option");
   const btnUp = document.getElementById("orbeGameBtnUp");
   const btnDown = document.getElementById("orbeGameBtnDown");
@@ -4842,25 +4846,29 @@ function renderOrganization() {
 
   const W = canvas.width;
   const H = canvas.height;
+  const START_LIVES = 2;
+  const MAX_LIVES = 3;
 
   const logoImage = new Image();
   logoImage.src = "./Recursos/Imagenes/Logotipo.png";
 
   const SHIP_MODELS = {
-    veloz: { name: "Interceptor", color: "#79ABF2", moveSpeed: 7, fireCooldown: 250, damage: 1 },
-    sensible: { name: "Colibrí", color: "#58D98F", moveSpeed: 5.5, fireCooldown: 140, damage: 1 },
-    pistola: { name: "Artillera", color: "#FF6E6E", moveSpeed: 4.5, fireCooldown: 420, damage: 2 },
+    veloz: { name: "Interceptor", color: "#79ABF2", moveSpeed: 7, fireCooldown: 250, damage: 1, worldSpeedMultiplier: 1.35 },
+    sensible: { name: "Colibrí", color: "#58D98F", moveSpeed: 5.5, fireCooldown: 140, damage: 1, worldSpeedMultiplier: 1 },
+    pistola: { name: "Artillera", color: "#FF6E6E", moveSpeed: 4.5, fireCooldown: 420, damage: 2, worldSpeedMultiplier: 1 },
   };
   let selectedShipId = "veloz";
 
-  let ship, lasers, obstacles, bgStars, score, speed, spawnTimer, lastShot, running, loopId;
+  let ship, lasers, obstacles, bonus, bgStars, score, speed, spawnTimer, lastShot, nextBonusScore, running, loopId;
   const pressedKeys = new Set();
 
   function resetGame() {
     const model = SHIP_MODELS[selectedShipId];
-    ship = { x: 55, y: H / 2, size: 30, model };
+    ship = { x: 55, y: H / 2, size: 30, model, lives: START_LIVES, invulnerable: 0 };
     lasers = [];
     obstacles = [];
+    bonus = null;
+    nextBonusScore = 500;
     bgStars = Array.from({ length: 40 }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
@@ -4883,16 +4891,28 @@ function renderOrganization() {
     return shape;
   }
 
+  // Menos planetas de lo normal, más estrellas y rocas — salvo
+  // después de los 600 puntos, donde los planetas se vuelven mucho
+  // más frecuentes (y valen más al destruirlos).
   function spawnObstacle() {
+    const planetChance = score >= 600 ? 0.32 : 0.12;
+    const starChance = 0.45;
     const roll = Math.random();
-    const type = roll < 0.32 ? "planet" : roll < 0.55 ? "star-obst" : "rock-big";
+    let type;
+    if (roll < planetChance) {
+      type = "planet";
+    } else if (roll < planetChance + starChance) {
+      type = "star-obst";
+    } else {
+      type = "rock-big";
+    }
     const size = type === "planet" ? 32 : type === "star-obst" ? 15 : 24;
     obstacles.push({
       type,
       x: W + size,
       y: Math.random() * (H - size * 2) + size,
       size,
-      hp: type === "rock-big" ? 3 : type === "rock-small" ? 2 : Infinity,
+      hp: type === "planet" ? 5 : type === "rock-big" ? 3 : type === "rock-small" ? 2 : Infinity,
       vy: (Math.random() - 0.5) * 0.6,
       rockShape: type.startsWith("rock") ? makeRockShape(size) : null,
       planetHue: type === "planet" ? Math.floor(Math.random() * 4) : null,
@@ -4900,20 +4920,36 @@ function renderOrganization() {
     });
   }
 
-  function splitRock(rock) {
-    for (let i = 0; i < 2; i += 1) {
-      const size = 13;
+  // Genérico: al morir, un objeto se parte en "count" rocas chicas.
+  // Los planetas (más grandes) se parten en más pedazos que una roca grande.
+  function splitInto(source, count) {
+    for (let i = 0; i < count; i += 1) {
+      const size = 12;
       obstacles.push({
         type: "rock-small",
-        x: rock.x,
-        y: rock.y + (i === 0 ? -14 : 14),
+        x: source.x,
+        y: source.y + (i - (count - 1) / 2) * 16,
         size,
         hp: 2,
-        vy: (i === 0 ? -1 : 1) * 0.8,
+        vy: (Math.random() - 0.5) * 1.6,
         rockShape: makeRockShape(size),
         rotation: Math.random() * Math.PI * 2,
       });
     }
+  }
+
+  function maybeSpawnBonus() {
+    if (bonus || Math.floor(score) < nextBonusScore) {
+      return;
+    }
+    bonus = {
+      x: W + 20,
+      baseY: Math.random() * (H - 60) + 30,
+      size: 14,
+      rotation: 0,
+      phase: Math.random() * Math.PI * 2,
+    };
+    bonus.y = bonus.baseY;
   }
 
   function update() {
@@ -4931,7 +4967,7 @@ function renderOrganization() {
       spawnTimer = 0;
       spawnObstacle();
     }
-    speed = Math.min(7, 2.5 + score / 60);
+    speed = Math.min(7, 2.5 + score / 60) * ship.model.worldSpeedMultiplier;
 
     lasers.forEach((laser) => { laser.x += 9; });
     lasers = lasers.filter((laser) => laser.x < W + 20);
@@ -4945,8 +4981,9 @@ function renderOrganization() {
       }
     });
 
+    // Láser vs. rocas y planetas (las estrellas siguen siendo indestructibles)
     obstacles.forEach((obstacle) => {
-      if (obstacle.type === "planet" || obstacle.type === "star-obst") {
+      if (obstacle.type === "star-obst") {
         return;
       }
       lasers.forEach((laser) => {
@@ -4965,23 +5002,59 @@ function renderOrganization() {
 
     const destroyed = obstacles.filter((obstacle) => obstacle.hp <= 0);
     destroyed.forEach((obstacle) => {
-      score += obstacle.type === "rock-big" ? 20 : 10;
       if (obstacle.type === "rock-big") {
-        splitRock(obstacle);
+        score += 20;
+        splitInto(obstacle, 2);
+      } else if (obstacle.type === "planet") {
+        score += 35;
+        splitInto(obstacle, 4);
+      } else {
+        score += 10;
       }
     });
     obstacles = obstacles.filter((obstacle) => obstacle.hp > 0 && obstacle.x > -50);
 
-    const crashed = obstacles.some((obstacle) => {
-      const dx = obstacle.x - ship.x;
-      const dy = obstacle.y - ship.y;
-      return Math.sqrt(dx * dx + dy * dy) < obstacle.size * 0.7 + ship.size * 0.5;
-    });
-    if (crashed) {
-      endGame();
-      return;
+    // Bonus dorado: aparece cada 500 puntos, se mueve errático y
+    // gira. Si lo agarras, +1 vida (máximo 3); si no, desaparece.
+    maybeSpawnBonus();
+    if (bonus) {
+      bonus.x -= speed;
+      bonus.phase += 0.16;
+      bonus.y = bonus.baseY + Math.sin(bonus.phase) * 70;
+      bonus.rotation += 0.25;
+      const dx = bonus.x - ship.x;
+      const dy = bonus.y - ship.y;
+      if (Math.sqrt(dx * dx + dy * dy) < bonus.size + ship.size * 0.5) {
+        ship.lives = Math.min(MAX_LIVES, ship.lives + 1);
+        showToast("¡Vida extra conseguida!");
+        bonus = null;
+        nextBonusScore += 500;
+      } else if (bonus.x < -40) {
+        bonus = null;
+        nextBonusScore += 500;
+      }
     }
-    score += 0.05;
+
+    // Choque contra la nave: resta una vida en vez de terminar de una
+    if (ship.invulnerable > 0) {
+      ship.invulnerable -= 1;
+    } else {
+      const hitObstacle = obstacles.find((obstacle) => {
+        const dx = obstacle.x - ship.x;
+        const dy = obstacle.y - ship.y;
+        return Math.sqrt(dx * dx + dy * dy) < obstacle.size * 0.7 + ship.size * 0.5;
+      });
+      if (hitObstacle) {
+        ship.lives -= 1;
+        ship.invulnerable = 45;
+        obstacles = obstacles.filter((o) => o !== hitObstacle);
+        if (ship.lives <= 0) {
+          endGame();
+          return;
+        }
+      }
+    }
+    score += 0.05 * ship.model.worldSpeedMultiplier;
   }
 
   function drawRock(obstacle) {
@@ -5044,6 +5117,13 @@ function renderOrganization() {
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.restore();
+
+    // Barra de vida chiquita arriba del planeta, ya que ahora aguanta varios golpes
+    const hpRatio = Math.max(0, obstacle.hp / 5);
+    ctx.fillStyle = "rgba(0,0,0,.4)";
+    ctx.fillRect(obstacle.x - obstacle.size, obstacle.y - obstacle.size - 10, obstacle.size * 2, 4);
+    ctx.fillStyle = hpRatio > 0.4 ? "#58D98F" : "#FF6E6E";
+    ctx.fillRect(obstacle.x - obstacle.size, obstacle.y - obstacle.size - 10, obstacle.size * 2 * hpRatio, 4);
   }
 
   function drawStarObstacle(obstacle) {
@@ -5073,9 +5153,36 @@ function renderOrganization() {
     ctx.restore();
   }
 
+  function drawBonus() {
+    if (!bonus) {
+      return;
+    }
+    ctx.save();
+    ctx.translate(bonus.x, bonus.y);
+    ctx.rotate(bonus.rotation);
+    ctx.shadowColor = "#F5D825";
+    ctx.shadowBlur = 22;
+    ctx.beginPath();
+    ctx.arc(0, 0, bonus.size, 0, Math.PI * 2);
+    ctx.fillStyle = "#F5D825";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.beginPath();
+    ctx.arc(0, 0, bonus.size * 0.8, 0, Math.PI * 2);
+    ctx.fillStyle = "#141312";
+    ctx.fill();
+    ctx.clip();
+    if (logoImage.complete && logoImage.naturalWidth) {
+      ctx.drawImage(logoImage, -bonus.size * 0.8, -bonus.size * 0.8, bonus.size * 1.6, bonus.size * 1.6);
+    }
+    ctx.restore();
+  }
+
   function drawShip() {
     const model = ship.model;
+    const blinking = ship.invulnerable > 0 && Math.floor(ship.invulnerable / 5) % 2 === 0;
     ctx.save();
+    ctx.globalAlpha = blinking ? 0.35 : 1;
     ctx.translate(ship.x, ship.y);
     ctx.beginPath();
     ctx.moveTo(ship.size * 0.7, 0);
@@ -5135,10 +5242,14 @@ function renderOrganization() {
       }
     });
 
+    drawBonus();
     drawShip();
 
     if (scoreLabel) {
       scoreLabel.textContent = Math.floor(score);
+    }
+    if (livesLabel) {
+      livesLabel.textContent = "❤".repeat(Math.max(0, ship.lives)) || "—";
     }
   }
 
@@ -5157,9 +5268,10 @@ function renderOrganization() {
   function endGame() {
     running = false;
     cancelAnimationFrame(loopId);
-    document.getElementById("orbeShipSelect").classList.add("hidden");
+    shipSelect.classList.add("hidden");
     overlayTitle.textContent = `Nave destruida — puntaje: ${Math.floor(score)}`;
     overlayButton.textContent = "Volver a intentar";
+    menuButton.classList.remove("hidden");
     overlay.classList.remove("hidden");
   }
 
@@ -5216,6 +5328,12 @@ function renderOrganization() {
     running = true;
     overlay.classList.add("hidden");
     loop();
+  });
+  menuButton?.addEventListener("click", () => {
+    shipSelect.classList.remove("hidden");
+    overlayTitle.textContent = "Elige tu nave";
+    overlayButton.textContent = "Jugar";
+    menuButton.classList.add("hidden");
   });
 
   resetGame();
