@@ -4953,18 +4953,30 @@ function renderOrganization() {
   logoImage.src = "./Recursos/Imagenes/Logotipo.png";
 
   const SHIP_MODELS = {
-    veloz: { name: "Interceptor", color: "#79ABF2", moveSpeed: 7, fireCooldown: 250, damage: 1, worldSpeedMultiplier: 1.35 },
-    sensible: { name: "Colibrí", color: "#58D98F", moveSpeed: 5.5, fireCooldown: 140, damage: 1, worldSpeedMultiplier: 1 },
-    pistola: { name: "Artillera", color: "#FF6E6E", moveSpeed: 4.5, fireCooldown: 420, damage: 2, worldSpeedMultiplier: 1 },
+    veloz: { name: "Interceptor", color: "#79ABF2", moveSpeed: 7, fireCooldown: 250, damage: 1, worldSpeedMultiplier: 1.35, size: 30 },
+    sensible: { name: "Colibrí", color: "#58D98F", moveSpeed: 9.5, fireCooldown: 140, damage: 1, worldSpeedMultiplier: 1, size: 22 },
+    pistola: { name: "Artillera", color: "#FF6E6E", moveSpeed: 4.5, fireCooldown: 420, damage: 2, worldSpeedMultiplier: 1, size: 34 },
   };
   let selectedShipId = "veloz";
 
-  let ship, lasers, obstacles, bonus, bgStars, score, speed, spawnTimer, lastShot, nextBonusScore, running, loopId;
+ let ship, lasers, obstacles, bonus, bgStars, score, speed, spawnTimer, lastShot, nextBonusScore, running, loopId;
   const pressedKeys = new Set();
+  let engineFlicker = 0;
 
-  function resetGame() {
+  function shadeColor(hex, percent) {
+    const num = parseInt(hex.replace("#", ""), 16);
+    let r = (num >> 16) + percent;
+    let g = ((num >> 8) & 0x00ff) + percent;
+    let b = (num & 0x0000ff) + percent;
+    r = Math.max(Math.min(255, r), 0);
+    g = Math.max(Math.min(255, g), 0);
+    b = Math.max(Math.min(255, b), 0);
+    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
+  }
+
+    function resetGame() {
     const model = SHIP_MODELS[selectedShipId];
-    ship = { x: 55, y: H / 2, size: 30, model, lives: START_LIVES, invulnerable: 0 };
+    ship = { x: 55, y: H / 2, size: model.size || 30, model, lives: START_LIVES, invulnerable: 0 };
     lasers = [];
     obstacles = [];
     bonus = null;
@@ -5100,16 +5112,17 @@ function renderOrganization() {
     });
     lasers = lasers.filter((laser) => !laser.hit);
 
-    const destroyed = obstacles.filter((obstacle) => obstacle.hp <= 0);
+     const destroyed = obstacles.filter((obstacle) => obstacle.hp <= 0);
     destroyed.forEach((obstacle) => {
       if (obstacle.type === "rock-big") {
-        score += 20;
+        score += 2;
         splitInto(obstacle, 2);
       } else if (obstacle.type === "planet") {
-        score += 35;
+        score += 10;
         splitInto(obstacle, 4);
       } else {
-        score += 10;
+        // rock-small (fragmento de una roca grande)
+        score += 1;
       }
     });
     obstacles = obstacles.filter((obstacle) => obstacle.hp > 0 && obstacle.x > -50);
@@ -5281,32 +5294,74 @@ function renderOrganization() {
   function drawShip() {
     const model = ship.model;
     const blinking = ship.invulnerable > 0 && Math.floor(ship.invulnerable / 5) % 2 === 0;
+    const s = ship.size;
+    engineFlicker += 0.35;
+    const boosting = pressedKeys.has("up") || pressedKeys.has("down");
+    const flameLength = s * (0.5 + Math.sin(engineFlicker) * 0.15 + (boosting ? 0.15 : 0));
+
     ctx.save();
     ctx.globalAlpha = blinking ? 0.35 : 1;
     ctx.translate(ship.x, ship.y);
+
+    // Llama del motor
     ctx.beginPath();
-    ctx.moveTo(ship.size * 0.7, 0);
-    ctx.lineTo(-ship.size * 0.5, -ship.size * 0.5);
-    ctx.lineTo(-ship.size * 0.2, 0);
-    ctx.lineTo(-ship.size * 0.5, ship.size * 0.5);
+    ctx.moveTo(-s * 0.55, -s * 0.18);
+    ctx.quadraticCurveTo(-s * 0.55 - flameLength, 0, -s * 0.55, s * 0.18);
     ctx.closePath();
-    ctx.fillStyle = model.color;
+    const flameGradient = ctx.createLinearGradient(-s * 0.55 - flameLength, 0, -s * 0.55, 0);
+    flameGradient.addColorStop(0, "rgba(245,216,37,0)");
+    flameGradient.addColorStop(1, "#FFF06A");
+    ctx.fillStyle = flameGradient;
+    ctx.fill();
+
+    // Alas traseras
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.15, -s * 0.15);
+    ctx.lineTo(-s * 0.6, -s * 0.55);
+    ctx.lineTo(-s * 0.35, -s * 0.1);
+    ctx.closePath();
+    ctx.moveTo(-s * 0.15, s * 0.15);
+    ctx.lineTo(-s * 0.6, s * 0.55);
+    ctx.lineTo(-s * 0.35, s * 0.1);
+    ctx.closePath();
+    ctx.fillStyle = shadeColor(model.color, -30);
+    ctx.fill();
+
+    // Fuselaje principal
+    ctx.beginPath();
+    ctx.moveTo(s * 0.85, 0);
+    ctx.quadraticCurveTo(s * 0.35, -s * 0.32, -s * 0.45, -s * 0.22);
+    ctx.quadraticCurveTo(-s * 0.6, 0, -s * 0.45, s * 0.22);
+    ctx.quadraticCurveTo(s * 0.35, s * 0.32, s * 0.85, 0);
+    ctx.closePath();
+    const bodyGradient = ctx.createLinearGradient(-s * 0.5, 0, s * 0.85, 0);
+    bodyGradient.addColorStop(0, shadeColor(model.color, -20));
+    bodyGradient.addColorStop(1, model.color);
+    ctx.fillStyle = bodyGradient;
     ctx.fill();
     ctx.strokeStyle = "#141312";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    const badgeR = ship.size * 0.28;
+    // Cabina con el logo
+    const badgeR = s * 0.26;
+    const badgeX = s * 0.12;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(-ship.size * 0.05, 0, badgeR, 0, Math.PI * 2);
+    ctx.arc(badgeX, 0, badgeR, 0, Math.PI * 2);
     ctx.fillStyle = "#141312";
     ctx.fill();
     ctx.clip();
     if (logoImage.complete && logoImage.naturalWidth) {
-      ctx.drawImage(logoImage, -ship.size * 0.05 - badgeR, -badgeR, badgeR * 2, badgeR * 2);
+      ctx.drawImage(logoImage, badgeX - badgeR, -badgeR, badgeR * 2, badgeR * 2);
     }
     ctx.restore();
+    ctx.beginPath();
+    ctx.arc(badgeX, 0, badgeR, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,255,255,.35)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
     ctx.restore();
   }
 
