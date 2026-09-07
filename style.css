@@ -1771,10 +1771,9 @@ body.can-manage .manager-only { display: inline-flex; }
 .orbe-ship-option small { color: var(--muted); font-size: 10px; line-height: 1.4; }
 
 .orbe-ship-swatch {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  box-shadow: 0 0 8px rgba(0,0,0,.4);
+  width: 56px;
+  height: 34px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.5));
 }
 .orbe-game-overlay-buttons { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 
