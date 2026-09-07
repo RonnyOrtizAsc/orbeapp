@@ -4963,7 +4963,7 @@ function renderOrganization() {
   };
   let selectedShipId = "veloz";
 
- let ship, lasers, obstacles, bonus, bgStars, score, speed, spawnTimer, lastShot, nextBonusScore, running, loopId;
+ let ship, lasers, obstacles, bonus, bgStars, explosions, score, speed, spawnTimer, lastShot, nextBonusScore, running, loopId;
   const pressedKeys = new Set();
   let engineFlicker = 0;
 
@@ -4980,10 +4980,11 @@ function renderOrganization() {
 
     function resetGame() {
     const model = SHIP_MODELS[selectedShipId];
-    ship = { x: 55, y: H / 2, size: model.size || 30, model, lives: START_LIVES, invulnerable: 0 };
+       ship = { x: 55, y: H / 2, size: model.size || 30, model, lives: START_LIVES, invulnerable: 0 };
     lasers = [];
     obstacles = [];
     bonus = null;
+    explosions = [];
     nextBonusScore = 500;
     bgStars = Array.from({ length: 40 }, () => ({
       x: Math.random() * W,
@@ -5053,6 +5054,15 @@ function renderOrganization() {
       });
     }
   }
+    function spawnExplosion(x, y, size, color) {
+    const particleCount = 12;
+    const particles = Array.from({ length: particleCount }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const particleSpeed = 1.5 + Math.random() * 2.8;
+      return { x, y, vx: Math.cos(angle) * particleSpeed, vy: Math.sin(angle) * particleSpeed };
+    });
+    explosions.push({ x, y, size, color, life: 1, particles });
+  }
 
   function maybeSpawnBonus() {
     if (bonus || Math.floor(score) < nextBonusScore) {
@@ -5121,9 +5131,10 @@ function renderOrganization() {
       if (obstacle.type === "rock-big") {
         score += 2;
         splitInto(obstacle, 2);
-      } else if (obstacle.type === "planet") {
+        } else if (obstacle.type === "planet") {
         score += 10;
         splitInto(obstacle, 4);
+        spawnExplosion(obstacle.x, obstacle.y, obstacle.size * 1.3, "#F5D825");
       } else {
         // rock-small (fragmento de una roca grande)
         score += 1;
@@ -5161,19 +5172,31 @@ function renderOrganization() {
         const dy = obstacle.y - ship.y;
         return Math.sqrt(dx * dx + dy * dy) < obstacle.size * 0.7 + ship.size * 0.5;
       });
-      if (hitObstacle) {
+       if (hitObstacle) {
         ship.lives -= 1;
         ship.invulnerable = 45;
         obstacles = obstacles.filter((o) => o !== hitObstacle);
+        spawnExplosion(ship.x, ship.y, ship.size * 0.9, "#FF6E6E");
         if (ship.lives <= 0) {
           endGame();
           return;
         }
       }
     }
+
+    explosions.forEach((explosion) => {
+      explosion.life -= 0.045;
+      explosion.particles.forEach((particle) => {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.vx *= 0.94;
+        particle.vy *= 0.94;
+      });
+    });
+    explosions = explosions.filter((explosion) => explosion.life > 0);
+
     score += 0.05 * ship.model.worldSpeedMultiplier;
   }
-
   function drawRock(obstacle) {
     ctx.save();
     ctx.translate(obstacle.x, obstacle.y);
@@ -5295,6 +5318,26 @@ function renderOrganization() {
     ctx.restore();
   }
 
+    function drawExplosions() {
+    explosions.forEach((explosion) => {
+      const progress = 1 - explosion.life;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, explosion.life);
+      ctx.beginPath();
+      ctx.arc(explosion.x, explosion.y, explosion.size * (0.4 + progress * 1.3), 0, Math.PI * 2);
+      ctx.strokeStyle = explosion.color;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      explosion.particles.forEach((particle) => {
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, 2.4, 0, Math.PI * 2);
+        ctx.fillStyle = explosion.color;
+        ctx.fill();
+      });
+      ctx.restore();
+    });
+  }
+
   function drawShip() {
     const model = ship.model;
     const blinking = ship.invulnerable > 0 && Math.floor(ship.invulnerable / 5) % 2 === 0;
@@ -5404,6 +5447,10 @@ function renderOrganization() {
     drawBonus();
     drawShip();
 
+      drawBonus();
+    drawShip();
+    drawExplosions();
+
     if (scoreLabel) {
       scoreLabel.textContent = Math.floor(score);
     }
@@ -5427,12 +5474,37 @@ function renderOrganization() {
   function endGame() {
     running = false;
     cancelAnimationFrame(loopId);
-    shipSelect.classList.add("hidden");
-    overlayTitle.textContent = `Nave destruida — puntaje: ${Math.floor(score)}`;
-    overlayButton.textContent = "Volver a intentar";
-    menuButton.classList.remove("hidden");
-    overlay.classList.remove("hidden");
-    maybeSaveOrbeHighScore(score);
+    spawnExplosion(ship.x, ship.y, ship.size * 1.9, "#FF6E6E");
+    playExplosionOutro(() => {
+      shipSelect.classList.add("hidden");
+      overlayTitle.textContent = `Nave destruida — puntaje: ${Math.floor(score)}`;
+      overlayButton.textContent = "Volver a intentar";
+      menuButton.classList.remove("hidden");
+      overlay.classList.remove("hidden");
+      maybeSaveOrbeHighScore(score);
+    });
+  }
+
+  function playExplosionOutro(onDone) {
+    function frame() {
+      explosions.forEach((explosion) => {
+        explosion.life -= 0.045;
+        explosion.particles.forEach((particle) => {
+          particle.x += particle.vx;
+          particle.y += particle.vy;
+          particle.vx *= 0.94;
+          particle.vy *= 0.94;
+        });
+      });
+      explosions = explosions.filter((explosion) => explosion.life > 0);
+      draw();
+      if (explosions.length) {
+        requestAnimationFrame(frame);
+      } else {
+        onDone();
+      }
+    }
+    frame();
   }
 
   function shoot() {
