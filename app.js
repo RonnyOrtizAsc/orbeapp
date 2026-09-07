@@ -4529,7 +4529,7 @@ function openTeamProfile(profileId) {
                             .map((template) => {
                               const upcomingDate = getUpcomingDateForTemplate(template);
                               return `
-                                                                <div class="member-task-item member-task-item-clickable" data-goto-template="${template.id}">
+                <div class="member-task-item member-task-item-clickable" data-goto-template="${template.id}">
                                   <div class="card-top">
                                     <strong>
                                       ${escapeHTML(template.title)}
@@ -4661,45 +4661,6 @@ function openTeamProfile(profileId) {
                   .slice(0, 10)
                   .map(
                     (task) => `
-                      <div class="member-task-item member-task-item-clickable" data-goto-task="${task.id}">
-                        <strong>
-                          ${escapeHTML(task.title)}
-                        </strong>
-                      </div>
-                    `,
-                  )
-                  .join("")}
-              </div>
-            `
-            : `
-              <p class="profile-empty">
-                Todavía no hay tareas completadas.
-              </p>
-            `
-        }
-      </div>
-      <div class="profile-section">
-        <div class="profile-section-header">
-          <div>
-            <p class="eyebrow">
-              COMPLETADAS
-            </p>
-            <h3>
-              Trabajo terminado
-            </h3>
-          </div>
-          <span class="badge completed">
-            ${completed.length}
-          </span>
-        </div>
-        ${
-          completed.length
-            ? `
-              <div class="member-task-list">
-                ${completed
-                  .slice(0, 10)
-                  .map(
-                    (task) => `
                       <div class="member-task-item">
                         <strong>
                           ${escapeHTML(task.title)}
@@ -4775,7 +4736,9 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     </span>
   `;
 }
-function renderOrganization() {
+
+  function renderOrganization() {
+  window.refreshOrbeScoreboard?.();
   if (!organizationChart) {
     return;
   }
@@ -4946,6 +4909,7 @@ function renderOrganization() {
       renderOrbeScoreboardFromCache();
     }
   }
+  window.refreshOrbeScoreboard = renderOrbeScoreboardFromCache;
   renderOrbeScoreboardFromCache();
   
   const W = canvas.width;
