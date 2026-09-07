@@ -4858,23 +4858,22 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
   const btnShoot = document.getElementById("orbeGameBtnShoot");
   const scoreboardBody = document.getElementById("orbeScoreboardBody");
 
-  const ORBE_SCOREBOARD_NAMES = ["Dani", "Ronny", "Mauri"];
-  function findOrbeProfileByNamePart(part) {
-    const lower = part.toLowerCase();
-    return profiles.find((profile) => (profile.name || "").toLowerCase().includes(lower));
-  }
   function renderOrbeScoreboardFromCache() {
     if (!scoreboardBody) return;
-    const rows = ORBE_SCOREBOARD_NAMES.map((namePart) => {
-      const profile = findOrbeProfileByNamePart(namePart);
-      return { displayName: profile?.name || namePart, best: profile?.game_high_score || 0 };
-    });
-    rows.sort((a, b) => b.best - a.best);
+    const rows = profiles
+      .filter((profile) => (profile.game_high_score || 0) > 0)
+      .map((profile) => ({ displayName: profile.name, best: profile.game_high_score }))
+      .sort((a, b) => b.best - a.best)
+      .slice(0, 10);
+    if (!rows.length) {
+      scoreboardBody.innerHTML = `<tr><td colspan="2">Todavía nadie tiene puntaje.</td></tr>`;
+      return;
+    }
     scoreboardBody.innerHTML = rows
       .map(
         (row, i) => `
         <tr>
-          <td>${i === 0 && row.best > 0 ? "🏆 " : ""}${escapeHTML(row.displayName)}</td>
+          <td>${i === 0 ? "🏆 " : ""}${escapeHTML(row.displayName)}</td>
           <td>${row.best}</td>
         </tr>`,
       )
