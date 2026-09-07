@@ -4923,13 +4923,17 @@ function renderOrganization() {
     if (rounded <= (currentProfile.game_high_score || 0)) {
       return;
     }
-    try {
-      const { error } = await db
+        try {
+      const { data, error } = await db
         .from("profiles")
         .update({ game_high_score: rounded })
-        .eq("id", currentUser.id);
+        .eq("id", currentUser.id)
+        .select();
       if (error) {
         throw error;
+      }
+      if (!data || !data.length) {
+        throw new Error("No se pudo guardar el récord (revisa los permisos de la tabla profiles).");
       }
       currentProfile.game_high_score = rounded;
       const profileIndex = profiles.findIndex((p) => p.id === currentUser.id);
