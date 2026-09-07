@@ -458,20 +458,41 @@
       <h3 id="orbeGameOverlayTitle">Elige tu nave</h3>
       <div class="orbe-ship-select" id="orbeShipSelect">
         <button type="button" class="orbe-ship-option" data-ship="veloz">
-          <span class="orbe-ship-swatch" style="background:#79ABF2"></span>
-          <strong>Interceptor</strong>
-          <small>La más veloz esquivando</small>
-        </button>
-        <button type="button" class="orbe-ship-option" data-ship="sensible">
-          <span class="orbe-ship-swatch" style="background:#58D98F"></span>
-          <strong>Colibrí</strong>
-          <small>Muy sensible, dispara rapidísimo</small>
-        </button>
-        <button type="button" class="orbe-ship-option" data-ship="pistola">
-          <span class="orbe-ship-swatch" style="background:#FF6E6E"></span>
-          <strong>Artillera</strong>
-          <small>Pistola de plasma, pega más fuerte</small>
-        </button>
+  <svg class="orbe-ship-swatch" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 17 L0 20 L6 23 Z" fill="#FFF06A" opacity="0.85"/>
+    <path d="M18 14 L4 4 L14 16 Z" fill="#3F6DB0"/>
+    <path d="M18 26 L4 36 L14 24 Z" fill="#3F6DB0"/>
+    <path d="M60 20 C46 8, 20 8, 6 14 C2 17, 2 23, 6 26 C20 32, 46 32, 60 20 Z" fill="#79ABF2" stroke="#141312" stroke-width="1.5"/>
+    <circle cx="38" cy="20" r="7" fill="#141312"/>
+    <circle cx="38" cy="20" r="7" fill="none" stroke="#ffffff" stroke-opacity="0.35"/>
+  </svg>
+  <strong>Interceptor</strong>
+  <small>La más veloz esquivando</small>
+</button>
+<button type="button" class="orbe-ship-option" data-ship="sensible">
+  <svg class="orbe-ship-swatch" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 17 L0 20 L6 23 Z" fill="#FFF06A" opacity="0.85"/>
+    <path d="M18 14 L4 4 L14 16 Z" fill="#2E9C67"/>
+    <path d="M18 26 L4 36 L14 24 Z" fill="#2E9C67"/>
+    <path d="M60 20 C46 8, 20 8, 6 14 C2 17, 2 23, 6 26 C20 32, 46 32, 60 20 Z" fill="#58D98F" stroke="#141312" stroke-width="1.5"/>
+    <circle cx="38" cy="20" r="7" fill="#141312"/>
+    <circle cx="38" cy="20" r="7" fill="none" stroke="#ffffff" stroke-opacity="0.35"/>
+  </svg>
+  <strong>Colibrí</strong>
+  <small>Muy sensible, dispara rapidísimo</small>
+</button>
+<button type="button" class="orbe-ship-option" data-ship="pistola">
+  <svg class="orbe-ship-swatch" viewBox="0 0 64 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 17 L0 20 L6 23 Z" fill="#FFF06A" opacity="0.85"/>
+    <path d="M18 14 L4 4 L14 16 Z" fill="#C23D3D"/>
+    <path d="M18 26 L4 36 L14 24 Z" fill="#C23D3D"/>
+    <path d="M60 20 C46 8, 20 8, 6 14 C2 17, 2 23, 6 26 C20 32, 46 32, 60 20 Z" fill="#FF6E6E" stroke="#141312" stroke-width="1.5"/>
+    <circle cx="38" cy="20" r="7" fill="#141312"/>
+    <circle cx="38" cy="20" r="7" fill="none" stroke="#ffffff" stroke-opacity="0.35"/>
+  </svg>
+  <strong>Artillera</strong>
+  <small>Pistola de plasma, pega más fuerte</small>
+</button>
       </div>
          <div class="orbe-game-overlay-buttons">
         <button type="button" id="orbeGameOverlayButton" class="button button-dark">Jugar</button>
