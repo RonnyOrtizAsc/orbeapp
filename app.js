@@ -5179,7 +5179,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     });
     explosions = explosions.filter((explosion) => explosion.life > 0);
 
-    score += 0.05 * ship.model.worldSpeedMultiplier * dt;
+        score += 0.05 * ship.model.worldSpeedMultiplier * (turboActive ? 1.4 : 1) * dt;
   }
   function drawRock(obstacle) {
     ctx.save();
