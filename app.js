@@ -5222,13 +5222,15 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     gradient.addColorStop(0, light);
     gradient.addColorStop(1, dark);
     ctx.save();
-    ctx.beginPath();
-    ctx.ellipse(obstacle.x, obstacle.y, obstacle.size * 1.5, obstacle.size * 0.35, -0.4, 0, Math.PI * 2);
-    ctx.strokeStyle = light;
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
+    if (!obstacle.isEarth) {
+      ctx.beginPath();
+      ctx.ellipse(obstacle.x, obstacle.y, obstacle.size * 1.5, obstacle.size * 0.35, -0.4, 0, Math.PI * 2);
+      ctx.strokeStyle = light;
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
     ctx.beginPath();
     ctx.arc(obstacle.x, obstacle.y, obstacle.size, 0, Math.PI * 2);
     ctx.fillStyle = gradient;
