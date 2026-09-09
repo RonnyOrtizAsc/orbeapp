@@ -5074,7 +5074,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
       spawnObstacle();
     }
     
-     speed = Math.min(7, 2.5 + score / 60) * ship.model.worldSpeedMultiplier * 1.05 * (turboActive ? 1.4 : 1);
+     speed = Math.min(7, 2.5 + score / 60) * ship.model.worldSpeedMultiplier * 1.2 * (turboActive ? 1.4 : 1);
 
     lasers.forEach((laser) => { laser.x += 9 * dt; });
     lasers = lasers.filter((laser) => laser.x < W + 20);
