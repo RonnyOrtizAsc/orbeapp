@@ -1744,6 +1744,16 @@ body.can-manage .manager-only { display: inline-flex; }
 @media (max-width: 650px) {
   .orbe-game-controls { flex-wrap: wrap; }
 }
+
+.orbe-ship-preview {
+  width: min(100%, 220px);
+  height: auto;
+  aspect-ratio: 220 / 120;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
 .orbe-ship-select {
   display: flex;
   gap: 10px;
