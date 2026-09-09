@@ -4858,6 +4858,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
   const shipOptions = document.querySelectorAll(".orbe-ship-option");
   const btnUp = document.getElementById("orbeGameBtnUp");
   const btnDown = document.getElementById("orbeGameBtnDown");
+  const btnTurbo = document.getElementById("orbeGameBtnTurbo");
   const btnShoot = document.getElementById("orbeGameBtnShoot");
   const scoreboardBody = document.getElementById("orbeScoreboardBody");
 
@@ -5674,14 +5675,31 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     if (event.code === "ArrowDown" || event.code === "KeyS") pressedKeys.delete("down");
     if (event.code === "ArrowRight" || event.code === "KeyD") pressedKeys.delete("turbo");
   });
-  ["mousedown", "touchstart"].forEach((eventName) => {
-    btnUp?.addEventListener(eventName, () => pressedKeys.add("up"));
-    btnDown?.addEventListener(eventName, () => pressedKeys.add("down"));
-  });
-  ["mouseup", "mouseleave", "touchend"].forEach((eventName) => {
-    btnUp?.addEventListener(eventName, () => pressedKeys.delete("up"));
-    btnDown?.addEventListener(eventName, () => pressedKeys.delete("down"));
-  });
+  function bindHoldButton(button, key) {
+    if (!button) return;
+    const press = (event) => {
+      event.preventDefault();
+      pressedKeys.add(key);
+    };
+    const release = (event) => {
+      if (event) event.preventDefault();
+      pressedKeys.delete(key);
+    };
+    button.addEventListener("touchstart", press, { passive: false });
+    button.addEventListener("mousedown", press);
+    button.addEventListener("touchend", release, { passive: false });
+    button.addEventListener("touchcancel", release, { passive: false });
+    button.addEventListener("mouseup", release);
+    button.addEventListener("mouseleave", release);
+  }
+  bindHoldButton(btnUp, "up");
+  bindHoldButton(btnDown, "down");
+  bindHoldButton(btnTurbo, "turbo");
+
+  btnShoot?.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+    if (running) shoot();
+  }, { passive: false });
   btnShoot?.addEventListener("click", () => running && shoot());
 
   overlayButton?.addEventListener("click", () => {
