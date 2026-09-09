@@ -4844,7 +4844,10 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
   if (!canvas) {
     return;
   }
-  const ctx = canvas.getContext("2d");
+  let ctx = canvas.getContext("2d");
+  const mainCtx = ctx;
+  const previewCanvas = document.getElementById("orbeShipPreviewCanvas");
+  const previewCtx = previewCanvas?.getContext("2d");
   const scoreLabel = document.getElementById("orbeGameScore");
   const livesLabel = document.getElementById("orbeGameLives");
   const overlay = document.getElementById("orbeGameOverlay");
@@ -4926,7 +4929,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
   };
   let selectedShipId = "veloz";
 
- let ship, lasers, obstacles, bonus, bgStars, explosions, score, speed, spawnTimer, lastShot, nextBonusScore, running, loopId;
+  let ship, lasers, obstacles, bonus, bgStars, explosions, score, speed, spawnTimer, lastShot, nextBonusScore, nextEarthScore, running, loopId;
   const pressedKeys = new Set();
   let engineFlicker = 0;
   let lastFrameTime = 0;
@@ -4951,6 +4954,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     bonus = null;
     explosions = [];
     nextBonusScore = 500;
+    nextEarthScore = 300;
     bgStars = Array.from({ length: 40 }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
@@ -4976,21 +4980,29 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
   // Menos planetas de lo normal, más estrellas y rocas — salvo
   // después de los 600 puntos, donde los planetas se vuelven mucho
   // más frecuentes (y valen más al destruirlos).
-  function spawnObstacle() {
-    const planetChance = score >= 600 ? 0.32 : 0.12;
-    const starChance = 0.45;
-    const roll = Math.random();
+   function spawnObstacle() {
+    let isEarth = false;
     let type;
-    if (roll < planetChance) {
+    if (Math.floor(score) >= nextEarthScore) {
       type = "planet";
-    } else if (roll < planetChance + starChance) {
-      type = "star-obst";
+      isEarth = true;
+      nextEarthScore += 300;
     } else {
-      type = "rock-big";
+      const planetChance = score >= 600 ? 0.32 : 0.12;
+      const starChance = 0.45;
+      const roll = Math.random();
+      if (roll < planetChance) {
+        type = "planet";
+      } else if (roll < planetChance + starChance) {
+        type = "star-obst";
+      } else {
+        type = "rock-big";
+      }
     }
     const size = type === "planet" ? 32 : type === "star-obst" ? 15 : 24;
     obstacles.push({
       type,
+      isEarth,
       x: W + size,
       y: Math.random() * (H - size * 2) + size,
       size,
@@ -5001,7 +5013,6 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
       rotation: Math.random() * Math.PI * 2,
     });
   }
-
   // Genérico: al morir, un objeto se parte en "count" rocas chicas.
   // Los planetas (más grandes) se parten en más pedazos que una roca grande.
   function splitInto(source, count) {
@@ -5052,6 +5063,10 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     }
     ship.y = Math.max(ship.size, Math.min(H - ship.size, ship.y));
 
+    const turboActive = pressedKeys.has("turbo");
+    const targetX = turboActive ? 95 : 55;
+    ship.x += (targetX - ship.x) * 0.12 * dt;
+
     spawnTimer += dt;
     const spawnEvery = Math.max(35, 70 - Math.floor(score / 5));
     if (spawnTimer >= spawnEvery) {
@@ -5092,29 +5107,31 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     });
     lasers = lasers.filter((laser) => !laser.hit);
 
-     const destroyed = obstacles.filter((obstacle) => obstacle.hp <= 0);
+   
+         const destroyed = obstacles.filter((obstacle) => obstacle.hp <= 0);
     destroyed.forEach((obstacle) => {
       if (obstacle.type === "rock-big") {
         score += 2;
         splitInto(obstacle, 2);
         } else if (obstacle.type === "planet") {
-        score += 10;
+        score += obstacle.isEarth ? 20 : 10;
         splitInto(obstacle, 4);
-        spawnExplosion(obstacle.x, obstacle.y, obstacle.size * 1.3, "#F5D825");
+        spawnExplosion(obstacle.x, obstacle.y, obstacle.size * 1.3, obstacle.isEarth ? "#3FAE66" : "#F5D825");
       } else {
         // rock-small (fragmento de una roca grande)
         score += 1;
       }
     });
+    
     obstacles = obstacles.filter((obstacle) => obstacle.hp > 0 && obstacle.x > -50);
 
     // Bonus dorado: aparece cada 500 puntos, se mueve errático y
     // gira. Si lo agarras, +1 vida (máximo 3); si no, desaparece.
     maybeSpawnBonus();
-     if (bonus) {
+      if (bonus) {
       bonus.x -= speed * dt;
-      bonus.phase += 0.16 * dt;
-      bonus.y = bonus.baseY + Math.sin(bonus.phase) * 70;
+      bonus.phase += 0.28 * dt;
+      bonus.y = bonus.baseY + Math.sin(bonus.phase) * 28;
       bonus.rotation += 0.25 * dt;
       const dx = bonus.x - ship.x;
       const dy = bonus.y - ship.y;
@@ -5193,7 +5210,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
       ["#F0A63C", "#46330F"],
       ["#58D98F", "#1D3A28"],
     ];
-    const [light, dark] = palettes[obstacle.planetHue] || palettes[0];
+    const [light, dark] = obstacle.isEarth ? ["#4FA8E8", "#123B5C"] : (palettes[obstacle.planetHue] || palettes[0]);
     const gradient = ctx.createRadialGradient(
       obstacle.x - obstacle.size * 0.3,
       obstacle.y - obstacle.size * 0.3,
@@ -5222,6 +5239,17 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     ctx.globalAlpha = 0.5;
     ctx.fill();
     ctx.globalAlpha = 1;
+    if (obstacle.isEarth) {
+      ctx.fillStyle = "#3FAE66";
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.ellipse(obstacle.x - obstacle.size * 0.25, obstacle.y - obstacle.size * 0.15, obstacle.size * 0.4, obstacle.size * 0.22, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(obstacle.x + obstacle.size * 0.35, obstacle.y + obstacle.size * 0.3, obstacle.size * 0.3, obstacle.size * 0.18, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     ctx.restore();
 
     // Barra de vida chiquita arriba del planeta, ya que ahora aguanta varios golpes
@@ -5363,7 +5391,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     ctx.beginPath(); ctx.moveTo(50, -7); ctx.lineTo(60, 0); ctx.lineTo(50, 7); ctx.lineTo(40, 0); ctx.closePath();
     ctx.fill(); ctx.stroke();
 
-    drawLogoBadge(50, 0, 6);
+    drawLogoBadge(-8, 0, 15);
     ctx.restore();
   }
 
@@ -5405,7 +5433,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     ctx.fillRect(-40, -2, 80, 4);
     ctx.globalAlpha = 1;
 
-    drawLogoBadge(0, 0, 8);
+    drawLogoBadge(0, 0, 14);
     ctx.restore();
   }
 
@@ -5447,16 +5475,37 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     ctx.fillStyle = "#F2A623";
     ctx.beginPath(); ctx.moveTo(53, -2.4); ctx.lineTo(61, 0); ctx.lineTo(53, 2.4); ctx.lineTo(48, 0); ctx.closePath(); ctx.fill();
 
-    drawLogoBadge(54, 0, 5);
+    drawLogoBadge(10, 0, 13);
     ctx.restore();
+  }
+
+    function renderShipPreview(shipId) {
+    if (!previewCtx) {
+      return;
+    }
+    previewCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    ctx = previewCtx;
+    ctx.save();
+    ctx.translate(previewCanvas.width / 2, previewCanvas.height / 2);
+    const previewSize = 75;
+    if (shipId === "sensible") {
+      drawColibri(previewSize, 0.6);
+    } else if (shipId === "pistola") {
+      drawArtillera(previewSize, 0.6);
+    } else {
+      drawInterceptor(previewSize, 0.6);
+    }
+    ctx.restore();
+    ctx = mainCtx;
   }
 
   function drawShip() {
     const blinking = ship.invulnerable > 0 && Math.floor(ship.invulnerable / 5) % 2 === 0;
     const s = ship.size;
     engineFlicker += 0.35;
-    const boosting = pressedKeys.has("up") || pressedKeys.has("down");
-    const flicker = 0.5 + Math.sin(engineFlicker) * 0.35 + (boosting ? 0.35 : 0);
+    const boosting = pressedKeys.has("up") || pressedKeys.has("down") || pressedKeys.has("turbo");
+    const turboBoost = pressedKeys.has("turbo") ? 0.5 : 0;
+    const flicker = 0.5 + Math.sin(engineFlicker) * 0.35 + (boosting ? 0.35 : 0) + turboBoost;
 
     ctx.save();
     ctx.globalAlpha = blinking ? 0.35 : 1;
@@ -5588,9 +5637,11 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
       selectedShipId = button.dataset.ship;
       shipOptions.forEach((option) => option.classList.remove("selected"));
       button.classList.add("selected");
+      renderShipPreview(selectedShipId);
     });
   });
   document.querySelector(`.orbe-ship-option[data-ship="${selectedShipId}"]`)?.classList.add("selected");
+  renderShipPreview(selectedShipId);
 
     function isTypingTarget(target) {
     if (!target) return false;
@@ -5604,8 +5655,8 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
 
   document.addEventListener("keydown", (event) => {
     const isGameKey =
-      event.code === "ArrowUp" || event.code === "ArrowDown" ||
-      event.code === "KeyW" || event.code === "KeyS" || event.code === "Space";
+      event.code === "ArrowUp" || event.code === "ArrowDown" || event.code === "ArrowRight" ||
+      event.code === "KeyW" || event.code === "KeyS" || event.code === "KeyD" || event.code === "Space";
     if (!isGameKey) return;
     if (!running || !isOrgPageVisible() || isTypingTarget(event.target)) {
       return;
@@ -5613,11 +5664,13 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     event.preventDefault();
     if (event.code === "ArrowUp" || event.code === "KeyW") pressedKeys.add("up");
     if (event.code === "ArrowDown" || event.code === "KeyS") pressedKeys.add("down");
+    if (event.code === "ArrowRight" || event.code === "KeyD") pressedKeys.add("turbo");
     if (event.code === "Space") shoot();
   });
   document.addEventListener("keyup", (event) => {
     if (event.code === "ArrowUp" || event.code === "KeyW") pressedKeys.delete("up");
     if (event.code === "ArrowDown" || event.code === "KeyS") pressedKeys.delete("down");
+    if (event.code === "ArrowRight" || event.code === "KeyD") pressedKeys.delete("turbo");
   });
   ["mousedown", "touchstart"].forEach((eventName) => {
     btnUp?.addEventListener(eventName, () => pressedKeys.add("up"));
@@ -5641,6 +5694,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     overlayTitle.textContent = "Elige tu nave";
     overlayButton.textContent = "Jugar";
     menuButton.classList.add("hidden");
+    renderShipPreview(selectedShipId);
   });
 
   resetGame();
