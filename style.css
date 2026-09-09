@@ -1704,7 +1704,7 @@ body.can-manage .manager-only { display: inline-flex; }
 .orbe-game-canvas-wrap {
   position: relative;
   width: 100%;
-  max-width: 700px;
+  max-width: 1000px;
   margin: 0 auto;
 }
 
@@ -1712,7 +1712,7 @@ body.can-manage .manager-only { display: inline-flex; }
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 700 / 300;
+  aspect-ratio: 1000 / 300;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: #05050a;
