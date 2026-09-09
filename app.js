@@ -4929,6 +4929,8 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
  let ship, lasers, obstacles, bonus, bgStars, explosions, score, speed, spawnTimer, lastShot, nextBonusScore, running, loopId;
   const pressedKeys = new Set();
   let engineFlicker = 0;
+  let lastFrameTime = 0;
+  let frameDt = 1;
 
   function shadeColor(hex, percent) {
     const num = parseInt(hex.replace("#", ""), 16);
@@ -5041,16 +5043,16 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     bonus.y = bonus.baseY;
   }
 
-  function update() {
+  function update(dt) {
     if (pressedKeys.has("up")) {
-      ship.y -= ship.model.moveSpeed;
+      ship.y -= ship.model.moveSpeed * dt;
     }
     if (pressedKeys.has("down")) {
-      ship.y += ship.model.moveSpeed;
+      ship.y += ship.model.moveSpeed * dt;
     }
     ship.y = Math.max(ship.size, Math.min(H - ship.size, ship.y));
 
-    spawnTimer += 1;
+    spawnTimer += dt;
     const spawnEvery = Math.max(35, 70 - Math.floor(score / 5));
     if (spawnTimer >= spawnEvery) {
       spawnTimer = 0;
@@ -5058,13 +5060,13 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     }
     speed = Math.min(7, 2.5 + score / 60) * ship.model.worldSpeedMultiplier;
 
-    lasers.forEach((laser) => { laser.x += 9; });
+    lasers.forEach((laser) => { laser.x += 9 * dt; });
     lasers = lasers.filter((laser) => laser.x < W + 20);
 
     obstacles.forEach((obstacle) => {
-      obstacle.x -= speed;
-      obstacle.y += obstacle.vy;
-      obstacle.rotation += 0.01;
+      obstacle.x -= speed * dt;
+      obstacle.y += obstacle.vy * dt;
+      obstacle.rotation += 0.01 * dt;
       if (obstacle.y < obstacle.size || obstacle.y > H - obstacle.size) {
         obstacle.vy *= -1;
       }
@@ -5108,11 +5110,11 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     // Bonus dorado: aparece cada 500 puntos, se mueve errático y
     // gira. Si lo agarras, +1 vida (máximo 3); si no, desaparece.
     maybeSpawnBonus();
-    if (bonus) {
-      bonus.x -= speed;
-      bonus.phase += 0.16;
+     if (bonus) {
+      bonus.x -= speed * dt;
+      bonus.phase += 0.16 * dt;
       bonus.y = bonus.baseY + Math.sin(bonus.phase) * 70;
-      bonus.rotation += 0.25;
+      bonus.rotation += 0.25 * dt;
       const dx = bonus.x - ship.x;
       const dy = bonus.y - ship.y;
       if (Math.sqrt(dx * dx + dy * dy) < bonus.size + ship.size * 0.5) {
@@ -5127,8 +5129,8 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     }
 
     // Choque contra la nave: resta una vida en vez de terminar de una
-    if (ship.invulnerable > 0) {
-      ship.invulnerable -= 1;
+       if (ship.invulnerable > 0) {
+      ship.invulnerable -= dt;
     } else {
       const hitObstacle = obstacles.find((obstacle) => {
         const dx = obstacle.x - ship.x;
@@ -5147,18 +5149,18 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
       }
     }
 
-    explosions.forEach((explosion) => {
-      explosion.life -= 0.045;
+     explosions.forEach((explosion) => {
+      explosion.life -= 0.045 * dt;
       explosion.particles.forEach((particle) => {
-        particle.x += particle.vx;
-        particle.y += particle.vy;
-        particle.vx *= 0.94;
-        particle.vy *= 0.94;
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        particle.vx *= Math.pow(0.94, dt);
+        particle.vy *= Math.pow(0.94, dt);
       });
     });
     explosions = explosions.filter((explosion) => explosion.life > 0);
 
-    score += 0.05 * ship.model.worldSpeedMultiplier;
+    score += 0.05 * ship.model.worldSpeedMultiplier * dt;
   }
   function drawRock(obstacle) {
     ctx.save();
@@ -5305,7 +5307,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     const model = ship.model;
     const blinking = ship.invulnerable > 0 && Math.floor(ship.invulnerable / 5) % 2 === 0;
     const s = ship.size;
-    engineFlicker += 0.35;
+    engineFlicker += 0.35 * frameDt;
     const boosting = pressedKeys.has("up") || pressedKeys.has("down");
     const flameLength = s * (0.5 + Math.sin(engineFlicker) * 0.15 + (boosting ? 0.15 : 0));
 
@@ -5422,11 +5424,18 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     }
   }
 
-  function loop() {
+  function loop(timestamp) {
     if (!running) {
       return;
     }
-    update();
+    if (!lastFrameTime) {
+      lastFrameTime = timestamp;
+    }
+    const elapsed = timestamp - lastFrameTime;
+    lastFrameTime = timestamp;
+    const dt = Math.min(3, Math.max(0, elapsed / (1000 / 60)));
+    frameDt = dt;
+    update(dt);
     if (!running) {
       return;
     }
@@ -5529,7 +5538,8 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     resetGame();
     running = true;
     overlay.classList.add("hidden");
-    loop();
+    lastFrameTime = 0;
+    loopId = requestAnimationFrame(loop);
   });
   menuButton?.addEventListener("click", () => {
     shipSelect.classList.remove("hidden");
