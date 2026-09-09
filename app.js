@@ -5058,7 +5058,8 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
       spawnTimer = 0;
       spawnObstacle();
     }
-    speed = Math.min(7, 2.5 + score / 60) * ship.model.worldSpeedMultiplier;
+    
+     speed = Math.min(7, 2.5 + score / 60) * ship.model.worldSpeedMultiplier * 1.05 * (turboActive ? 1.4 : 1);
 
     lasers.forEach((laser) => { laser.x += 9 * dt; });
     lasers = lasers.filter((laser) => laser.x < W + 20);
@@ -5422,13 +5423,13 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     ctx.globalAlpha = 1;
 
     ctx.strokeStyle = "#2E3032"; ctx.lineWidth = 0.8;
-    ctx.beginPath(); ctx.moveTo(4, -14); ctx.lineTo(-58, -56); ctx.lineTo(-28, -18); ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(4, -12); ctx.lineTo(-40, -36); ctx.lineTo(-22, -16); ctx.closePath();
     ctx.fillStyle = "#6C6F72"; ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(4, 14); ctx.lineTo(-58, 56); ctx.lineTo(-28, 18); ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(4, 12); ctx.lineTo(-40, 36); ctx.lineTo(-22, 16); ctx.closePath();
     ctx.fill(); ctx.stroke();
     ctx.fillStyle = "#E24B4A";
-    ctx.beginPath(); ctx.moveTo(-58, -56); ctx.lineTo(-66, -64); ctx.lineTo(-50, -58); ctx.closePath(); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-58, 56); ctx.lineTo(-66, 64); ctx.lineTo(-50, 58); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-40, -36); ctx.lineTo(-46, -42); ctx.lineTo(-36, -36); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-40, 36); ctx.lineTo(-46, 42); ctx.lineTo(-36, 36); ctx.closePath(); ctx.fill();
 
     ctx.strokeStyle = "#3A3C3E"; ctx.lineWidth = 0.6;
     ctx.beginPath(); ctx.moveTo(28, -8); ctx.lineTo(0, -40); ctx.lineTo(8, -16); ctx.closePath();
