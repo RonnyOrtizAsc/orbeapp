@@ -5303,80 +5303,174 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     });
   }
 
+   function drawLogoBadge(cx, cy, r) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = "#141312";
+    ctx.fill();
+    ctx.clip();
+    if (logoImage.complete && logoImage.naturalWidth) {
+      ctx.drawImage(logoImage, cx - r, cy - r, r * 2, r * 2);
+    }
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,255,255,.35)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Colibrí — cohete verde, motores gemelos redondos, puntas amarillas
+  function drawColibri(s, flicker) {
+    ctx.save();
+    ctx.scale(s / 70, s / 70);
+
+    const glowR = 9 + flicker * 5;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath(); ctx.arc(-50, -9, glowR, 0, Math.PI * 2); ctx.fillStyle = "#C23D3D"; ctx.fill();
+    ctx.beginPath(); ctx.arc(-50, 9, glowR, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath(); ctx.arc(-50, -9, 9, 0, Math.PI * 2); ctx.fillStyle = "#C23D3D"; ctx.fill();
+    ctx.beginPath(); ctx.arc(-50, -9, 5, 0, Math.PI * 2); ctx.fillStyle = "#F2A623"; ctx.fill();
+    ctx.beginPath(); ctx.arc(-50, 9, 9, 0, Math.PI * 2); ctx.fillStyle = "#C23D3D"; ctx.fill();
+    ctx.beginPath(); ctx.arc(-50, 9, 5, 0, Math.PI * 2); ctx.fillStyle = "#F2A623"; ctx.fill();
+
+    ctx.strokeStyle = "#123724"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(14, -12); ctx.lineTo(-58, -60); ctx.lineTo(-34, -18); ctx.closePath();
+    ctx.fillStyle = "#1F5C3F"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14, 12); ctx.lineTo(-58, 60); ctx.lineTo(-34, 18); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#3FAE66"; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(14, -12); ctx.lineTo(-58, -60); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(14, 12); ctx.lineTo(-58, 60); ctx.stroke();
+    ctx.fillStyle = "#F5D825"; ctx.strokeStyle = "#B89A13"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.arc(-58, -60, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(-58, 60, 6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = "#141312";
+    ctx.beginPath(); ctx.moveTo(-34, -14); ctx.lineTo(-44, -26); ctx.lineTo(-38, -12); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-34, 14); ctx.lineTo(-44, 26); ctx.lineTo(-38, 12); ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = "#8B8880"; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(72, 0); ctx.lineTo(30, -18); ctx.lineTo(-40, -14); ctx.lineTo(-46, 0); ctx.closePath();
+    ctx.fillStyle = "#D9D6CC"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(72, 0); ctx.lineTo(30, 18); ctx.lineTo(-40, 14); ctx.lineTo(-46, 0); ctx.closePath();
+    ctx.fillStyle = "#B9B6AC"; ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = "#4FB3E0"; ctx.strokeStyle = "#1B4E63"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(50, -7); ctx.lineTo(60, 0); ctx.lineTo(50, 7); ctx.lineTo(40, 0); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    drawLogoBadge(50, 0, 6);
+    ctx.restore();
+  }
+
+  // Artillera — caza gris con franja roja y marcas en las puntas de ala
+  function drawArtillera(s, flicker) {
+    ctx.save();
+    ctx.scale(s / 70, s / 70);
+
+    const glowR = 3 + flicker * 3;
+    ctx.globalAlpha = 0.6;
+    ctx.beginPath(); ctx.arc(-74, -7, glowR, 0, Math.PI * 2); ctx.fillStyle = "#F2A623"; ctx.fill();
+    ctx.beginPath(); ctx.arc(-74, 7, glowR, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#1B1C1D";
+    ctx.fillRect(-72, -9.5, 14, 5); ctx.fillRect(-72, 4.5, 14, 5);
+    ctx.fillStyle = "#F2A623";
+    ctx.beginPath(); ctx.arc(-74, -7, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-74, 7, 3, 0, Math.PI * 2); ctx.fill();
+
+    ctx.strokeStyle = "#24262A"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(18, -10); ctx.lineTo(-62, -52); ctx.lineTo(-28, -16); ctx.closePath();
+    ctx.fillStyle = "#55585C"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(18, 10); ctx.lineTo(-62, 52); ctx.lineTo(-28, 16); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#C23D3D"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(-28, -16); ctx.lineTo(-62, -52); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-28, 16); ctx.lineTo(-62, 52); ctx.stroke();
+    ctx.fillStyle = "#E24B4A";
+    ctx.beginPath(); ctx.moveTo(-46, -40); ctx.lineTo(-58, -48); ctx.lineTo(-50, -38); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-46, 40); ctx.lineTo(-58, 48); ctx.lineTo(-50, 38); ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = "#2E3032"; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(75, 0); ctx.lineTo(26, -9); ctx.lineTo(-55, -6); ctx.lineTo(-65, 0); ctx.closePath();
+    ctx.fillStyle = "#6B6E72"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(75, 0); ctx.lineTo(26, 9); ctx.lineTo(-55, 6); ctx.lineTo(-65, 0); ctx.closePath();
+    ctx.fillStyle = "#4B4E52"; ctx.fill(); ctx.stroke();
+
+    ctx.globalAlpha = 0.85; ctx.fillStyle = "#C23D3D";
+    ctx.fillRect(-40, -2, 80, 4);
+    ctx.globalAlpha = 1;
+
+    drawLogoBadge(0, 0, 8);
+    ctx.restore();
+  }
+
+  // Interceptor — dardo gris con cabina naranja y aletas rojas
+  function drawInterceptor(s, flicker) {
+    ctx.save();
+    ctx.scale(s / 70, s / 70);
+
+    const glowR = 2 + flicker * 2.5;
+    ctx.fillStyle = "#141312";
+    ctx.fillRect(-64, -9, 10, 6); ctx.fillRect(-64, 3, 10, 6);
+    ctx.globalAlpha = 0.5; ctx.fillStyle = "#F2A623";
+    ctx.beginPath(); ctx.arc(-66, -6, glowR, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-66, 6, glowR, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.strokeStyle = "#2E3032"; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(4, -14); ctx.lineTo(-58, -56); ctx.lineTo(-28, -18); ctx.closePath();
+    ctx.fillStyle = "#6C6F72"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(4, 14); ctx.lineTo(-58, 56); ctx.lineTo(-28, 18); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#E24B4A";
+    ctx.beginPath(); ctx.moveTo(-58, -56); ctx.lineTo(-66, -64); ctx.lineTo(-50, -58); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-58, 56); ctx.lineTo(-66, 64); ctx.lineTo(-50, 58); ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = "#3A3C3E"; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(28, -8); ctx.lineTo(0, -40); ctx.lineTo(8, -16); ctx.closePath();
+    ctx.fillStyle = "#7D8083"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(28, 8); ctx.lineTo(0, 40); ctx.lineTo(8, 16); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    ctx.beginPath(); ctx.moveTo(75, 0); ctx.lineTo(20, -14); ctx.lineTo(-30, -10); ctx.lineTo(-62, 0); ctx.closePath();
+    ctx.fillStyle = "#B7BABD"; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(75, 0); ctx.lineTo(20, 14); ctx.lineTo(-30, 10); ctx.lineTo(-62, 0); ctx.closePath();
+    ctx.fillStyle = "#8E9194"; ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = "#141312";
+    ctx.beginPath(); ctx.moveTo(52, -4); ctx.lineTo(64, 0); ctx.lineTo(52, 4); ctx.lineTo(44, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#F2A623";
+    ctx.beginPath(); ctx.moveTo(53, -2.4); ctx.lineTo(61, 0); ctx.lineTo(53, 2.4); ctx.lineTo(48, 0); ctx.closePath(); ctx.fill();
+
+    drawLogoBadge(54, 0, 5);
+    ctx.restore();
+  }
+
   function drawShip() {
-    const model = ship.model;
     const blinking = ship.invulnerable > 0 && Math.floor(ship.invulnerable / 5) % 2 === 0;
     const s = ship.size;
-    engineFlicker += 0.35 * frameDt;
+    engineFlicker += 0.35;
     const boosting = pressedKeys.has("up") || pressedKeys.has("down");
-    const flameLength = s * (0.5 + Math.sin(engineFlicker) * 0.15 + (boosting ? 0.15 : 0));
+    const flicker = 0.5 + Math.sin(engineFlicker) * 0.35 + (boosting ? 0.35 : 0);
 
     ctx.save();
     ctx.globalAlpha = blinking ? 0.35 : 1;
     ctx.translate(ship.x, ship.y);
 
-    // Llama del motor
-    ctx.beginPath();
-    ctx.moveTo(-s * 0.55, -s * 0.18);
-    ctx.quadraticCurveTo(-s * 0.55 - flameLength, 0, -s * 0.55, s * 0.18);
-    ctx.closePath();
-    const flameGradient = ctx.createLinearGradient(-s * 0.55 - flameLength, 0, -s * 0.55, 0);
-    flameGradient.addColorStop(0, "rgba(245,216,37,0)");
-    flameGradient.addColorStop(1, "#FFF06A");
-    ctx.fillStyle = flameGradient;
-    ctx.fill();
-
-    // Alas traseras
-    ctx.beginPath();
-    ctx.moveTo(-s * 0.15, -s * 0.15);
-    ctx.lineTo(-s * 0.6, -s * 0.55);
-    ctx.lineTo(-s * 0.35, -s * 0.1);
-    ctx.closePath();
-    ctx.moveTo(-s * 0.15, s * 0.15);
-    ctx.lineTo(-s * 0.6, s * 0.55);
-    ctx.lineTo(-s * 0.35, s * 0.1);
-    ctx.closePath();
-    ctx.fillStyle = shadeColor(model.color, -30);
-    ctx.fill();
-
-    // Fuselaje principal
-    ctx.beginPath();
-    ctx.moveTo(s * 0.85, 0);
-    ctx.quadraticCurveTo(s * 0.35, -s * 0.32, -s * 0.45, -s * 0.22);
-    ctx.quadraticCurveTo(-s * 0.6, 0, -s * 0.45, s * 0.22);
-    ctx.quadraticCurveTo(s * 0.35, s * 0.32, s * 0.85, 0);
-    ctx.closePath();
-    const bodyGradient = ctx.createLinearGradient(-s * 0.5, 0, s * 0.85, 0);
-    bodyGradient.addColorStop(0, shadeColor(model.color, -20));
-    bodyGradient.addColorStop(1, model.color);
-    ctx.fillStyle = bodyGradient;
-    ctx.fill();
-    ctx.strokeStyle = "#141312";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // Cabina con el logo
-    const badgeR = s * 0.26;
-    const badgeX = s * 0.12;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(badgeX, 0, badgeR, 0, Math.PI * 2);
-    ctx.fillStyle = "#141312";
-    ctx.fill();
-    ctx.clip();
-    if (logoImage.complete && logoImage.naturalWidth) {
-      ctx.drawImage(logoImage, badgeX - badgeR, -badgeR, badgeR * 2, badgeR * 2);
+    if (selectedShipId === "sensible") {
+      drawColibri(s, flicker);
+    } else if (selectedShipId === "pistola") {
+      drawArtillera(s, flicker);
+    } else {
+      drawInterceptor(s, flicker);
     }
-    ctx.restore();
-    ctx.beginPath();
-    ctx.arc(badgeX, 0, badgeR, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255,255,255,.35)";
-    ctx.lineWidth = 1;
-    ctx.stroke();
 
     ctx.restore();
   }
-
   function draw() {
     ctx.fillStyle = "#05050a";
     ctx.fillRect(0, 0, W, H);
