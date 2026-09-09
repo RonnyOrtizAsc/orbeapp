@@ -1719,6 +1719,12 @@ body.can-manage .manager-only { display: inline-flex; }
   touch-action: none;
 }
 
+@media (max-width: 650px) {
+  #orbeGameCanvas {
+    aspect-ratio: 700 / 300;
+  }
+}
+
 .orbe-game-overlay {
   position: absolute;
   inset: 0;
