@@ -408,12 +408,23 @@
 
         <div id="teamOverview">
 
-          <div class="page-header">
+             <div class="page-header">
             <div>
               <p class="eyebrow">ORBE</p>
               <h1>Equipo</h1>
               <p>Las personas detrás de cada producción.</p>
             </div>
+          </div>
+
+          <div class="section-card" style="margin-bottom:15px;padding:16px">
+            <div class="section-header">
+              <div>
+                <p class="eyebrow">ÁREAS</p>
+                <h3>Gestionar áreas</h3>
+              </div>
+              <button id="newAreaButton" class="button button-dark manager-only" type="button">+ Nueva área</button>
+            </div>
+            <div id="areaChipsList" class="area-chips"></div>
           </div>
 
           <div id="teamList" class="team-grid"></div>
@@ -431,33 +442,23 @@
            ORGANIZATION
       =================================================== -->
 
-     <section id="page-organization" class="page hidden">
+    <section id="page-organization" class="page hidden">
 
   <div class="page-header">
     <div>
       <p class="eyebrow">ORBE</p>
       <h1>Organización</h1>
-      <p>Organigrama, juegos y herramientas del equipo.</p>
+      <p>Juegos y herramientas del equipo.</p>
     </div>
   </div>
 
   <div class="org-tabs">
-    <button type="button" class="org-tab active" data-org-tab="chart">Organigrama</button>
-    <button type="button" class="org-tab" data-org-tab="games">Juegos</button>
+    <button type="button" class="org-tab active" data-org-tab="games">Juegos</button>
     <button type="button" class="org-tab" data-org-tab="tools">Herramientas</button>
   </div>
 
-  <!-- ===== ORGANIGRAMA ===== -->
-  <div id="orgTabChart" class="org-tab-panel">
-    <div class="org-tab-header">
-      <p class="assignment-help">Áreas, responsabilidades y personas encargadas de cada proceso.</p>
-      <button id="newAreaButton" class="button button-dark manager-only" type="button">+ Nueva área</button>
-    </div>
-    <div id="organizationChart" class="organization-chart"></div>
-  </div>
-
   <!-- ===== JUEGOS ===== -->
-  <div id="orgTabGames" class="org-tab-panel hidden">
+  <div id="orgTabGames" class="org-tab-panel">
 
     <!-- ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== -->
     <div class="section-card orbe-game-card">
