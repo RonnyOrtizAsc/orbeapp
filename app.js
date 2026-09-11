@@ -67,7 +67,6 @@ const topAvatarButton = document.getElementById("topAvatarButton");
 let taskTemplates = [];
 let taskOccurrences = [];
 let organizationAreas = [];
-let responsibilities = [];
 let activityLogs = [];
 let workSessions = [];
 let presenceChannel = null;
@@ -1168,6 +1167,18 @@ document.querySelectorAll(".org-tab").forEach((button) => {
     document.querySelectorAll(".org-tab").forEach((btn) => btn.classList.remove("active"));
     button.classList.add("active");
     document.querySelectorAll(".org-tab-panel").forEach((panel) => panel.classList.add("hidden"));
+    const targetId = button.dataset.orgTab === "games" ? "orgTabGames" : "orgTabTools";
+    document.getElementById(targetId)?.classList.remove("hidden");
+    if (button.dataset.orgTab === "games") {
+      window.refreshOrbeScoreboard?.();
+    }
+  });
+});
+document.querySelectorAll(".org-tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".org-tab").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    document.querySelectorAll(".org-tab-panel").forEach((panel) => panel.classList.add("hidden"));
     const targetId =
       button.dataset.orgTab === "chart"
         ? "orgTabChart"
@@ -1278,8 +1289,8 @@ function showPage(page, { pushHistory = true } = {}) {
   if (page === "team") {
     showTeamOverview();
   }
-  if (page === "organization") {
-    renderOrganization();
+    if (page === "organization") {
+    window.refreshOrbeScoreboard?.();
   }
   if (page === "dashboard") {
     updateDashboard();
@@ -1491,8 +1502,8 @@ async function loadAllData() {
   renderProjects();
   renderTasks();
   renderRecurringTasks();
+  renderAreaChips();
   renderTeam();
-  renderOrganization();
 }
 async function loadProjects() {
   const { data, error } = await db.from("projects").select("*").order("created_at", {
@@ -1519,12 +1530,12 @@ async function loadProfiles() {
   }
   profiles = data || [];
 }
-async function loadProjectMembers() {
-  const { data, error } = await db.from("project_members").select("id,project_id,profile_id");
+async function loadProfiles() {
+  const { data, error } = await db.from("profiles").select("id,name,role,avatar_url,game_high_score,username,area_id").order("name");
   if (error) {
     throw error;
   }
-  projectMembers = data || [];
+  profiles = data || [];
 }
 async function loadTaskMembers() {
   const { data, error } = await db.from("task_members").select("id,task_id,profile_id");
@@ -1570,18 +1581,11 @@ async function loadWorkSessions() {
   workSessions = data || [];
 }
 async function loadOrganization() {
-  const [areasResult, responsibilitiesResult] = await Promise.all([
-    db.from("organization_areas").select("*").order("name"),
-    db.from("responsibilities").select("*").order("name"),
-  ]);
-  if (areasResult.error) {
-    throw areasResult.error;
+  const { data, error } = await db.from("organization_areas").select("*").order("name");
+  if (error) {
+    throw error;
   }
-  if (responsibilitiesResult.error) {
-    throw responsibilitiesResult.error;
-  }
-  organizationAreas = areasResult.data || [];
-  responsibilities = responsibilitiesResult.data || [];
+  organizationAreas = data || [];
 }
 
 // =====================================================
@@ -3721,7 +3725,7 @@ function closeModalWindow() {
   currentCallTemplate = null;
   currentCallOccurrence = null;
   editingArea = null;
-  editingResponsibility = null;
+  editingProfileAreaId = null;
 }
 closeModal.addEventListener("click", closeModalWindow);
 cancelModal.addEventListener("click", closeModalWindow);
@@ -3756,10 +3760,9 @@ modalForm.addEventListener("submit", async (event) => {
       await saveCallActivity();
     } else if (activeModalMode === "organizationArea") {
       await saveArea();
-    } else if (activeModalMode === "responsibility") {
-      await saveResponsibility();
+    } else if (activeModalMode === "assignArea") {
+      await saveProfileArea();
     } else if (activeModalMode === "editUsername") {
-      await saveUsername();
     } else if (activeModalMode === "changePassword") {
       await saveNewPassword();
     }
@@ -4361,28 +4364,47 @@ function renderTeam() {
   teamList.innerHTML = profiles
     .map(
       (profile) => `
-        <button
-          class="team-card"
-          type="button"
-          data-profile-id="${escapeHTML(profile.id)}"
-        >
-          <div class="avatar">
-            ${avatarMarkup(profile)}
-          </div>
-          <div>
-            <h3>
-              ${escapeHTML(profile.name)}
-            </h3>
-            <p>
-              ${escapeHTML(roleLabel(profile.role))}
-            </p>
-          </div>
-        </button>
+        <div class="team-card-wrap">
+          <button
+            class="team-card"
+            type="button"
+            data-profile-id="${escapeHTML(profile.id)}"
+          >
+            <div class="avatar">
+              ${avatarMarkup(profile)}
+            </div>
+            <div>
+              <h3>
+                ${escapeHTML(profile.name)}
+              </h3>
+              <p class="team-card-area">
+                ${escapeHTML(getAreaName(profile.area_id))}
+              </p>
+              <p>
+                Rol: ${escapeHTML(roleLabel(profile.role))}
+              </p>
+            </div>
+          </button>
+          <button
+            type="button"
+            class="team-card-area-edit manager-only"
+            data-assign-area="${profile.id}"
+            aria-label="Asignar área"
+          >
+            ✎
+          </button>
+        </div>
       `,
     )
     .join("");
 }
 teamList.addEventListener("click", (event) => {
+  const assignButton = event.target.closest("[data-assign-area]");
+  if (assignButton) {
+    event.stopPropagation();
+    openAssignAreaModal(assignButton.dataset.assignArea);
+    return;
+  }
   const card = event.target.closest(".team-card");
   if (!card) {
     return;
@@ -4790,155 +4812,115 @@ function showTeamOverview() {
 }
 
 // =====================================================
-// ORGANIZACIÓN
+// ORGANIZACIÓN (ÁREAS)
 // =====================================================
 function getProfileById(id) {
   return profiles.find((profile) => profile.id === id);
 }
-// Nombres que aún no queremos mostrar en el organigrama (delegación pendiente).
-const ORG_HIDDEN_NAME_PARTS = ["mauri", "ronny"];
-function isOrgHiddenProfile(profile) {
-  if (!profile?.name) return false;
-  const name = profile.name.toLowerCase();
-  return ORG_HIDDEN_NAME_PARTS.some((part) => name.includes(part));
+function getAreaName(areaId) {
+  const area = organizationAreas.find((item) => item.id === areaId);
+  return area ? area.name : "Sin área";
 }
-function responsibilityPersonHTML(profileId, label, primary = false) {
-  const profile = getProfileById(profileId);
-  if (!profile || isOrgHiddenProfile(profile)) {
-    return "";
-  }
-  return `
-    <span
-      class="responsibility-person ${primary ? "primary" : ""}"
-      title="${escapeHTML(label)}"
-    >
-      ${escapeHTML(profile.name)}
-      <span class="responsibility-role">
-        ${escapeHTML(label)}
-      </span>
-    </span>
-  `;
-}
-
-function renderOrganization() {
-  window.refreshOrbeScoreboard?.();
-  if (!organizationChart) {
+function renderAreaChips() {
+  const container = document.getElementById("areaChipsList");
+  if (!container) {
     return;
   }
   if (!organizationAreas.length) {
-    organizationChart.innerHTML = `
-      <div class="organization-empty">
-        <h3>
-          No hay áreas configuradas
-        </h3>
-        <p>
-          Las áreas y responsabilidades aparecerán aquí.
-        </p>
-      </div>
-    `;
+    container.innerHTML = `<p class="profile-empty">Todavía no hay áreas creadas.</p>`;
     return;
   }
-  organizationChart.innerHTML = organizationAreas
-    .map((area) => {
-      const areaResponsibilities = responsibilities.filter(
-        (responsibility) => responsibility.area_id === area.id,
-      );
-      return `
-            <section class="organization-area">
-              <div class="organization-area-header">
-                <div>
-                  <div class="organization-area-title">
-                    ${escapeHTML(area.name)}
-                  </div>
-                  <div class="organization-area-description">
-                    ${escapeHTML(area.description || "")}
-                  </div>
-                </div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <span>
-                    ${areaResponsibilities.length}
-                    ${areaResponsibilities.length === 1 ? "responsabilidad" : "responsabilidades"}
-                  </span>
-                  <button type="button" class="smart-task-action manager-only" data-area-edit="${area.id}">Editar área</button>
-                  ${
-                    isAdmin(currentProfile)
-                      ? `<button type="button" class="smart-task-action danger-button" data-area-delete="${area.id}">Eliminar área</button>`
-                      : ""
-                  }
-                </div>
-              </div>
-              <div class="organization-area-body">
-                <button type="button" class="smart-task-action manager-only" data-add-responsibility="${area.id}">+ Nueva responsabilidad</button>
-                ${
-                  areaResponsibilities.length
-                    ? areaResponsibilities
-                        .map(
-                          (responsibility) => `
-                          <div class="responsibility-card">
-                            <div>
-                              <div class="responsibility-name">
-                                ${escapeHTML(responsibility.name)}
-                              </div>
-                              ${
-                                responsibility.description
-                                  ? `
-                                    <div class="responsibility-description">
-                                      ${escapeHTML(responsibility.description)}
-                                    </div>
-                                  `
-                                  : ""
-                              }
-                              <div class="card-actions manager-only" style="margin-top:8px">
-                                <button class="edit-button" type="button" data-responsibility-edit="${responsibility.id}">Editar</button>
-                                ${
-                                  isAdmin(currentProfile)
-                                    ? `<button class="danger-button" type="button" data-responsibility-delete="${responsibility.id}">Eliminar</button>`
-                                    : ""
-                                }
-                              </div>
-                            </div>
-                       <div class="responsibility-people">
-    ${
-    (() => {
-      const peopleHTML = [
-        responsibility.primary_profile_id
-          ? responsibilityPersonHTML(responsibility.primary_profile_id, "Encargado", true)
-          : "",
-        responsibility.backup_profile_id
-          ? responsibilityPersonHTML(responsibility.backup_profile_id, "Respaldo")
-          : "",
-        responsibility.backup2_profile_id
-          ? responsibilityPersonHTML(responsibility.backup2_profile_id, "Segundo respaldo")
-          : "",
-      ].join("");
-      return peopleHTML.trim()
-        ? peopleHTML
-        : `<span class="no-members">Aún sin asignar</span>`;
-          })()
-          }
-            </div>
-                          </div>
-                        `,
-                        )
-                        .join("")
-                    : `
-                      <p class="empty-text">
-                        No hay responsabilidades configuradas en esta área.
-                      </p>
-                    `
-                }
-              </div>
-            </section>
-          `;
-    })
+  container.innerHTML = organizationAreas
+    .map(
+      (area) => `
+        <span class="area-chip">
+          ${escapeHTML(area.name)}
+          <span class="area-chip-actions manager-only">
+            <button type="button" data-area-edit="${area.id}" aria-label="Editar área">✎</button>
+            <button type="button" data-area-delete="${area.id}" aria-label="Eliminar área">✕</button>
+          </span>
+        </span>
+      `,
+    )
     .join("");
+}
+document.getElementById("areaChipsList")?.addEventListener("click", (event) => {
+  const editButton = event.target.closest("[data-area-edit]");
+  const deleteButton = event.target.closest("[data-area-delete]");
+  if (editButton) {
+    editArea(editButton.dataset.areaEdit);
+    return;
+  }
+  if (deleteButton) {
+    deleteArea(deleteButton.dataset.areaDelete);
+  }
+});
+function openAssignAreaModal(profileId) {
+  if (!canManage(currentProfile)) {
+    return;
+  }
+  const profile = profiles.find((item) => item.id === profileId);
+  if (!profile) {
+    return;
+  }
+  editingProfileAreaId = profileId;
+  activeModalMode = "assignArea";
+  modalTitle.textContent = `Área de ${profile.name}`;
+  modalFields.innerHTML = `
+    <div class="modal-field">
+      <label for="assignAreaSelect">Área</label>
+      <select id="assignAreaSelect">
+        <option value="">Sin área</option>
+        ${organizationAreas
+          .map(
+            (area) => `
+              <option value="${area.id}" ${profile.area_id === area.id ? "selected" : ""}>
+                ${escapeHTML(area.name)}
+              </option>
+            `,
+          )
+          .join("")}
+      </select>
+      ${
+        !organizationAreas.length
+          ? `<p class="assignment-help">Todavía no hay áreas creadas. Crea una primero desde "+ Nueva área".</p>`
+          : ""
+      }
+    </div>
+  `;
+  openModal();
+}
+async function saveProfileArea() {
+  if (!editingProfileAreaId) {
+    return;
+  }
+  const areaId = document.getElementById("assignAreaSelect").value || null;
+  try {
+    const { error } = await db
+      .from("profiles")
+      .update({ area_id: areaId })
+      .eq("id", editingProfileAreaId);
+    if (error) {
+      throw error;
+    }
+    closeModalWindow();
+    showToast("Área actualizada.");
+    await loadProfiles();
+    renderTeam();
+    if (selectedTeamProfile && selectedTeamProfile.id === editingProfileAreaId) {
+      openTeamProfile(editingProfileAreaId);
+    }
+  } catch (error) {
+    console.error("Error asignando área:", error);
+    showToast(error.message || "No se pudo asignar el área.");
+  }
 }
 
 // =====================================================
 // ORGANIZACIÓN — CREAR / EDITAR / ELIMINAR
 // =====================================================
 let editingArea = null;
-let editingResponsibility = null;
+let editingProfileAreaId = null;
 
 document.getElementById("newAreaButton")?.addEventListener("click", () => {
   if (!canManage(currentProfile)) {
@@ -4999,7 +4981,8 @@ async function saveArea() {
     closeModalWindow();
     showToast(editingArea ? "Área actualizada" : "Área creada");
     await loadOrganization();
-    renderOrganization();
+    renderAreaChips();
+    renderTeam();
   } catch (error) {
     console.error("Error guardando área:", error);
     showToast(error.message || "No se pudo guardar el área.");
@@ -5009,173 +4992,24 @@ async function deleteArea(areaId) {
   if (!isAdmin(currentProfile)) {
     return;
   }
-  if (!confirm("¿Eliminar esta área y todas sus responsabilidades?")) {
+  if (!confirm("¿Eliminar esta área? Las personas asignadas quedarán sin área.")) {
     return;
   }
   try {
-    const { error: responsibilitiesError } = await db
-      .from("responsibilities")
-      .delete()
-      .eq("area_id", areaId);
-    if (responsibilitiesError) {
-      throw responsibilitiesError;
-    }
     const { error } = await db.from("organization_areas").delete().eq("id", areaId);
     if (error) {
       throw error;
     }
     showToast("Área eliminada");
     await loadOrganization();
-    renderOrganization();
+    await loadProfiles();
+    renderAreaChips();
+    renderTeam();
   } catch (error) {
     console.error("Error eliminando área:", error);
     showToast(error.message || "No se pudo eliminar el área.");
   }
 }
-
-function buildResponsibilityForm(responsibility = null) {
-  const options = (selectedId) => `
-    <option value="">Sin asignar</option>
-    ${profiles
-      .map(
-        (profile) => `
-          <option value="${profile.id}" ${selectedId === profile.id ? "selected" : ""}>
-            ${escapeHTML(profile.name)}
-          </option>
-        `,
-      )
-      .join("")}
-  `;
-  return `
-    <div class="modal-field">
-      <label for="responsibilityName">Nombre</label>
-      <input id="responsibilityName" value="${responsibility ? escapeHTML(responsibility.name) : ""}" required>
-    </div>
-    <div class="modal-field">
-      <label for="responsibilityDescription">Descripción</label>
-      <textarea id="responsibilityDescription">${responsibility ? escapeHTML(responsibility.description || "") : ""}</textarea>
-    </div>
-    <div class="modal-field">
-      <label for="responsibilityPrimary">Encargado</label>
-      <select id="responsibilityPrimary">${options(responsibility?.primary_profile_id)}</select>
-    </div>
-    <div class="modal-field">
-      <label for="responsibilityBackup">Respaldo</label>
-      <select id="responsibilityBackup">${options(responsibility?.backup_profile_id)}</select>
-    </div>
-    <div class="modal-field">
-      <label for="responsibilityBackup2">Segundo respaldo</label>
-      <select id="responsibilityBackup2">${options(responsibility?.backup2_profile_id)}</select>
-    </div>
-  `;
-}
-function newResponsibility(areaId) {
-  if (!canManage(currentProfile)) {
-    return;
-  }
-  editingResponsibility = { area_id: areaId };
-  activeModalMode = "responsibility";
-  modalTitle.textContent = "Nueva responsabilidad";
-  modalFields.innerHTML = buildResponsibilityForm();
-  openModal();
-}
-function editResponsibility(responsibilityId) {
-  const responsibility = responsibilities.find((item) => item.id === responsibilityId);
-  if (!responsibility || !canManage(currentProfile)) {
-    return;
-  }
-  editingResponsibility = responsibility;
-  activeModalMode = "responsibility";
-  modalTitle.textContent = "Editar responsabilidad";
-  modalFields.innerHTML = buildResponsibilityForm(responsibility);
-  openModal();
-}
-async function saveResponsibility() {
-  const name = document.getElementById("responsibilityName").value.trim();
-  const description = document.getElementById("responsibilityDescription").value.trim();
-  const primary = document.getElementById("responsibilityPrimary").value || null;
-  const backup = document.getElementById("responsibilityBackup").value || null;
-  const backup2 = document.getElementById("responsibilityBackup2").value || null;
-  if (!name) {
-    showToast("La responsabilidad necesita un nombre.");
-    return;
-  }
-  const payload = {
-    name,
-    description,
-    primary_profile_id: primary,
-    backup_profile_id: backup,
-    backup2_profile_id: backup2,
-  };
-  try {
-    if (editingResponsibility?.id) {
-      const { error } = await db.from("responsibilities").update(payload).eq("id", editingResponsibility.id);
-      if (error) {
-        throw error;
-      }
-    } else {
-      const { error } = await db
-        .from("responsibilities")
-        .insert({ ...payload, area_id: editingResponsibility.area_id });
-      if (error) {
-        throw error;
-      }
-    }
-    closeModalWindow();
-    showToast(editingResponsibility?.id ? "Responsabilidad actualizada" : "Responsabilidad creada");
-    await loadOrganization();
-    renderOrganization();
-  } catch (error) {
-    console.error("Error guardando responsabilidad:", error);
-    showToast(error.message || "No se pudo guardar la responsabilidad.");
-  }
-}
-async function deleteResponsibility(responsibilityId) {
-  if (!isAdmin(currentProfile)) {
-    return;
-  }
-  if (!confirm("¿Eliminar esta responsabilidad?")) {
-    return;
-  }
-  try {
-    const { error } = await db.from("responsibilities").delete().eq("id", responsibilityId);
-    if (error) {
-      throw error;
-    }
-    showToast("Responsabilidad eliminada");
-    await loadOrganization();
-    renderOrganization();
-  } catch (error) {
-    console.error("Error eliminando responsabilidad:", error);
-    showToast(error.message || "No se pudo eliminar la responsabilidad.");
-  }
-}
-organizationChart?.addEventListener("click", (event) => {
-  const areaEdit = event.target.closest("[data-area-edit]");
-  const areaDelete = event.target.closest("[data-area-delete]");
-  const addResponsibility = event.target.closest("[data-add-responsibility]");
-  const responsibilityEdit = event.target.closest("[data-responsibility-edit]");
-  const responsibilityDelete = event.target.closest("[data-responsibility-delete]");
-  if (areaEdit) {
-    editArea(areaEdit.dataset.areaEdit);
-    return;
-  }
-  if (areaDelete) {
-    deleteArea(areaDelete.dataset.areaDelete);
-    return;
-  }
-  if (addResponsibility) {
-    newResponsibility(addResponsibility.dataset.addResponsibility);
-    return;
-  }
-  if (responsibilityEdit) {
-    editResponsibility(responsibilityEdit.dataset.responsibilityEdit);
-    return;
-  }
-  if (responsibilityDelete) {
-    deleteResponsibility(responsibilityDelete.dataset.responsibilityDelete);
-  }
-});
 
 // =====================================================
 // USERNAME Y CONTRASEÑA (autoservicio)
