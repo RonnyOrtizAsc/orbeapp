@@ -4394,7 +4394,7 @@ function renderTeam() {
               </p>
             </div>
           </button>
-                    </button>
+                             </button>
           <button
             type="button"
             class="smart-task-action team-card-assign-btn manager-only"
@@ -4402,8 +4402,6 @@ function renderTeam() {
           >
             Asignar área
           </button>
-        </div>
-      `,
         </div>
       `,
     )
