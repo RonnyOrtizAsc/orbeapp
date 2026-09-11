@@ -1825,3 +1825,68 @@ button, .nav-item, .task-row, .team-card {
   height: 100%;
   object-fit: cover;
 }
+
+/* =====================================================
+   TABS DE ORGANIZACIÓN
+===================================================== */
+.org-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+.org-tab {
+  padding: 10px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.org-tab:hover { border-color: var(--muted-dim); }
+.org-tab.active { background: var(--amarillo); color: var(--negro); border-color: var(--amarillo); }
+
+.org-tab-panel { display: block; }
+
+.org-tab-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+.org-tab-header p { max-width: 520px; }
+
+@media (max-width: 650px) {
+  .org-tab-header { flex-direction: column; }
+  .org-tab-header .manager-only { width: 100%; }
+}
+
+/* =====================================================
+   TARJETAS DE HERRAMIENTAS
+===================================================== */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+.tool-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color .15s ease, transform .15s ease;
+}
+.tool-card:hover { border-color: var(--amarillo); transform: translateY(-2px); }
+.tool-card strong { display: block; font-size: 13.5px; color: var(--text); }
+.tool-card p { margin-top: 4px; color: var(--muted); font-size: 11.5px; line-height: 1.4; }
+.tool-card-icon { font-size: 22px; flex-shrink: 0; }
+.tool-card-soon { opacity: .55; cursor: default; }
