@@ -3708,6 +3708,8 @@ function closeModalWindow() {
   editingTask = null;
   currentCallTemplate = null;
   currentCallOccurrence = null;
+  editingArea = null;
+  editingResponsibility = null;
 }
 closeModal.addEventListener("click", closeModalWindow);
 cancelModal.addEventListener("click", closeModalWindow);
@@ -3738,8 +3740,12 @@ modalForm.addEventListener("submit", async (event) => {
       await saveTask();
     } else if (activeModalMode === "recurringTask") {
       await saveRecurringTask();
-      } else if (activeModalMode === "call") {
+    } else if (activeModalMode === "call") {
       await saveCallActivity();
+    } else if (activeModalMode === "organizationArea") {
+      await saveArea();
+    } else if (activeModalMode === "responsibility") {
+      await saveResponsibility();
     } else if (activeModalMode === "editUsername") {
       await saveUsername();
     } else if (activeModalMode === "changePassword") {
@@ -4802,7 +4808,7 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
   `;
 }
 
-  function renderOrganization() {
+function renderOrganization() {
   window.refreshOrbeScoreboard?.();
   if (!organizationChart) {
     return;
@@ -4836,12 +4842,21 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
                     ${escapeHTML(area.description || "")}
                   </div>
                 </div>
-                <span>
-                  ${areaResponsibilities.length}
-                  ${areaResponsibilities.length === 1 ? "responsabilidad" : "responsabilidades"}
-                </span>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <span>
+                    ${areaResponsibilities.length}
+                    ${areaResponsibilities.length === 1 ? "responsabilidad" : "responsabilidades"}
+                  </span>
+                  <button type="button" class="smart-task-action manager-only" data-area-edit="${area.id}">Editar área</button>
+                  ${
+                    isAdmin(currentProfile)
+                      ? `<button type="button" class="smart-task-action danger-button" data-area-delete="${area.id}">Eliminar área</button>`
+                      : ""
+                  }
+                </div>
               </div>
               <div class="organization-area-body">
+                <button type="button" class="smart-task-action manager-only" data-add-responsibility="${area.id}">+ Nueva responsabilidad</button>
                 ${
                   areaResponsibilities.length
                     ? areaResponsibilities
@@ -4861,6 +4876,14 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
                                   `
                                   : ""
                               }
+                              <div class="card-actions manager-only" style="margin-top:8px">
+                                <button class="edit-button" type="button" data-responsibility-edit="${responsibility.id}">Editar</button>
+                                ${
+                                  isAdmin(currentProfile)
+                                    ? `<button class="danger-button" type="button" data-responsibility-delete="${responsibility.id}">Eliminar</button>`
+                                    : ""
+                                }
+                              </div>
                             </div>
                        <div class="responsibility-people">
     ${
@@ -4898,6 +4921,249 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     })
     .join("");
 }
+
+// =====================================================
+// ORGANIZACIÓN — CREAR / EDITAR / ELIMINAR
+// =====================================================
+let editingArea = null;
+let editingResponsibility = null;
+
+document.getElementById("newAreaButton")?.addEventListener("click", () => {
+  if (!canManage(currentProfile)) {
+    return;
+  }
+  editingArea = null;
+  activeModalMode = "organizationArea";
+  modalTitle.textContent = "Nueva área";
+  modalFields.innerHTML = buildAreaForm();
+  openModal();
+});
+
+function buildAreaForm(area = null) {
+  return `
+    <div class="modal-field">
+      <label for="areaName">Nombre</label>
+      <input id="areaName" value="${area ? escapeHTML(area.name) : ""}" required>
+    </div>
+    <div class="modal-field">
+      <label for="areaDescription">Descripción</label>
+      <textarea id="areaDescription">${area ? escapeHTML(area.description || "") : ""}</textarea>
+    </div>
+  `;
+}
+function editArea(areaId) {
+  const area = organizationAreas.find((item) => item.id === areaId);
+  if (!area || !canManage(currentProfile)) {
+    return;
+  }
+  editingArea = area;
+  activeModalMode = "organizationArea";
+  modalTitle.textContent = "Editar área";
+  modalFields.innerHTML = buildAreaForm(area);
+  openModal();
+}
+async function saveArea() {
+  const name = document.getElementById("areaName").value.trim();
+  const description = document.getElementById("areaDescription").value.trim();
+  if (!name) {
+    showToast("El área necesita un nombre.");
+    return;
+  }
+  try {
+    if (editingArea) {
+      const { error } = await db
+        .from("organization_areas")
+        .update({ name, description })
+        .eq("id", editingArea.id);
+      if (error) {
+        throw error;
+      }
+    } else {
+      const { error } = await db.from("organization_areas").insert({ name, description });
+      if (error) {
+        throw error;
+      }
+    }
+    closeModalWindow();
+    showToast(editingArea ? "Área actualizada" : "Área creada");
+    await loadOrganization();
+    renderOrganization();
+  } catch (error) {
+    console.error("Error guardando área:", error);
+    showToast(error.message || "No se pudo guardar el área.");
+  }
+}
+async function deleteArea(areaId) {
+  if (!isAdmin(currentProfile)) {
+    return;
+  }
+  if (!confirm("¿Eliminar esta área y todas sus responsabilidades?")) {
+    return;
+  }
+  try {
+    const { error: responsibilitiesError } = await db
+      .from("responsibilities")
+      .delete()
+      .eq("area_id", areaId);
+    if (responsibilitiesError) {
+      throw responsibilitiesError;
+    }
+    const { error } = await db.from("organization_areas").delete().eq("id", areaId);
+    if (error) {
+      throw error;
+    }
+    showToast("Área eliminada");
+    await loadOrganization();
+    renderOrganization();
+  } catch (error) {
+    console.error("Error eliminando área:", error);
+    showToast(error.message || "No se pudo eliminar el área.");
+  }
+}
+
+function buildResponsibilityForm(responsibility = null) {
+  const options = (selectedId) => `
+    <option value="">Sin asignar</option>
+    ${profiles
+      .map(
+        (profile) => `
+          <option value="${profile.id}" ${selectedId === profile.id ? "selected" : ""}>
+            ${escapeHTML(profile.name)}
+          </option>
+        `,
+      )
+      .join("")}
+  `;
+  return `
+    <div class="modal-field">
+      <label for="responsibilityName">Nombre</label>
+      <input id="responsibilityName" value="${responsibility ? escapeHTML(responsibility.name) : ""}" required>
+    </div>
+    <div class="modal-field">
+      <label for="responsibilityDescription">Descripción</label>
+      <textarea id="responsibilityDescription">${responsibility ? escapeHTML(responsibility.description || "") : ""}</textarea>
+    </div>
+    <div class="modal-field">
+      <label for="responsibilityPrimary">Encargado</label>
+      <select id="responsibilityPrimary">${options(responsibility?.primary_profile_id)}</select>
+    </div>
+    <div class="modal-field">
+      <label for="responsibilityBackup">Respaldo</label>
+      <select id="responsibilityBackup">${options(responsibility?.backup_profile_id)}</select>
+    </div>
+    <div class="modal-field">
+      <label for="responsibilityBackup2">Segundo respaldo</label>
+      <select id="responsibilityBackup2">${options(responsibility?.backup2_profile_id)}</select>
+    </div>
+  `;
+}
+function newResponsibility(areaId) {
+  if (!canManage(currentProfile)) {
+    return;
+  }
+  editingResponsibility = { area_id: areaId };
+  activeModalMode = "responsibility";
+  modalTitle.textContent = "Nueva responsabilidad";
+  modalFields.innerHTML = buildResponsibilityForm();
+  openModal();
+}
+function editResponsibility(responsibilityId) {
+  const responsibility = responsibilities.find((item) => item.id === responsibilityId);
+  if (!responsibility || !canManage(currentProfile)) {
+    return;
+  }
+  editingResponsibility = responsibility;
+  activeModalMode = "responsibility";
+  modalTitle.textContent = "Editar responsabilidad";
+  modalFields.innerHTML = buildResponsibilityForm(responsibility);
+  openModal();
+}
+async function saveResponsibility() {
+  const name = document.getElementById("responsibilityName").value.trim();
+  const description = document.getElementById("responsibilityDescription").value.trim();
+  const primary = document.getElementById("responsibilityPrimary").value || null;
+  const backup = document.getElementById("responsibilityBackup").value || null;
+  const backup2 = document.getElementById("responsibilityBackup2").value || null;
+  if (!name) {
+    showToast("La responsabilidad necesita un nombre.");
+    return;
+  }
+  const payload = {
+    name,
+    description,
+    primary_profile_id: primary,
+    backup_profile_id: backup,
+    backup2_profile_id: backup2,
+  };
+  try {
+    if (editingResponsibility?.id) {
+      const { error } = await db.from("responsibilities").update(payload).eq("id", editingResponsibility.id);
+      if (error) {
+        throw error;
+      }
+    } else {
+      const { error } = await db
+        .from("responsibilities")
+        .insert({ ...payload, area_id: editingResponsibility.area_id });
+      if (error) {
+        throw error;
+      }
+    }
+    closeModalWindow();
+    showToast(editingResponsibility?.id ? "Responsabilidad actualizada" : "Responsabilidad creada");
+    await loadOrganization();
+    renderOrganization();
+  } catch (error) {
+    console.error("Error guardando responsabilidad:", error);
+    showToast(error.message || "No se pudo guardar la responsabilidad.");
+  }
+}
+async function deleteResponsibility(responsibilityId) {
+  if (!isAdmin(currentProfile)) {
+    return;
+  }
+  if (!confirm("¿Eliminar esta responsabilidad?")) {
+    return;
+  }
+  try {
+    const { error } = await db.from("responsibilities").delete().eq("id", responsibilityId);
+    if (error) {
+      throw error;
+    }
+    showToast("Responsabilidad eliminada");
+    await loadOrganization();
+    renderOrganization();
+  } catch (error) {
+    console.error("Error eliminando responsabilidad:", error);
+    showToast(error.message || "No se pudo eliminar la responsabilidad.");
+  }
+}
+organizationChart?.addEventListener("click", (event) => {
+  const areaEdit = event.target.closest("[data-area-edit]");
+  const areaDelete = event.target.closest("[data-area-delete]");
+  const addResponsibility = event.target.closest("[data-add-responsibility]");
+  const responsibilityEdit = event.target.closest("[data-responsibility-edit]");
+  const responsibilityDelete = event.target.closest("[data-responsibility-delete]");
+  if (areaEdit) {
+    editArea(areaEdit.dataset.areaEdit);
+    return;
+  }
+  if (areaDelete) {
+    deleteArea(areaDelete.dataset.areaDelete);
+    return;
+  }
+  if (addResponsibility) {
+    newResponsibility(addResponsibility.dataset.addResponsibility);
+    return;
+  }
+  if (responsibilityEdit) {
+    editResponsibility(responsibilityEdit.dataset.responsibilityEdit);
+    return;
+  }
+  if (responsibilityDelete) {
+    deleteResponsibility(responsibilityDelete.dataset.responsibilityDelete);
+  }
+});
 
 // =====================================================
 // USERNAME Y CONTRASEÑA (autoservicio)
