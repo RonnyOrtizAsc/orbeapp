@@ -4401,7 +4401,6 @@ function renderTeam() {
               </p>
             </div>
           </button>
-                             </button>
           <button
             type="button"
             class="smart-task-action team-card-assign-btn manager-only"
