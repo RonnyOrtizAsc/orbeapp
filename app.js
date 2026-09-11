@@ -1546,6 +1546,13 @@ async function loadProfiles() {
   }
   profiles = data || [];
 }
+async function loadProjectMembers() {
+  const { data, error } = await db.from("project_members").select("id,project_id,profile_id");
+  if (error) {
+    throw error;
+  }
+  projectMembers = data || [];
+}
 async function loadTaskMembers() {
   const { data, error } = await db.from("task_members").select("id,task_id,profile_id");
   if (error) {
