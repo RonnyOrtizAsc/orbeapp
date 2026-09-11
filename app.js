@@ -4896,22 +4896,50 @@ function openAssignAreaModal(profileId) {
             `,
           )
           .join("")}
+        <option value="__new__">+ Crear área nueva...</option>
       </select>
-      ${
-        !organizationAreas.length
-          ? `<p class="assignment-help">Todavía no hay áreas creadas. Crea una primero desde "+ Nueva área".</p>`
-          : ""
-      }
+    </div>
+    <div id="newAreaFields" class="hidden">
+      <div class="modal-field">
+        <label for="newAreaName">Nombre del área nueva</label>
+        <input id="newAreaName" placeholder="Ej. Producción">
+      </div>
+      <div class="modal-field">
+        <label for="newAreaDescription">Descripción (uso interno, no se muestra)</label>
+        <textarea id="newAreaDescription" placeholder="Opcional"></textarea>
+      </div>
     </div>
   `;
+  document.getElementById("assignAreaSelect").addEventListener("change", (event) => {
+    document.getElementById("newAreaFields").classList.toggle("hidden", event.target.value !== "__new__");
+  });
   openModal();
 }
 async function saveProfileArea() {
   if (!editingProfileAreaId) {
     return;
   }
-  const areaId = document.getElementById("assignAreaSelect").value || null;
+  const selectValue = document.getElementById("assignAreaSelect").value;
+  let areaId = selectValue || null;
   try {
+    if (selectValue === "__new__") {
+      const name = document.getElementById("newAreaName").value.trim();
+      const description = document.getElementById("newAreaDescription").value.trim();
+      if (!name) {
+        showToast("Escribe un nombre para la nueva área.");
+        return;
+      }
+      const { data: newArea, error: createError } = await db
+        .from("organization_areas")
+        .insert({ name, description })
+        .select()
+        .single();
+      if (createError) {
+        throw createError;
+      }
+      areaId = newArea.id;
+      await loadOrganization();
+    }
     const { data, error } = await db
       .from("profiles")
       .update({ area_id: areaId })
