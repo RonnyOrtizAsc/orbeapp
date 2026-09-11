@@ -85,8 +85,6 @@ const registerCallButton = document.getElementById("registerCallButton");
 const callProgressLabel = document.getElementById("callProgressLabel");
 const callProgressPercent = document.getElementById("callProgressPercent");
 const callProgressBar = document.getElementById("callProgressBar");
-const organizationChart = document.getElementById("organizationChart");
-
 // =====================================================
 // UTILIDADES
 // =====================================================
