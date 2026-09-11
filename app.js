@@ -726,15 +726,28 @@ loginForm.addEventListener("submit", async (event) => {
     loginSubmitLabel.textContent = "Entrando...";
   }
   loginError.textContent = "";
-  const email = document.getElementById("loginEmail").value.trim();
+  const identifier = document.getElementById("loginEmail").value.trim();
   const password = document.getElementById("loginPassword").value;
+  let email = identifier;
+  if (!identifier.includes("@")) {
+    const { data: resolvedEmail, error: lookupError } = await db.rpc("get_email_for_username", {
+      input_username: identifier,
+    });
+    if (lookupError || !resolvedEmail) {
+      loginError.textContent = "Usuario no encontrado.";
+      if (loginSubmitButton) delete loginSubmitButton.dataset.loading;
+      if (loginSubmitLabel) loginSubmitLabel.textContent = "Entrar";
+      return;
+    }
+    email = resolvedEmail;
+  }
   const { error } = await db.auth.signInWithPassword({
     email,
     password,
   });
   if (error) {
     console.error(error);
-    loginError.textContent = "Correo o contraseña incorrectos.";
+    loginError.textContent = "Correo/usuario o contraseña incorrectos.";
   }
   if (loginSubmitButton) {
     delete loginSubmitButton.dataset.loading;
@@ -760,9 +773,17 @@ async function checkSession() {
     showLogin();
   }
 }
+let pendingPasswordRecovery = false;
 db.auth.onAuthStateChange(async (event, session) => {
+  if (event === "PASSWORD_RECOVERY") {
+    pendingPasswordRecovery = true;
+  }
   if (session) {
     await loadUser(session.user);
+    if (pendingPasswordRecovery) {
+      pendingPasswordRecovery = false;
+      openChangePasswordModal();
+    }
   } else {
     showLogin();
   }
@@ -1451,7 +1472,7 @@ async function loadTasks() {
   tasks = data || [];
 }
 async function loadProfiles() {
-  const { data, error } = await db.from("profiles").select("id,name,role,avatar_url,game_high_score").order("name");
+  const { data, error } = await db.from("profiles").select("id,name,role,avatar_url,game_high_score,username").order("name");
   if (error) {
     throw error;
   }
@@ -3688,8 +3709,12 @@ modalForm.addEventListener("submit", async (event) => {
       await saveTask();
     } else if (activeModalMode === "recurringTask") {
       await saveRecurringTask();
-    } else if (activeModalMode === "call") {
+      } else if (activeModalMode === "call") {
       await saveCallActivity();
+    } else if (activeModalMode === "editUsername") {
+      await saveUsername();
+    } else if (activeModalMode === "changePassword") {
+      await saveNewPassword();
     }
   } catch (error) {
     console.error("Error guardando desde el modal:", error);
@@ -4362,7 +4387,7 @@ function openTeamProfile(profileId) {
               : ""
           }
         </div>
-        <div>
+                <div>
           <p class="eyebrow">
             PERFIL
           </p>
@@ -4371,6 +4396,7 @@ function openTeamProfile(profileId) {
           </h1>
           <p>
             ${escapeHTML(roleLabel(profile.role))}
+            ${profile.username ? ` · @${escapeHTML(profile.username)}` : ""}
           </p>
           ${
             isOwnProfile
@@ -4378,6 +4404,14 @@ function openTeamProfile(profileId) {
                 <p class="assignment-help">
                   Toca el lápiz para cambiar tu foto. Se importa desde tu galería.
                 </p>
+                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px">
+                  <button type="button" class="link-button" id="editUsernameButton">
+                    ${profile.username ? "Cambiar nombre de usuario" : "Crear nombre de usuario"}
+                  </button>
+                  <button type="button" class="link-button" id="changePasswordButton">
+                    Cambiar contraseña
+                  </button>
+                </div>
               `
               : ""
           }
@@ -4681,6 +4715,8 @@ function openTeamProfile(profileId) {
     </div>
   `;
   document.getElementById("profileAvatarEditButton")?.addEventListener("click", openAvatarPicker);
+  document.getElementById("editUsernameButton")?.addEventListener("click", openEditUsernameModal);
+  document.getElementById("changePasswordButton")?.addEventListener("click", openChangePasswordModal);
 }
 teamBackButton.addEventListener("click", showTeamOverview);
 teamProfileContent.addEventListener("click", (event) => {
@@ -4834,6 +4870,93 @@ function responsibilityPersonHTML(profileId, label, primary = false) {
     .join("");
 }
 
+// =====================================================
+// USERNAME Y CONTRASEÑA (autoservicio)
+// =====================================================
+function openEditUsernameModal() {
+  activeModalMode = "editUsername";
+  modalTitle.textContent = "Nombre de usuario";
+  modalFields.innerHTML = `
+    <div class="modal-field">
+      <label for="usernameInput">Nombre de usuario</label>
+      <input
+        id="usernameInput"
+        value="${currentProfile.username ? escapeHTML(currentProfile.username) : ""}"
+        placeholder="ej. mauricio"
+        pattern="[a-zA-Z0-9_.]{3,20}"
+        title="Solo letras, números, punto o guión bajo. 3 a 20 caracteres."
+        required
+      >
+      <p class="assignment-help">
+        Con esto podrás entrar escribiendo tu usuario en vez del correo. Solo letras, números, "." o "_", entre 3 y 20 caracteres.
+      </p>
+    </div>
+  `;
+  openModal();
+}
+async function saveUsername() {
+  const raw = document.getElementById("usernameInput").value.trim().toLowerCase();
+  if (!/^[a-z0-9_.]{3,20}$/.test(raw)) {
+    showToast("Usuario inválido. Usa letras, números, '.' o '_' (3 a 20 caracteres).");
+    return;
+  }
+  const { error } = await db
+    .from("profiles")
+    .update({ username: raw })
+    .eq("id", currentUser.id);
+  if (error) {
+    if (error.code === "23505") {
+      showToast("Ese nombre de usuario ya está en uso. Elige otro.");
+    } else {
+      showToast(error.message || "No se pudo guardar el usuario.");
+    }
+    return;
+  }
+  currentProfile.username = raw;
+  const profileIndex = profiles.findIndex((profile) => profile.id === currentUser.id);
+  if (profileIndex !== -1) {
+    profiles[profileIndex] = { ...profiles[profileIndex], username: raw };
+  }
+  closeModalWindow();
+  showToast("Nombre de usuario actualizado.");
+  if (selectedTeamProfile && selectedTeamProfile.id === currentUser.id) {
+    openTeamProfile(currentUser.id);
+  }
+}
+function openChangePasswordModal() {
+  activeModalMode = "changePassword";
+  modalTitle.textContent = "Cambiar contraseña";
+  modalFields.innerHTML = `
+    <div class="modal-field">
+      <label for="newPassword">Nueva contraseña</label>
+      <input id="newPassword" type="password" minlength="6" required>
+    </div>
+    <div class="modal-field">
+      <label for="newPasswordConfirm">Confirmar contraseña</label>
+      <input id="newPasswordConfirm" type="password" minlength="6" required>
+    </div>
+  `;
+  openModal();
+}
+async function saveNewPassword() {
+  const newPassword = document.getElementById("newPassword").value;
+  const confirm = document.getElementById("newPasswordConfirm").value;
+  if (newPassword.length < 6) {
+    showToast("La contraseña debe tener al menos 6 caracteres.");
+    return;
+  }
+  if (newPassword !== confirm) {
+    showToast("Las contraseñas no coinciden.");
+    return;
+  }
+  const { error } = await db.auth.updateUser({ password: newPassword });
+  if (error) {
+    showToast(error.message || "No se pudo cambiar la contraseña.");
+    return;
+  }
+  closeModalWindow();
+  showToast("Contraseña actualizada.");
+}
 // =====================================================
 // ARRANQUE
 // =====================================================
