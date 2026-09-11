@@ -1907,21 +1907,7 @@ button, .nav-item, .task-row, .team-card {
 }
 .area-chip-actions button:hover { background: var(--surface-raised); color: var(--text); }
 
-.team-card-wrap { position: relative; }
-.team-card-wrap .team-card { width: 100%; padding-right: 40px; }
+.team-card-wrap { display: flex; flex-direction: column; gap: 8px; }
+.team-card-wrap .team-card { width: 100%; }
 .team-card-area { color: var(--muted); font-size: 11px; margin-top: 2px; }
-.team-card-area-edit {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--surface-raised);
-  color: var(--text);
-  font-size: 12px;
-  border: 1px solid var(--border);
-}
-.team-card-area-edit:hover { background: #3a3831; }
+.team-card-assign-btn { align-self: flex-start; }
