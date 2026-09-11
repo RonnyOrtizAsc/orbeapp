@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cotizador y Generador de Factura - Orbe-c Films</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Cinzel:wght@600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1e293b;
+            --accent: #d97706;
+            --accent-hover: #b45309;
+            --bg-light: #f8fafc;
+            --border: #e2e8f0;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: #f1f5f9;
+            color: var(--text-main);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Panel de Control / Seleccionador */
+        .panel {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        .panel h2 {
+            font-size: 1.25rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            margin-top: 10px;
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 5px;
+        }
+
+        .radio-label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: normal;
+            font-size: 0.88rem;
+            cursor: pointer;
+            text-transform: none;
+        }
+
+        /* Factura Document Canvas */
+        .invoice-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);
+            border: 1px solid #e2e8f0;
+            min-height: 800px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* Header Documento */
+        .doc-header {
+            display: grid;
+            grid-template-columns: 1fr 240px;
+            gap: 20px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+
+        .brand-section {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .logo-placeholder {
+            width: 100px;
+            height: 100px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-align: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .logo-placeholder img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .company-info h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            letter-spacing: 1px;
+            color: var(--primary);
+            margin-bottom: 4px;
+        }
+
+        .company-info p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .doc-tax-box {
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            background: #fffbe2;
+        }
+
+        .doc-tax-box h3 {
+            font-size: 1.05rem;
+            color: var(--primary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .doc-tax-box .doc-num {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #dc2626;
+            margin-top: 4px;
+        }
+
+        .doc-tax-box .tax-id {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* Datos del Cliente */
+        .client-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px 20px;
+            background: var(--bg-light);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+        }
+
+        .client-field {
+            display: flex;
+            gap: 8px;
+        }
+
+        .client-field strong {
+            color: var(--primary);
+            min-width: 90px;
+        }
+
+        /* Tabla de Ítems */
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+        }
+
+        .invoice-table th {
+            background-color: var(--primary);
+            color: white;
+            text-align: left;
+            padding: 10px 12px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .invoice-table th.num {
+            text-align: right;
+        }
+
+        .invoice-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        .invoice-table td.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .action-btn-danger {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .action-btn-danger:hover {
+            background: #fee2e2;
+        }
+
+        /* Totales y Cierre */
+        .summary-section {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .amount-in-words {
+            background: #f8fafc;
+            border: 1px dashed var(--border);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .amount-in-words strong {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--primary);
+        }
+
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .totals-table td {
+            padding: 6px 10px;
+            text-align: right;
+        }
+
+        .totals-table td:first-child {
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .totals-table tr.total-row td {
+            border-top: 2px solid var(--primary);
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: var(--primary);
+            padding-top: 10px;
+        }
+
+        /* Footer legal */
+        .doc-footer {
+            margin-top: 40px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .panel {
+                display: none;
+            }
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .invoice-card {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+            .action-col, .action-btn-danger {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- PANEL DE CONTROL / COTIZADOR -->
+    <div class="panel">
+        <h2>⚡ Cotizador Orbe-c</h2>
+
+        <!-- Tipo de Documento -->
+        <div class="form-group">
+            <label>Tipo de Documento</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="docType" value="FCF" checked onchange="updateDocType()"> Factura (FCF)
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="docType" value="CCF" onchange="updateDocType()"> Crédito Fiscal (CCF)
+                </label>
+            </div>
+        </div>
+
+        <!-- Datos del Cliente -->
+        <div class="form-group">
+            <label>Cliente / Empresa</label>
+            <input type="text" id="inputClientName" placeholder="Ej: Producciones El Salvador S.A." oninput="updateClientData()">
+        </div>
+        <div class="form-group">
+            <label>DUI / NIT / NRC Cliente</label>
+            <input type="text" id="inputDocId" placeholder="Ej: 0614-120590-101-2" oninput="updateClientData()">
+        </div>
+        <div class="form-group">
+            <label>Dirección Cliente</label>
+            <input type="text" id="inputAddress" placeholder="Ej: San Salvador, El Salvador" oninput="updateClientData()">
+        </div>
+
+        <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+
+        <!-- Categoría de Proyecto -->
+        <div class="form-group">
+            <label>1. Tipo de Proyecto</label>
+            <select id="projectCategory" onchange="loadCategoryItems()">
+                <option value="">-- Seleccionar Categoría --</option>
+                <option value="alquiler">Alquiler de Equipo</option>
+                <option value="talento">Talento Humano (Crew/Staff)</option>
+                <option value="cortometraje">Cortometraje / Película</option>
+                <option value="redes">Redes Sociales / Content Creation</option>
+                <option value="publicidad">Publicidad (TV, Vallas, Cine)</option>
+                <option value="fotografia">Fotografía (Headshots, Eventos, Prod.)</option>
+                <option value="musica">Videos Musicales</option>
+            </select>
+        </div>
+
+        <!-- Ítems Dinámicos -->
+        <div class="form-group">
+            <label>2. Servicio / Ítem</label>
+            <select id="itemSelect">
+                <option value="">-- Primero elige una categoría --</option>
+            </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+                <label>Cantidad / Días</label>
+                <input type="number" id="itemQty" value="1" min="1">
+            </div>
+            <div class="form-group">
+                <label>Precio Unit. ($)</label>
+                <input type="number" id="itemPrice" placeholder="0.00" step="0.01">
+            </div>
+        </div>
+
+        <button class="btn" onclick="addItem()">➕ Agregar a la Factura</button>
+        <button class="btn btn-outline" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+
+    <!-- VISTA PREVIA FACTURA / CREDITO FISCAL -->
+    <div class="invoice-card" id="invoiceArea">
+        <div>
+            <!-- Header -->
+            <div class="doc-header">
+                <div class="brand-section">
+                    <div class="logo-placeholder">
+                        <!-- Busca logoimg.png o muestra fallback -->
+                        <img src="logoimg.png" onerror="this.onerror=null; this.parentElement.innerHTML='[LOGO<br>logoimg.png]';" alt="Logo Orbe-c Films">
+                    </div>
+                    <div class="company-info">
+                        <h1>ORBE-C FILMS</h1>
+                        <p><strong>Giro:</strong> Producción audiovisual de películas</p>
+                        <p>Calle edgar lopéz beltrand, Escalón, San Salvador</p>
+                        <p>Teléfono: (+503) 7103 6941 | Email: orbecfilms@gmail.com</p>
+                        <p><strong>NIT:</strong> 0000-000000-000-0 | <strong>NRC:</strong> 000000-0</p>
+                    </div>
+                </div>
+                <div class="doc-tax-box">
+                    <h3 id="docTitle">FACTURA</h3>
+                    <p style="font-size: 0.7rem; color: var(--text-muted);">CONSUMIDOR FINAL</p>
+                    <div class="doc-num">No. 0000001</div>
+                    <div class="tax-id">Resolución MH: 15141-RES-CR-2026</div>
+                </div>
+            </div>
+
+            <!-- Client Info Grid -->
+            <div class="client-grid">
+                <div class="client-field">
+                    <strong>Cliente:</strong> <span id="lblClientName">Consumidor Final / Cliente General</span>
+                </div>
+                <div class="client-field">
+                    <strong>Fecha:</strong> <span id="lblDate">--/--/----</span>
+                </div>
+                <div class="client-field">
+                    <strong>DUI/NIT/NRC:</strong> <span id="lblDocId">00000000-0</span>
+                </div>
+                <div class="client-field">
+                    <strong>Condición:</strong> <span>Contado</span>
+                </div>
+                <div class="client-field" style="grid-column: span 2;">
+                    <strong>Dirección:</strong> <span id="lblAddress">San Salvador, El Salvador</span>
+                </div>
+            </div>
+
+            <!-- Tabla de Detalle -->
+            <table class="invoice-table">
+                <thead>
+                    <tr>
+                        <th style="width: 8%;">Cant.</th>
+                        <th>Descripción del Servicio / Producto</th>
+                        <th class="num" style="width: 15%;">P. Unitario</th>
+                        <th class="num" style="width: 18%;">Ventas Gravadas</th>
+                        <th class="action-col" style="width: 5%;"></th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceItems">
+                    <!-- Filas dinámicas -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totales -->
+        <div>
+            <div class="summary-section">
+                <div class="amount-in-words">
+                    <strong>SUMA EN LETRAS:</strong>
+                    <span id="lblAmountWords">CERO 00/100 USD</span>
+                </div>
+
+                <table class="totals-table">
+                    <tr>
+                        <td>SUMAS ($):</td>
+                        <td class="num" id="lblSubtotal">$0.00</td>
+                    </tr>
+                    <tr id="rowIva" style="display: none;">
+                        <td>13% IVA ($):</td>
+                        <td class="num" id="lblIva">$0.00</td>
+                    </tr>
+                    <tr id="rowRetencion" style="display: none;">
+                        <td>(-) 1% Retención:</td>
+                        <td class="num" id="lblRetencion">$0.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>TOTAL ($):</td>
+                        <td class="num" id="lblTotal">$0.00</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- Footer Legal -->
+            <div class="doc-footer">
+                <div>
+                    <p>Original: Cliente / Duplicado: Emisor</p>
+                    <p>Gracias por confiar su proyecto audiovisual en <strong>Orbe-c Films</strong>.</p>
+                </div>
+                <div style="text-align: right;">
+                    <p>Documento de cotización y servicio formal</p>
+                    <p>El Salvador, Centroamérica</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Catálogo de ítems sugeridos por tipo de proyecto en la industria audiovisual en El Salvador
+    const catalog = {
+        alquiler: [
+            { name: "Cámara Cinema (RED / Blackmagic / Sony FX6) [Día]", price: 250.00 },
+            { name: "Set de Lentes Cine Prime (Anamórficos / Esféricos) [Día]", price: 180.00 },
+            { name: "Kit de Iluminación LED Aputure + Modificadores [Día]", price: 120.00 },
+            { name: "Estabilizador Gimbal Dji RS3 Pro + Follow Focus [Día]", price: 60.00 },
+            { name: "Micrófonos Lavaliers Inalámbricos + Grabadora Zoom [Día]", price: 50.00 },
+            { name: "Drone 4K Cine con Piloto Certificado [Jornada]", price: 300.00 }
+        ],
+        talento: [
+            { name: "Director de Fotografía (DP) [Jornada 10h]", price: 350.00 },
+            { name: "Director de Escena [Jornada 10h]", price: 400.00 },
+            { name: "Gaffer / Jefe de Iluminación [Jornada 10h]", price: 150.00 },
+            { name: "Técnico de Sonido Directo [Jornada 10h]", price: 200.00 },
+            { name: "Asistente de Cámara (1st AC / Focus Puller) [Jornada]", price: 120.00 },
+            { name: "Editor / Colorista Senior [Proyecto/Día]", price: 250.00 },
+            { name: "Maquillaje Cinematográfico / FX [Jornada]", price: 150.00 }
+        ],
+        cortometraje: [
+            { name: "Paquete Pre-Producción (Guion, Storyboard, Casting)", price: 800.00 },
+            { name: "Rodaje Completo de Cortometraje [Día de Rodaje]", price: 120.000 },
+            { name: "Post-Producción (Montaje, Edición off/online)", price: 900.00 },
+            { name: "Colorización Profesional en DaVinci Resolve", price: 450.00 },
+            { name: "Diseño de Sonido, Foley y Mezcla 5.1 / Stereo", price: 500.00 }
+        ],
+        redes: [
+            { name: "Paquete 4 Reels/TikToks Pro (Grabación + Edición)", price: 350.00 },
+            { name: "Paquete 8 Reels/TikToks Mensuales (Estrategia + Post)", price: 650.00 },
+            { name: "Cobertura de Evento Especial para Redes (3-4 horas)", price: 250.00 },
+            { name: "Diseño y Animación de Intro/Outro/LOWER THIRDS", price: 100.00 }
+        ],
+        publicidad: [
+            { name: "Producción Comercial TV / Cine 30 seg (Full Crew)", price: 2500.00 },
+            { name: "Spot Publicitario Adaptado para Redes y Vallas", price: 1200.00 },
+            { name: "Locución Comercial Profesional (Voiceover)", price: 150.00 },
+            { name: "Licenciatura de Música Comercial y Derechos", price: 200.00 }
+        ],
+        fotografia: [
+            { name: "Sesión de Fotos Headshots Corporativos / Actores (10 Fotos)", price: 150.00 },
+            { name: "Fotografía de Producto e Iluminación de Estudio (por ítem)", price: 25.00 },
+            { name: "Cobertura Fotográfica de Evento (por hora)", price: 85.00 },
+            { name: "Fotografía Still de Rodaje (Behind the scenes)", price: 180.00 }
+        ],
+        musica: [
+            { name: "Video Musical Estándar (1 Locación, Crew Reducido)", price: 800.00 },
+            { name: "Video Musical Premium (Múltiples Locaciones, Iluminación Cine)", price: 1800.00 },
+            { name: "Visualizer 4K / Lyric Video Animado para YouTube", price: 250.00 }
+        ]
+    };
+
+    let itemsList = [];
+
+    // Carga inicial
+    document.getElementById('lblDate').innerText = new Date().toLocaleDateString('es-SV');
+
+    function loadCategoryItems() {
+        const cat = document.getElementById('projectCategory').value;
+        const itemSelect = document.getElementById('itemSelect');
+        itemSelect.innerHTML = '<option value="">-- Selecciona un ítem --</option>';
+
+        if (cat && catalog[cat]) {
+            catalog[cat].forEach((item, idx) => {
+                let opt = document.createElement('option');
+                opt.value = idx;
+                opt.innerText = `${item.name} - $${item.price.toFixed(2)}`;
+                itemSelect.appendChild(opt);
+            });
+        }
+    }
+
+    // Auto-completar precio cuando se selecciona un ítem
+    document.getElementById('itemSelect').addEventListener('change', function() {
+        const cat = document.getElementById('projectCategory').value;
+        const idx = this.value;
+        if (cat && idx !== "" && catalog[cat][idx]) {
+            document.getElementById('itemPrice').value = catalog[cat][idx].price.toFixed(2);
+        }
+    });
+
+    function updateClientData() {
+        const name = document.getElementById('inputClientName').value;
+        const docId = document.getElementById('inputDocId').value;
+        const addr = document.getElementById('inputAddress').value;
+
+        document.getElementById('lblClientName').innerText = name.trim() !== "" ? name : "Consumidor Final / Cliente General";
+        document.getElementById('lblDocId').innerText = docId.trim() !== "" ? docId : "00000000-0";
+        document.getElementById('lblAddress').innerText = addr.trim() !== "" ? addr : "San Salvador, El Salvador";
+    }
+
+    function updateDocType() {
+        const isCCF = document.querySelector('input[name="docType"]:checked').value === 'CCF';
+        document.getElementById('docTitle').innerText = isCCF ? "CRÉDITO FISCAL" : "FACTURA";
+        document.getElementById('rowIva').style.display = isCCF ? 'table-row' : 'none';
+        renderInvoice();
+    }
+
+    function addItem() {
+        const cat = document.getElementById('projectCategory').value;
+        const idx = document.getElementById('itemSelect').value;
+        const qty = parseFloat(document.getElementById('itemQty').value) || 1;
+        const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+
+        let name = "";
+        if (cat && idx !== "" && catalog[cat][idx]) {
+            name = catalog[cat][idx].name;
+        } else {
+            alert("Por favor selecciona una categoría e ítem válido.");
+            return;
+        }
+
+        itemsList.push({ name, qty, price });
+        renderInvoice();
+    }
+
+    function removeItem(index) {
+        itemsList.splice(index, 1);
+        renderInvoice();
+    }
+
+    function renderInvoice() {
+        const tbody = document.getElementById('invoiceItems');
+        tbody.innerHTML = '';
+
+        const isCCF = document.querySelector('input[name="docType"]:checked').value === 'CCF';
+        let subtotal = 0;
+
+        itemsList.forEach((item, index) => {
+            const lineTotal = item.qty * item.price;
+            subtotal += lineTotal;
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.qty}</td>
+                <td>${item.name}</td>
+                <td class="num">$${item.price.toFixed(2)}</td>
+                <td class="num">$${lineTotal.toFixed(2)}</td>
+                <td class="action-col"><button class="action-btn-danger" onclick="removeItem(${index})">✕</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        let iva = 0;
+        let total = 0;
+
+        if (isCCF) {
+            // En CCF, los precios ingresados se consideran neto sin IVA, o se calcula el 13% sobre la suma
+            iva = subtotal * 0.13;
+            total = subtotal + iva;
+        } else {
+            // En Factura Consumidor Final, el precio ya incluye IVA
+            total = subtotal;
+        }
+
+        document.getElementById('lblSubtotal').innerText = `$${subtotal.toFixed(2)}`;
+        document.getElementById('lblIva').innerText = `$${iva.toFixed(2)}`;
+        document.getElementById('lblTotal').innerText = `$${total.toFixed(2)}`;
+        document.getElementById('lblAmountWords').innerText = numberToWordsSV(total);
+    }
+
+    // Convertidor básico de números a letras para montos en USD
+    function numberToWordsSV(amount) {
+        const units = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+        const tens = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+        
+        let dollars = Math.floor(amount);
+        let cents = Math.round((amount - dollars) * 100);
+        let centsStr = cents < 10 ? '0' + cents : cents;
+
+        if (dollars === 0) return `CERO ${centsStr}/100 USD`;
+        if (dollars < 10) return `${units[dollars]} ${centsStr}/100 USD`;
+        
+        return `${dollars} ${centsStr}/100 USD`; // Simplificado para interacción fluida
+    }
+</script>
+
+</body>
+</html>
