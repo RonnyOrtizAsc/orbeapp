@@ -1165,6 +1165,20 @@ logoutButton.addEventListener("click", async () => {
 // =====================================================
 // NAVEGACIÓN
 // =====================================================
+document.querySelectorAll(".org-tab").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".org-tab").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    document.querySelectorAll(".org-tab-panel").forEach((panel) => panel.classList.add("hidden"));
+    const targetId =
+      button.dataset.orgTab === "chart"
+        ? "orgTabChart"
+        : button.dataset.orgTab === "games"
+        ? "orgTabGames"
+        : "orgTabTools";
+    document.getElementById(targetId)?.classList.remove("hidden");
+  });
+});
 document.querySelectorAll(".nav-item").forEach((button) => {
   button.addEventListener("click", () => {
     showPage(button.dataset.page);
