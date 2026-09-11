@@ -1188,6 +1188,15 @@ document.querySelectorAll(".org-tab").forEach((button) => {
     document.getElementById(targetId)?.classList.remove("hidden");
   });
 });
+document.getElementById("openOrbeRiderCard")?.addEventListener("click", () => {
+  document.getElementById("gamesListView")?.classList.add("hidden");
+  document.getElementById("orbeGameView")?.classList.remove("hidden");
+  window.refreshOrbeScoreboard?.();
+});
+document.getElementById("backToGamesButton")?.addEventListener("click", () => {
+  document.getElementById("orbeGameView")?.classList.add("hidden");
+  document.getElementById("gamesListView")?.classList.remove("hidden");
+});
 document.querySelectorAll(".nav-item").forEach((button) => {
   button.addEventListener("click", () => {
     showPage(button.dataset.page);
