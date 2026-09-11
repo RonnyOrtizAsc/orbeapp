@@ -1911,3 +1911,4 @@ button, .nav-item, .task-row, .team-card {
 .team-card-wrap .team-card { width: 100%; }
 .team-card-area { color: var(--muted); font-size: 11px; margin-top: 2px; }
 .team-card-assign-btn { align-self: flex-start; }
+#orgTabGames .tool-card { text-align: left; width: 100%; }
