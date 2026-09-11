@@ -757,6 +757,35 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
+document.getElementById("forgotPasswordButton")?.addEventListener("click", async () => {
+  const identifier = document.getElementById("loginEmail").value.trim();
+  if (!identifier) {
+    loginError.textContent = "Escribe tu correo o usuario arriba primero.";
+    return;
+  }
+  let email = identifier;
+  if (!identifier.includes("@")) {
+    const { data: resolvedEmail, error: lookupError } = await db.rpc("get_email_for_username", {
+      input_username: identifier,
+    });
+    if (lookupError || !resolvedEmail) {
+      loginError.textContent = "Usuario no encontrado.";
+      return;
+    }
+    email = resolvedEmail;
+  }
+  const { error } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://ronnyortizasc.github.io/orbeapp/",
+  });
+  if (error) {
+    loginError.textContent = "No se pudo enviar el correo. Intenta más tarde.";
+    console.error(error);
+    return;
+  }
+  loginError.style.color = "var(--green)";
+  loginError.textContent = "Te enviamos un correo para restablecer tu contraseña.";
+});
+
 // =====================================================
 // SESIÓN
 // =====================================================
