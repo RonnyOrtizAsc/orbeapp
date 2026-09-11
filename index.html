@@ -431,74 +431,131 @@
            ORGANIZATION
       =================================================== -->
 
-      <section id="page-organization" class="page hidden">
+     <section id="page-organization" class="page hidden">
 
-                <div class="page-header">
-          <div>
-            <p class="eyebrow">ORBE</p>
-            <h1>Organización</h1>
-            <p>Áreas, responsabilidades y personas encargadas de cada proceso.</p>
-          </div>
-          <button id="newAreaButton" class="button button-dark manager-only" type="button">+ Nueva área</button>
-        </div>
-        
-        <div id="organizationChart" class="organization-chart"></div>
-
-      <!-- ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== -->
-<div class="section-card orbe-game-card">
-  <div class="section-header">
+  <div class="page-header">
     <div>
-      <p class="eyebrow">JUEGOS ORBE C</p>
-      <h3>Orbe Rider — minijuego espacial</h3>
-    </div>
-      <span class="eyebrow">PUNTAJE: <strong id="orbeGameScore">0</strong> · VIDAS: <strong id="orbeGameLives">❤❤</strong></span>
-  </div>
-  <p style="color:var(--muted);font-size:12px;margin-bottom:12px">
-    Flechas ↑ ↓ (o W/S) para moverte, espacio para disparar. 3 disparos destruyen una roca grande
-    (se parte en 2 rocas chicas), 2 disparos destruyen una roca chica. Evita chocar con planetas y estrellas.
-  </p>
-  <div class="orbe-game-canvas-wrap">
-    <canvas id="orbeGameCanvas" width="1000" height="300"></canvas>
-    <div id="orbeGameOverlay" class="orbe-game-overlay">
-            <h3 id="orbeGameOverlayTitle">Elige tu nave</h3>
-      <canvas id="orbeShipPreviewCanvas" class="orbe-ship-preview" width="220" height="120"></canvas>
-      <div class="orbe-ship-select" id="orbeShipSelect">
-              <button type="button" class="orbe-ship-option" data-ship="veloz">
-  <strong>Interceptor</strong>
-  <small>La más veloz esquivando</small>
-</button>
-<button type="button" class="orbe-ship-option" data-ship="sensible">
-  <strong>Colibrí</strong>
-  <small>Muy sensible, dispara rapidísimo</small>
-</button>
-<button type="button" class="orbe-ship-option" data-ship="pistola">
-  <strong>Artillera</strong>
-  <small>Pistola de plasma, pega más fuerte</small>
-</button>
-      </div>
-         <div class="orbe-game-overlay-buttons">
-        <button type="button" id="orbeGameOverlayButton" class="button button-dark">Jugar</button>
-        <button type="button" id="orbeGameMenuButton" class="button button-light hidden">Elegir otra nave</button>
-      </div>
+      <p class="eyebrow">ORBE</p>
+      <h1>Organización</h1>
+      <p>Organigrama, juegos y herramientas del equipo.</p>
     </div>
   </div>
-<div class="orbe-game-controls">
-    <button type="button" id="orbeGameBtnUp" class="smart-task-action">▲</button>
-    <button type="button" id="orbeGameBtnDown" class="smart-task-action">▼</button>
-    <button type="button" id="orbeGameBtnTurbo" class="smart-task-action">⚡ Turbo</button>
-    <button type="button" id="orbeGameBtnShoot" class="smart-task-action primary">🔫 Disparar</button>
-  </div>
-  <div class="orbe-scoreboard">
-    <p class="eyebrow" style="margin-top:16px;margin-bottom:8px">MEJORES PUNTAJES</p>
-    <table class="score-table">
-      <thead><tr><th>Nombre</th><th>Récord</th></tr></thead>
-      <tbody id="orbeScoreboardBody"></tbody>
-    </table>
-  </div>
-</div>
-<!-- ===== FIN MINIJUEGO ORBE ===== -->
 
-      </section>
+  <div class="org-tabs">
+    <button type="button" class="org-tab active" data-org-tab="chart">Organigrama</button>
+    <button type="button" class="org-tab" data-org-tab="games">Juegos</button>
+    <button type="button" class="org-tab" data-org-tab="tools">Herramientas</button>
+  </div>
+
+  <!-- ===== ORGANIGRAMA ===== -->
+  <div id="orgTabChart" class="org-tab-panel">
+    <div class="org-tab-header">
+      <p class="assignment-help">Áreas, responsabilidades y personas encargadas de cada proceso.</p>
+      <button id="newAreaButton" class="button button-dark manager-only" type="button">+ Nueva área</button>
+    </div>
+    <div id="organizationChart" class="organization-chart"></div>
+  </div>
+
+  <!-- ===== JUEGOS ===== -->
+  <div id="orgTabGames" class="org-tab-panel hidden">
+
+    <!-- ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== -->
+    <div class="section-card orbe-game-card">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">JUEGOS ORBE C</p>
+          <h3>Orbe Rider — minijuego espacial</h3>
+        </div>
+        <span class="eyebrow">PUNTAJE: <strong id="orbeGameScore">0</strong> · VIDAS: <strong id="orbeGameLives">❤❤</strong></span>
+      </div>
+      <p style="color:var(--muted);font-size:12px;margin-bottom:12px">
+        Flechas ↑ ↓ (o W/S) para moverte, espacio para disparar. 3 disparos destruyen una roca grande
+        (se parte en 2 rocas chicas), 2 disparos destruyen una roca chica. Evita chocar con planetas y estrellas.
+      </p>
+      <div class="orbe-game-canvas-wrap">
+        <canvas id="orbeGameCanvas" width="1000" height="300"></canvas>
+        <div id="orbeGameOverlay" class="orbe-game-overlay">
+          <h3 id="orbeGameOverlayTitle">Elige tu nave</h3>
+          <canvas id="orbeShipPreviewCanvas" class="orbe-ship-preview" width="220" height="120"></canvas>
+          <div class="orbe-ship-select" id="orbeShipSelect">
+            <button type="button" class="orbe-ship-option" data-ship="veloz">
+              <strong>Interceptor</strong>
+              <small>La más veloz esquivando</small>
+            </button>
+            <button type="button" class="orbe-ship-option" data-ship="sensible">
+              <strong>Colibrí</strong>
+              <small>Muy sensible, dispara rapidísimo</small>
+            </button>
+            <button type="button" class="orbe-ship-option" data-ship="pistola">
+              <strong>Artillera</strong>
+              <small>Pistola de plasma, pega más fuerte</small>
+            </button>
+          </div>
+          <div class="orbe-game-overlay-buttons">
+            <button type="button" id="orbeGameOverlayButton" class="button button-dark">Jugar</button>
+            <button type="button" id="orbeGameMenuButton" class="button button-light hidden">Elegir otra nave</button>
+          </div>
+        </div>
+      </div>
+      <div class="orbe-game-controls">
+        <button type="button" id="orbeGameBtnUp" class="smart-task-action">▲</button>
+        <button type="button" id="orbeGameBtnDown" class="smart-task-action">▼</button>
+        <button type="button" id="orbeGameBtnTurbo" class="smart-task-action">⚡ Turbo</button>
+        <button type="button" id="orbeGameBtnShoot" class="smart-task-action primary">🔫 Disparar</button>
+      </div>
+      <div class="orbe-scoreboard">
+        <p class="eyebrow" style="margin-top:16px;margin-bottom:8px">MEJORES PUNTAJES</p>
+        <table class="score-table">
+          <thead><tr><th>Nombre</th><th>Récord</th></tr></thead>
+          <tbody id="orbeScoreboardBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- ===== FIN MINIJUEGO ORBE ===== -->
+
+    <div class="section-card">
+      <div class="section-header">
+        <div>
+          <p class="eyebrow">PRÓXIMAMENTE</p>
+          <h3>Más juegos</h3>
+        </div>
+      </div>
+      <p class="assignment-help">Aquí irán otros minijuegos del equipo.</p>
+    </div>
+
+  </div>
+
+  <!-- ===== HERRAMIENTAS ===== -->
+  <div id="orgTabTools" class="org-tab-panel hidden">
+    <div class="org-tab-header">
+      <p class="assignment-help">Herramientas para agilizar cotizaciones, facturas y otros procesos del equipo.</p>
+    </div>
+    <div class="tools-grid">
+      <a class="tool-card" href="./Herramientas/cotizador.html" target="_blank" rel="noopener">
+        <div class="tool-card-icon">🧾</div>
+        <div>
+          <strong>Cotizador y Factura</strong>
+          <p>Genera cotizaciones y facturas por proyecto con catálogo de servicios.</p>
+        </div>
+      </a>
+      <div class="tool-card tool-card-soon">
+        <div class="tool-card-icon">📋</div>
+        <div>
+          <strong>Call sheet</strong>
+          <p>Próximamente.</p>
+        </div>
+      </div>
+      <div class="tool-card tool-card-soon">
+        <div class="tool-card-icon">💰</div>
+        <div>
+          <strong>Control de gastos</strong>
+          <p>Próximamente.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</section>
 
     </main>
 
