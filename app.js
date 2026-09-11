@@ -4385,14 +4385,16 @@ function renderTeam() {
               </p>
             </div>
           </button>
+                    </button>
           <button
             type="button"
-            class="team-card-area-edit manager-only"
+            class="smart-task-action team-card-assign-btn manager-only"
             data-assign-area="${profile.id}"
-            aria-label="Asignar área"
           >
-            ✎
+            Asignar área
           </button>
+        </div>
+      `,
         </div>
       `,
     )
@@ -4896,12 +4898,18 @@ async function saveProfileArea() {
   }
   const areaId = document.getElementById("assignAreaSelect").value || null;
   try {
-    const { error } = await db
+    const { data, error } = await db
       .from("profiles")
       .update({ area_id: areaId })
-      .eq("id", editingProfileAreaId);
+      .eq("id", editingProfileAreaId)
+      .select();
     if (error) {
       throw error;
+    }
+    if (!data || !data.length) {
+      throw new Error(
+        "No se guardó el área (falta el permiso en Supabase para que admin/producer editen a otros usuarios). Revisa las políticas RLS de profiles.",
+      );
     }
     closeModalWindow();
     showToast("Área actualizada.");
