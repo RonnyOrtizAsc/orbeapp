@@ -149,6 +149,11 @@ function roleLabel(role) {
   }
   return "Miembro";
 }
+const PROJECT_STATUS_LABELS = {
+  pending: "Pendiente",
+  active: "En producción",
+  completed: "Completado",
+};
 const PROJECT_TYPE_LABELS = {
   general: "General",
   video: "Producción de video",
@@ -1547,13 +1552,12 @@ async function loadAllData() {
   }
   await autoAdjustOverdueOccurrences();
   await loadTaskOccurrences();
-    renderProjects();
+  renderProjects();
   renderTasks();
   renderRecurringTasks();
   renderActiveProductions();
   renderAreaChips();
   renderTeam();
-}
 }
 async function loadProjects() {
   const { data, error } = await db.from("projects").select("*").order("created_at", {
