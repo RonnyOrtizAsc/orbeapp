@@ -542,7 +542,7 @@
         <p class="assignment-help">Herramientas para agilizar cotizaciones, facturas y otros procesos del equipo.</p>
       </div>
       <div class="tools-grid">
-        <button type="button" class="tool-card" id="openCotizadorCard">
+        <button type="button" class="tool-card" id="openCotizadorCard" onclick="document.getElementById('toolsListView').classList.add('hidden'); document.getElementById('cotizadorView').classList.remove('hidden'); var f=document.getElementById('cotizadorFrame'); if(f && !f.getAttribute('src')){ f.src='./Herramientas/cotizador.html'; }">
           <div class="tool-card-icon">🧾</div>
           <div>
             <strong>Cotizador y Factura</strong>
@@ -567,7 +567,7 @@
     </div>
 
     <div id="cotizadorView" class="hidden">
-      <button type="button" class="text-back" id="backToToolsButton">← Volver a herramientas</button>
+<button type="button" class="text-back" id="backToToolsButton" onclick="document.getElementById('cotizadorView').classList.add('hidden'); document.getElementById('toolsListView').classList.remove('hidden');">← Volver a herramientas</button>
       <div class="section-card">
         <div class="section-header">
           <div>
