@@ -522,14 +522,16 @@ a { color: var(--blue); }
 .presence-user::before {
   content: "";
   position: absolute;
-  right: 1px;
-  bottom: 1px;
+  right: -1px;
+  bottom: -1px;
   z-index: 1;
-  width: 9px;
-  height: 9px;
+  width: 14px;
+  height: 14px;
   background: var(--green);
   -webkit-mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
   mask: url("./Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
+  filter: drop-shadow(0 0 4px var(--green)) drop-shadow(0 0 2px var(--green));
+}
 }
 .presence-user.current { border-color: var(--papel); }
 
