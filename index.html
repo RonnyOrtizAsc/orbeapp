@@ -546,14 +546,17 @@
   </div>
   </div>
 
-   <!-- ===== HERRAMIENTAS ===== -->
+     <!-- ===== HERRAMIENTAS ===== -->
 <div id="orgTabTools" class="org-tab-panel">
 
     <div id="toolsListView">
+
       <div class="org-tab-header">
         <p class="assignment-help">Herramientas para agilizar cotizaciones, facturas y otros procesos del equipo.</p>
       </div>
+
       <div class="tools-grid">
+
         <button type="button" class="tool-card" id="openCotizadorCard">
           <div class="tool-card-icon">🧾</div>
           <div>
@@ -561,69 +564,114 @@
             <p>Genera cotizaciones y facturas por proyecto con catálogo de servicios.</p>
           </div>
         </button>
+
+      </div>
+
       <div class="tools-grid" id="toolsExtraGrid" style="margin-top:14px">
-      <button type="button" class="tool-card" id="openContactsCard">
-        <div class="tool-card-icon">📞</div>
-        <div>
-          <strong>Seguimiento de Contactos</strong>
-          <p>Registra llamadas y da seguimiento a tus prospectos, sincronizado con Google Sheets.</p>
-        </div>
-      </button>
-      <div class="tool-card tool-card-soon">
-        <div class="tool-card-icon">💰</div>
-        <div>
-          <strong>Control de gastos</strong>
-          <p>Próximamente.</p>
-        </div>
-      </div>
-    </div>
 
-    <div id="contactsToolView" class="hidden">
-      <button type="button" class="text-back" id="backToToolsFromContacts">← Volver a herramientas</button>
-      <div class="section-card">
-        <div class="section-header">
+        <button type="button" class="tool-card" id="openContactsCard">
+          <div class="tool-card-icon">📞</div>
           <div>
-            <p class="eyebrow">HERRAMIENTAS</p>
-            <h3>Contactos</h3>
+            <strong>Seguimiento de Contactos</strong>
+            <p>Registra llamadas y da seguimiento a tus prospectos, sincronizado con Google Sheets.</p>
           </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <span id="contactsSyncStatus" class="assignment-help"></span>
-            <button type="button" class="button button-dark" id="addContactButton">+ Contacto</button>
-          </div>
-        </div>
-        <div class="org-tabs">
-          <button type="button" class="org-tab active" data-contacts-tab="pendiente">Por contactar</button>
-          <button type="button" class="org-tab" data-contacts-tab="seguimiento">Seguimiento</button>
-          <button type="button" class="org-tab" data-contacts-tab="cerrado">Clientes activos</button>
-          <button type="button" class="org-tab" data-contacts-tab="descartado">Descartados</button>
-        </div>
-        <div class="contacts-table-wrap">
-      <div id="contactsList"></div>
-        </div>
-      </div>
-    </div>
+        </button>
 
-  </div>
+        <div class="tool-card tool-card-soon">
+          <div class="tool-card-icon">💰</div>
+          <div>
+            <strong>Control de gastos</strong>
+            <p>Próximamente.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="contactsToolView" class="hidden">
+
+        <button type="button" class="text-back" id="backToToolsFromContacts">
+          ← Volver a herramientas
+        </button>
+
+        <div class="section-card">
+
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">HERRAMIENTAS</p>
+              <h3>Contactos</h3>
+            </div>
+
+            <div style="display:flex;gap:8px;align-items:center">
+              <span id="contactsSyncStatus" class="assignment-help"></span>
+              <button type="button" class="button button-dark" id="addContactButton">
+                + Contacto
+              </button>
+            </div>
+          </div>
+
+          <div class="org-tabs">
+            <button type="button" class="org-tab active" data-contacts-tab="pendiente">
+              Por contactar
+            </button>
+            <button type="button" class="org-tab" data-contacts-tab="seguimiento">
+              Seguimiento
+            </button>
+            <button type="button" class="org-tab" data-contacts-tab="cerrado">
+              Clientes activos
+            </button>
+            <button type="button" class="org-tab" data-contacts-tab="descartado">
+              Descartados
+            </button>
+          </div>
+
+          <div class="contacts-table-wrap">
+            <div id="contactsList"></div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
 
     <div id="cotizadorView" class="hidden">
-<button type="button" class="text-back" id="backToToolsButton" onclick="document.getElementById('cotizadorView').classList.add('hidden'); document.getElementById('toolsListView').classList.remove('hidden');">← Volver a herramientas</button>
+
+      <button type="button" class="text-back" id="backToToolsButton">
+        ← Volver a herramientas
+      </button>
+
       <div class="section-card">
+
         <div class="section-header">
           <div>
             <p class="eyebrow">HERRAMIENTAS</p>
             <h3>Cotizador y Factura</h3>
           </div>
-          <a class="button button-light" href="./Herramientas/cotizador.html" target="_blank" rel="noopener">
+
+          <a
+            class="button button-light"
+            href="./Herramientas/cotizador.html"
+            target="_blank"
+            rel="noopener"
+          >
             Abrir en pestaña nueva
           </a>
         </div>
-                <div class="tool-frame-wrap">
-        <iframe id="cotizadorFrame" class="tool-frame" title="Cotizador y Factura" src="./Herramientas/cotizador.html"></iframe>
+
+        <div class="tool-frame-wrap">
+          <iframe
+            id="cotizadorFrame"
+            class="tool-frame"
+            title="Cotizador y Factura"
+            src="./Herramientas/cotizador.html"
+          ></iframe>
         </div>
+
       </div>
+
     </div>
 
-  </div>
+</div>
 
 </section>
 
