@@ -1167,18 +1167,6 @@ document.querySelectorAll(".org-tab").forEach((button) => {
     document.querySelectorAll(".org-tab").forEach((btn) => btn.classList.remove("active"));
     button.classList.add("active");
     document.querySelectorAll(".org-tab-panel").forEach((panel) => panel.classList.add("hidden"));
-    const targetId = button.dataset.orgTab === "games" ? "orgTabGames" : "orgTabTools";
-    document.getElementById(targetId)?.classList.remove("hidden");
-    if (button.dataset.orgTab === "games") {
-      window.refreshOrbeScoreboard?.();
-    }
-  });
-});
-document.querySelectorAll(".org-tab").forEach((button) => {
-  button.addEventListener("click", () => {
-    document.querySelectorAll(".org-tab").forEach((btn) => btn.classList.remove("active"));
-    button.classList.add("active");
-    document.querySelectorAll(".org-tab-panel").forEach((panel) => panel.classList.add("hidden"));
     const targetId =
       button.dataset.orgTab === "chart"
         ? "orgTabChart"
