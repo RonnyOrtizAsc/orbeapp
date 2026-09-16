@@ -1330,9 +1330,8 @@ function showPage(page, { pushHistory = true } = {}) {
   document.getElementById("pageSubtitle").textContent = titles[page][1];
   backButton.classList.toggle("visible", page !== "dashboard");
   if (page === "projects") {
-    closeProjectDetail();
-    renderProjects();
-  }
+  renderProjects();
+}
   if (page === "tasks") {
     renderRecurringTasks();
     renderTasks();
