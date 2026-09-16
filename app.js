@@ -1167,14 +1167,26 @@ document.querySelectorAll(".org-tab").forEach((button) => {
     document.querySelectorAll(".org-tab").forEach((btn) => btn.classList.remove("active"));
     button.classList.add("active");
     document.querySelectorAll(".org-tab-panel").forEach((panel) => panel.classList.add("hidden"));
-    const targetId =
-      button.dataset.orgTab === "chart"
-        ? "orgTabChart"
-        : button.dataset.orgTab === "games"
-        ? "orgTabGames"
-        : "orgTabTools";
+    const targetId = button.dataset.orgTab === "games" ? "orgTabGames" : "orgTabTools";
     document.getElementById(targetId)?.classList.remove("hidden");
+    if (button.dataset.orgTab === "games") {
+      window.refreshOrbeScoreboard?.();
+    }
   });
+});
+
+// Cotizador embebido: el src se carga solo al abrirlo (más rápido al entrar).
+document.getElementById("openCotizadorCard")?.addEventListener("click", () => {
+  const frame = document.getElementById("cotizadorFrame");
+  if (frame && !frame.src) {
+    frame.src = "./Herramientas/cotizador.html";
+  }
+  document.getElementById("toolsListView")?.classList.add("hidden");
+  document.getElementById("cotizadorView")?.classList.remove("hidden");
+});
+document.getElementById("backToToolsButton")?.addEventListener("click", () => {
+  document.getElementById("cotizadorView")?.classList.add("hidden");
+  document.getElementById("toolsListView")?.classList.remove("hidden");
 });
 document.getElementById("openOrbeRiderCard")?.addEventListener("click", () => {
   document.getElementById("gamesListView")?.classList.add("hidden");
