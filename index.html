@@ -550,22 +550,47 @@
             <p>Genera cotizaciones y facturas por proyecto con catálogo de servicios.</p>
           </div>
         </button>
-        <div class="tool-card tool-card-soon">
-          <div class="tool-card-icon">📋</div>
-          <div>
-            <strong>Call sheet</strong>
-            <p>Próximamente.</p>
-          </div>
+      <div class="tools-grid" id="toolsExtraGrid" style="margin-top:14px">
+      <button type="button" class="tool-card" id="openContactsCard">
+        <div class="tool-card-icon">📞</div>
+        <div>
+          <strong>Seguimiento de Contactos</strong>
+          <p>Registra llamadas y da seguimiento a tus prospectos, sincronizado con Google Sheets.</p>
         </div>
-        <div class="tool-card tool-card-soon">
-          <div class="tool-card-icon">💰</div>
-          <div>
-            <strong>Control de gastos</strong>
-            <p>Próximamente.</p>
-          </div>
+      </button>
+      <div class="tool-card tool-card-soon">
+        <div class="tool-card-icon">💰</div>
+        <div>
+          <strong>Control de gastos</strong>
+          <p>Próximamente.</p>
         </div>
       </div>
     </div>
+
+    <div id="contactsToolView" class="hidden">
+      <button type="button" class="text-back" id="backToToolsFromContacts">← Volver a herramientas</button>
+      <div class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">HERRAMIENTAS</p>
+            <h3>Seguimiento de Contactos</h3>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span id="contactsSyncStatus" class="assignment-help"></span>
+            <button type="button" class="button button-dark" id="addContactButton">+ Contacto</button>
+          </div>
+        </div>
+        <div class="org-tabs">
+          <button type="button" class="org-tab active" data-contacts-tab="pendiente">Por contactar</button>
+          <button type="button" class="org-tab" data-contacts-tab="seguimiento">Seguimiento</button>
+          <button type="button" class="org-tab" data-contacts-tab="cerrado">Clientes activos</button>
+          <button type="button" class="org-tab" data-contacts-tab="descartado">Descartados</button>
+        </div>
+        <div id="contactsList" class="contacts-list"></div>
+      </div>
+    </div>
+
+  </div>
 
     <div id="cotizadorView" class="hidden">
 <button type="button" class="text-back" id="backToToolsButton" onclick="document.getElementById('cotizadorView').classList.add('hidden'); document.getElementById('toolsListView').classList.remove('hidden');">← Volver a herramientas</button>
