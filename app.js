@@ -5,6 +5,9 @@ const SUPABASE_URL = "https://ijnetiyxrxxfhurlsnbc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dnjsWgsrPMUQov5JTJuthw_KEAqjMfK";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+const CONTACTS_API_URL = "PON_AQUI_LA_URL_DE_TU_APPS_SCRIPT";
+const CONTACTS_API_TOKEN = "PON_AQUI_EL_MISMO_TOKEN_SECRETO";
+
 // =====================================================
 // ESTADO
 // =====================================================
@@ -24,6 +27,10 @@ let isSavingModal = false;
 let avatarUploadInFlight = false;
 let autoPriorityInterval = null;
 let liveColorInterval = null;
+let contacts = [];
+let contactsTab = "pendiente";
+let contactsPollInterval = null;
+let editingContactId = null;
 const PAGES = ["dashboard", "projects", "tasks", "team", "organization"];
 const AVATAR_MAX_DIMENSION = 240;
 const AVATAR_JPEG_QUALITY = 0.72;
@@ -546,6 +553,7 @@ function stopBackgroundWatchers() {
     clearInterval(liveColorInterval);
     liveColorInterval = null;
   }
+  stopContactsPolling();
 }
 
 // =====================================================
@@ -3943,6 +3951,7 @@ function closeModalWindow() {
   currentCallOccurrence = null;
   editingArea = null;
   editingProfileAreaId = null;
+  editingContactId = null;
 }
 closeModal.addEventListener("click", closeModalWindow);
 cancelModal.addEventListener("click", closeModalWindow);
@@ -3979,9 +3988,13 @@ modalForm.addEventListener("submit", async (event) => {
       await saveArea();
     } else if (activeModalMode === "assignArea") {
       await saveProfileArea();
-    } else if (activeModalMode === "editUsername") {
+      } else if (activeModalMode === "editUsername") {
     } else if (activeModalMode === "changePassword") {
       await saveNewPassword();
+    } else if (activeModalMode === "contactStatus") {
+      await saveContactStatus();
+    } else if (activeModalMode === "addContact") {
+      await saveNewContact();
     }
   } catch (error) {
     console.error("Error guardando desde el modal:", error);
@@ -5348,6 +5361,202 @@ async function saveNewPassword() {
   closeModalWindow();
   showToast("Contraseña actualizada.");
 }
+// =====================================================
+// SEGUIMIENTO DE CONTACTOS (Google Sheets)
+// =====================================================
+const CONTACT_STATUS_LABELS = {
+  no_contesto: "No contestó",
+  contesto: "Contestó",
+  cerrado: "Cerrado",
+  no_cerrado: "No cerrado",
+};
+function getContactStage(contact) {
+  if (contact.estado === "cerrado") return "cerrado";
+  if (contact.estado === "no_cerrado") return "descartado";
+  if (contact.estado === "contesto") return "seguimiento";
+  return "pendiente";
+}
+async function loadContacts() {
+  if (!CONTACTS_API_URL || CONTACTS_API_URL.includes("PON_AQUI")) return;
+  const statusEl = document.getElementById("contactsSyncStatus");
+  try {
+    const response = await fetch(`${CONTACTS_API_URL}?t=${Date.now()}`);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    contacts = data.contacts || [];
+    renderContactsList();
+    if (statusEl) statusEl.textContent = `Sincronizado ${new Date().toLocaleTimeString("es-ES")}`;
+  } catch (error) {
+    console.error("Error cargando contactos:", error);
+    if (statusEl) statusEl.textContent = "No se pudo sincronizar.";
+  }
+}
+function startContactsPolling() {
+  loadContacts();
+  if (contactsPollInterval) return;
+  contactsPollInterval = setInterval(loadContacts, 30000);
+}
+function stopContactsPolling() {
+  if (contactsPollInterval) {
+    clearInterval(contactsPollInterval);
+    contactsPollInterval = null;
+  }
+}
+function renderContactsList() {
+  const container = document.getElementById("contactsList");
+  if (!container) return;
+  const filtered = contacts.filter((contact) => getContactStage(contact) === contactsTab);
+  if (!filtered.length) {
+    container.innerHTML = `<p class="empty-text">No hay contactos en esta lista todavía.</p>`;
+    return;
+  }
+  container.innerHTML = filtered
+    .map((contact) => {
+      const stage = getContactStage(contact);
+      return `
+        <div class="contact-row status-${stage}" data-contact-open="${escapeHTML(contact.id)}">
+          <div>
+            <div class="contact-row-name">${escapeHTML(contact.empresa || "Sin nombre")}</div>
+            <div class="contact-row-meta">
+              ${contact.celular ? `📱 ${escapeHTML(contact.celular)}` : ""}
+              ${contact.telefono ? ` · ☎ ${escapeHTML(contact.telefono)}` : ""}
+              ${contact.instagram ? ` · ${escapeHTML(contact.instagram)}` : ""}
+            </div>
+          </div>
+          <span class="badge">
+            ${contact.estado ? escapeHTML(CONTACT_STATUS_LABELS[contact.estado] || contact.estado) : "Sin contactar"}
+          </span>
+        </div>
+      `;
+    })
+    .join("");
+}
+document.querySelectorAll("[data-contacts-tab]").forEach((button) => {
+  button.addEventListener("click", () => {
+    contactsTab = button.dataset.contactsTab;
+    document.querySelectorAll("[data-contacts-tab]").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    renderContactsList();
+  });
+});
+document.getElementById("contactsList")?.addEventListener("click", (event) => {
+  const row = event.target.closest("[data-contact-open]");
+  if (row) openContactStatusModal(row.dataset.contactOpen);
+});
+function openContactStatusModal(contactId) {
+  const contact = contacts.find((item) => item.id === contactId);
+  if (!contact) return;
+  editingContactId = contactId;
+  activeModalMode = "contactStatus";
+  modalTitle.textContent = contact.empresa || "Contacto";
+  modalFields.innerHTML = `
+    <div class="modal-field">
+      <label for="contactEstado">Resultado de la llamada</label>
+      <select id="contactEstado">
+        <option value="no_contesto" ${contact.estado === "no_contesto" ? "selected" : ""}>No contestó</option>
+        <option value="contesto" ${contact.estado === "contesto" ? "selected" : ""}>Contestó</option>
+        <option value="cerrado" ${contact.estado === "cerrado" ? "selected" : ""}>Cerrado</option>
+        <option value="no_cerrado" ${contact.estado === "no_cerrado" ? "selected" : ""}>No cerrado</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <label for="contactNotas">Notas</label>
+      <textarea id="contactNotas" placeholder="Opcional">${escapeHTML(contact.notas || "")}</textarea>
+    </div>
+  `;
+  openModal();
+}
+async function saveContactStatus() {
+  if (!editingContactId) return;
+  const estado = document.getElementById("contactEstado").value;
+  const notas = document.getElementById("contactNotas").value.trim();
+  try {
+    const response = await fetch(CONTACTS_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        token: CONTACTS_API_TOKEN,
+        action: "updateStatus",
+        id: editingContactId,
+        estado,
+        notas,
+        actualizadoPor: currentProfile?.name || "",
+      }),
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    closeModalWindow();
+    showToast("Contacto actualizado.");
+    await loadContacts();
+  } catch (error) {
+    console.error("Error actualizando contacto:", error);
+    showToast(error.message || "No se pudo actualizar. Revisa la conexión con Google Sheets.");
+  }
+}
+document.getElementById("addContactButton")?.addEventListener("click", () => {
+  activeModalMode = "addContact";
+  modalTitle.textContent = "Nuevo contacto";
+  modalFields.innerHTML = `
+    <div class="modal-field">
+      <label for="newContactEmpresa">Empresa / Nombre</label>
+      <input id="newContactEmpresa" required>
+    </div>
+    <div class="modal-field">
+      <label for="newContactCelular">Celular</label>
+      <input id="newContactCelular">
+    </div>
+    <div class="modal-field">
+      <label for="newContactTelefono">Teléfono</label>
+      <input id="newContactTelefono">
+    </div>
+    <div class="modal-field">
+      <label for="newContactInstagram">Instagram / Web</label>
+      <input id="newContactInstagram">
+    </div>
+  `;
+  openModal();
+});
+async function saveNewContact() {
+  const empresa = document.getElementById("newContactEmpresa").value.trim();
+  if (!empresa) {
+    showToast("Escribe un nombre para el contacto.");
+    return;
+  }
+  try {
+    const response = await fetch(CONTACTS_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        token: CONTACTS_API_TOKEN,
+        action: "addContact",
+        empresa,
+        celular: document.getElementById("newContactCelular").value.trim(),
+        telefono: document.getElementById("newContactTelefono").value.trim(),
+        instagram: document.getElementById("newContactInstagram").value.trim(),
+        actualizadoPor: currentProfile?.name || "",
+      }),
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    closeModalWindow();
+    showToast("Contacto agregado.");
+    await loadContacts();
+  } catch (error) {
+    console.error("Error agregando contacto:", error);
+    showToast(error.message || "No se pudo agregar. Revisa la conexión con Google Sheets.");
+  }
+}
+document.getElementById("openContactsCard")?.addEventListener("click", () => {
+  document.getElementById("contactsToolView")?.classList.remove("hidden");
+  document.getElementById("toolsExtraGrid")?.classList.add("hidden");
+  startContactsPolling();
+});
+document.getElementById("backToToolsFromContacts")?.addEventListener("click", () => {
+  document.getElementById("contactsToolView")?.classList.add("hidden");
+  document.getElementById("toolsExtraGrid")?.classList.remove("hidden");
+  stopContactsPolling();
+});
+
 // =====================================================
 // ARRANQUE
 // =====================================================
