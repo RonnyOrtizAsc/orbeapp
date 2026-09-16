@@ -1331,6 +1331,7 @@ function showPage(page, { pushHistory = true } = {}) {
   if (page === "tasks") {
     renderRecurringTasks();
     renderTasks();
+    renderActiveProductions();
   }
   if (page === "team") {
     showTeamOverview();
@@ -1546,11 +1547,13 @@ async function loadAllData() {
   }
   await autoAdjustOverdueOccurrences();
   await loadTaskOccurrences();
-  renderProjects();
+    renderProjects();
   renderTasks();
   renderRecurringTasks();
+  renderActiveProductions();
   renderAreaChips();
   renderTeam();
+}
 }
 async function loadProjects() {
   const { data, error } = await db.from("projects").select("*").order("created_at", {
