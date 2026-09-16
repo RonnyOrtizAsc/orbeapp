@@ -5664,7 +5664,11 @@ function renderContactsList() {
                 </td>
 
                 <td>
-                  <select class="cell-select" data-field="estado">
+                  <select
+  class="cell-select contact-status-select"
+  data-field="estado"
+  onchange="this.className='cell-select contact-status-select status-' + this.value.toLowerCase().replace(/\s+/g, '-')"
+              >
 
                     <option value="" ${!estado ? "selected" : ""}>
                       Seleccionar
