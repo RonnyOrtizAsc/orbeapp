@@ -5513,7 +5513,13 @@ function normalizeContactStatus(status) {
 }
 
 function getContactStage(contact) {
-  return normalizeContactStatus(contact.estado);
+  const estado = normalizeContactStatus(contact.estado);
+
+  if (estado === "Cerrado") return "cerrado";
+  if (estado === "Seguimiento") return "seguimiento";
+  if (estado === "No interesado") return "descartado";
+
+  return "pendiente";
 }
 async function loadContacts() {
   if (!CONTACTS_API_URL || CONTACTS_API_URL.includes("PON_AQUI")) return;
@@ -5786,13 +5792,13 @@ document.querySelectorAll("[data-contacts-tab]").forEach((button) => {
     const tab = button.dataset.contactsTab;
 
     const tabMap = {
-      pendiente: "",
-      seguimiento: "Seguimiento",
-      cerrado: "Cerrado",
-      descartado: "No interesado",
-    };
+  pendiente: "pendiente",
+  seguimiento: "seguimiento",
+  cerrado: "cerrado",
+  descartado: "descartado",
+};
 
-    contactsTab = tabMap[tab] ?? "";
+contactsTab = tabMap[tab] ?? "pendiente";
 
     document
       .querySelectorAll("[data-contacts-tab]")
