@@ -1706,7 +1706,10 @@ function renderProjectCard(project) {
             ${escapeHTML(project.client || "Sin cliente")}
           </span>
         </div>
-            <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+          <span class="badge type-${escapeHTML(project.project_type || "general")}">
+            ${escapeHTML(PROJECT_TYPE_LABELS[project.project_type] || PROJECT_TYPE_LABELS.general)}
+          </span>
           <span class="badge ${escapeHTML(project.status)}">
             ${escapeHTML(PROJECT_STATUS_LABELS[project.status] || project.status)}
           </span>
@@ -1877,7 +1880,10 @@ function renderProjectDetail(project) {
             ${escapeHTML(project.client || "Sin cliente")}
           </p>
         </div>
-               <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+                     <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+          <span class="badge type-${escapeHTML(project.project_type || "general")}">
+            ${escapeHTML(PROJECT_TYPE_LABELS[project.project_type] || PROJECT_TYPE_LABELS.general)}
+          </span>
           <span class="badge ${escapeHTML(project.status)}">
             ${escapeHTML(PROJECT_STATUS_LABELS[project.status] || project.status)}
           </span>
@@ -2023,9 +2029,16 @@ function renderProjectDetail(project) {
         </div>
         </div>
       </div>
-    </div>
+        </div>
   `;
-  renderProductionStages(project.id);
+  if (project.project_type === "video") {
+    renderProductionStages(project.id);
+  } else {
+    const stagesSection = document.getElementById("productionStagesSection");
+    if (stagesSection) {
+      stagesSection.innerHTML = "";
+    }
+  }
 }
 function renderProjectTask(task) {
   const members = getTaskMembers(task);
