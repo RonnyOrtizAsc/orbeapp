@@ -5497,16 +5497,23 @@ async function saveNewPassword() {
 // SEGUIMIENTO DE CONTACTOS (Google Sheets)
 // =====================================================
 const CONTACT_STATUS_LABELS = {
-  no_contesto: "No contestó",
-  contesto: "Contestó",
-  cerrado: "Cerrado",
-  no_cerrado: "No cerrado",
+  "Cerrado": "Cerrado",
+  "Seguimiento": "Seguimiento",
+  "No interesado": "No interesado",
 };
+
+function normalizeContactStatus(status) {
+  const value = String(status || "").trim().toLowerCase();
+
+  if (value === "cerrado") return "Cerrado";
+  if (value === "seguimiento") return "Seguimiento";
+  if (value === "no interesado") return "No interesado";
+
+  return "";
+}
+
 function getContactStage(contact) {
-  if (contact.estado === "cerrado") return "cerrado";
-  if (contact.estado === "no_cerrado") return "descartado";
-  if (contact.estado === "contesto") return "seguimiento";
-  return "pendiente";
+  return normalizeContactStatus(contact.estado);
 }
 async function loadContacts() {
   if (!CONTACTS_API_URL || CONTACTS_API_URL.includes("PON_AQUI")) return;
@@ -5578,11 +5585,25 @@ function stopContactsPolling() {
 function renderContactsList() {
   const container = document.getElementById("contactsList");
   if (!container) return;
-  const filtered = contacts.filter((contact) => getContactStage(contact) === contactsTab);
+
+  const filtered = contacts.filter((contact) => {
+    const estado = normalizeContactStatus(contact.estado);
+
+    // Si la pestaña actual es "todos", mostrar todos
+    if (contactsTab === "todos") return true;
+
+    return estado === contactsTab;
+  });
+
   if (!filtered.length) {
-    container.innerHTML = `<p class="contacts-table-empty">No hay contactos en esta lista todavía.</p>`;
+    container.innerHTML = `
+      <p class="contacts-table-empty">
+        No hay contactos en esta lista todavía.
+      </p>
+    `;
     return;
   }
+
   container.innerHTML = `
     <table class="contacts-table">
       <thead>
@@ -5595,27 +5616,89 @@ function renderContactsList() {
           <th></th>
         </tr>
       </thead>
+
       <tbody>
         ${filtered
           .map((contact) => {
-            const stage = getContactStage(contact);
-            const id = escapeHTML(contact.id);
+            const estado = normalizeContactStatus(contact.estado);
+            const id = escapeHTML(contact.id || "");
+
             return `
-              <tr class="status-${stage}" data-contact-id="${id}">
-                <td><input class="cell-input" data-field="empresa" value="${escapeHTML(contact.empresa || "")}"></td>
-                <td><input class="cell-input" data-field="celular" value="${escapeHTML(contact.celular || "")}"></td>
-                <td><input class="cell-input" data-field="telefono" value="${escapeHTML(contact.telefono || "")}"></td>
-                <td><input class="cell-input" data-field="instagram" value="${escapeHTML(contact.instagram || "")}"></td>
+              <tr
+                class="contact-row contact-status-${estado
+                  .toLowerCase()
+                  .replace(/\s+/g, "-")}"
+                data-contact-id="${id}"
+              >
+
+                <td>
+                  <input
+                    class="cell-input"
+                    data-field="empresa"
+                    value="${escapeHTML(contact.empresa || "")}"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    class="cell-input"
+                    data-field="celular"
+                    value="${escapeHTML(contact.celular || "")}"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    class="cell-input"
+                    data-field="telefono"
+                    value="${escapeHTML(contact.telefono || "")}"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    class="cell-input"
+                    data-field="instagram"
+                    value="${escapeHTML(contact.instagram || "")}"
+                  >
+                </td>
+
                 <td>
                   <select class="cell-select" data-field="estado">
-                    <option value="" ${!contact.estado ? "selected" : ""}>Sin contactar</option>
-                    <option value="no_contesto" ${contact.estado === "no_contesto" ? "selected" : ""}>No contestó</option>
-                    <option value="contesto" ${contact.estado === "contesto" ? "selected" : ""}>Contestó</option>
-                    <option value="cerrado" ${contact.estado === "cerrado" ? "selected" : ""}>Cerrado</option>
-                    <option value="no_cerrado" ${contact.estado === "no_cerrado" ? "selected" : ""}>No cerrado</option>
+
+                    <option value="" ${!estado ? "selected" : ""}>
+                      Seleccionar
+                    </option>
+
+                    <option value="Seguimiento"
+                      ${estado === "Seguimiento" ? "selected" : ""}>
+                      Seguimiento
+                    </option>
+
+                    <option value="Cerrado"
+                      ${estado === "Cerrado" ? "selected" : ""}>
+                      Cerrado
+                    </option>
+
+                    <option value="No interesado"
+                      ${estado === "No interesado" ? "selected" : ""}>
+                      No interesado
+                    </option>
+
                   </select>
                 </td>
-                <td><button type="button" class="cell-delete" data-delete-contact="${id}" title="Eliminar">✕</button></td>
+
+                <td>
+                  <button
+                    type="button"
+                    class="cell-delete"
+                    data-delete-contact="${id}"
+                    title="Eliminar"
+                  >
+                    ✕
+                  </button>
+                </td>
+
               </tr>
             `;
           })
@@ -5624,7 +5707,6 @@ function renderContactsList() {
     </table>
   `;
 }
-
 // Guarda cualquier campo editado (empresa, celular, telefono, instagram, estado)
 async function updateContactField(id, field, value) {
   try {
@@ -5701,9 +5783,23 @@ document.getElementById("contactsList")?.addEventListener("click", (event) => {
 });
 document.querySelectorAll("[data-contacts-tab]").forEach((button) => {
   button.addEventListener("click", () => {
-    contactsTab = button.dataset.contactsTab;
-    document.querySelectorAll("[data-contacts-tab]").forEach((btn) => btn.classList.remove("active"));
+    const tab = button.dataset.contactsTab;
+
+    const tabMap = {
+      pendiente: "",
+      seguimiento: "Seguimiento",
+      cerrado: "Cerrado",
+      descartado: "No interesado",
+    };
+
+    contactsTab = tabMap[tab] ?? "";
+
+    document
+      .querySelectorAll("[data-contacts-tab]")
+      .forEach((btn) => btn.classList.remove("active"));
+
     button.classList.add("active");
+
     renderContactsList();
   });
 });
