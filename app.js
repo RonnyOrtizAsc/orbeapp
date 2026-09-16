@@ -1518,6 +1518,7 @@ async function loadAllData() {
     loadOrganization(),
     loadActivityLogs(),
     loadWorkSessions(),
+    loadProductionStages(),
   ]);
   results.forEach((result) => {
     if (result.status === "rejected") {
@@ -1950,7 +1951,7 @@ function renderProjectDetail(project) {
             </div>
           `
       }
-      <div class="profile-section">
+        <div class="profile-section">
         <div class="profile-section-header">
           <div>
             <p class="eyebrow">
@@ -1963,6 +1964,7 @@ function renderProjectDetail(project) {
         </div>
         ${assignedMembersHTML(members)}
       </div>
+      <div class="profile-section" id="productionStagesSection"></div>
     </div>
     <div class="project-detail-sections">
       <div class="timeline-card">
@@ -2015,6 +2017,7 @@ function renderProjectDetail(project) {
       </div>
     </div>
   `;
+  renderProductionStages(project.id);
 }
 function renderProjectTask(task) {
   const members = getTaskMembers(task);
@@ -2191,6 +2194,175 @@ function buildTimelineHTML(project, projectTasks, projectTemplates = []) {
     </div>
   `;
 }
+
+// =====================================================
+// PIPELINE DE PRODUCCIÓN DE VIDEO
+// =====================================================
+let productionStages = [];
+const PRODUCTION_STAGES = [
+  { key: "investigacion", label: "Investigación" },
+  { key: "escritura", label: "Escritura" },
+  { key: "preproduccion", label: "Preproducción" },
+  { key: "grabacion", label: "Grabación" },
+  { key: "postproduccion", label: "Postproducción" },
+  { key: "subida", label: "Subida" },
+];
+async function loadProductionStages() {
+  const { data, error } = await db.from("production_stages").select("*").order("stage_order");
+  if (error) {
+    throw error;
+  }
+  productionStages = data || [];
+}
+function getProjectStages(projectId) {
+  return productionStages
+    .filter((stage) => stage.project_id === projectId)
+    .sort((a, b) => a.stage_order - b.stage_order);
+}
+function renderProductionStages(projectId) {
+  const container = document.getElementById("productionStagesSection");
+  if (!container) {
+    return;
+  }
+  const stages = getProjectStages(projectId);
+  if (!stages.length) {
+    container.innerHTML = `
+      <div class="profile-section-header">
+        <div>
+          <p class="eyebrow">PIPELINE</p>
+          <h3>Producción de contenido</h3>
+        </div>
+      </div>
+      <p class="assignment-help" style="margin-bottom:10px">
+        Registra el avance de este video por etapas: investigación, escritura, preproducción, grabación, postproducción y subida.
+      </p>
+      ${
+        canManage(currentProfile)
+          ? `<button type="button" class="button button-dark" id="startProductionButton" data-project-id="${projectId}">+ Iniciar producción</button>`
+          : `<p class="empty-text">Todavía no se ha iniciado la producción.</p>`
+      }
+    `;
+    return;
+  }
+  const currentIndex = stages.findIndex((stage) => stage.status !== "completed");
+  container.innerHTML = `
+    <div class="profile-section-header">
+      <div>
+        <p class="eyebrow">PIPELINE</p>
+        <h3>Producción de contenido</h3>
+      </div>
+    </div>
+    <div class="production-pipeline">
+      ${stages
+        .map((stage, index) => {
+          const meta = PRODUCTION_STAGES.find((item) => item.key === stage.stage_key) || { label: stage.stage_key };
+          const isDone = stage.status === "completed";
+          const isCurrent = index === currentIndex;
+          const isLocked = !isDone && !isCurrent;
+          return `
+            <div class="production-stage ${isDone ? "done" : ""} ${isCurrent ? "current" : ""} ${isLocked ? "locked" : ""}">
+              <div class="production-stage-dot">${isDone ? "✓" : index + 1}</div>
+              <div class="production-stage-label">${escapeHTML(meta.label)}</div>
+              ${
+                isCurrent && canManage(currentProfile)
+                  ? `<button type="button" class="smart-task-action primary" data-complete-stage="${stage.id}">Marcar terminado</button>`
+                  : ""
+              }
+              ${
+                isDone && canManage(currentProfile) && index === currentIndex - 1
+                  ? `<button type="button" class="smart-task-action" data-reopen-stage="${stage.id}">Reabrir</button>`
+                  : ""
+              }
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+async function startProductionPipeline(projectId) {
+  const rows = PRODUCTION_STAGES.map((stage, index) => ({
+    project_id: projectId,
+    stage_key: stage.key,
+    stage_order: index + 1,
+    status: "pending",
+  }));
+  try {
+    const { error } = await db.from("production_stages").insert(rows);
+    if (error) {
+      throw error;
+    }
+    await loadProductionStages();
+    renderProductionStages(projectId);
+    showToast("Producción iniciada.");
+  } catch (error) {
+    console.error("Error iniciando producción:", error);
+    showToast(error.message || "No se pudo iniciar la producción.");
+  }
+}
+async function completeStage(stageId) {
+  try {
+    const { error } = await db
+      .from("production_stages")
+      .update({
+        status: "completed",
+        completed_at: new Date().toISOString(),
+        completed_by: currentUser.id,
+      })
+      .eq("id", stageId);
+    if (error) {
+      throw error;
+    }
+    const stage = productionStages.find((item) => item.id === stageId);
+    await loadProductionStages();
+    if (stage && selectedProject && stage.project_id === selectedProject.id) {
+      renderProductionStages(selectedProject.id);
+    }
+    showToast("Etapa completada.");
+  } catch (error) {
+    console.error("Error completando etapa:", error);
+    showToast(error.message || "No se pudo actualizar la etapa.");
+  }
+}
+async function reopenStage(stageId) {
+  try {
+    const { error } = await db
+      .from("production_stages")
+      .update({
+        status: "pending",
+        completed_at: null,
+        completed_by: null,
+      })
+      .eq("id", stageId);
+    if (error) {
+      throw error;
+    }
+    const stage = productionStages.find((item) => item.id === stageId);
+    await loadProductionStages();
+    if (stage && selectedProject && stage.project_id === selectedProject.id) {
+      renderProductionStages(selectedProject.id);
+    }
+  } catch (error) {
+    console.error("Error reabriendo etapa:", error);
+    showToast(error.message || "No se pudo reabrir la etapa.");
+  }
+}
+projectDetailContent.addEventListener("click", (event) => {
+  const startButton = event.target.closest("#startProductionButton");
+  const completeButton = event.target.closest("[data-complete-stage]");
+  const reopenButton = event.target.closest("[data-reopen-stage]");
+  if (startButton) {
+    startProductionPipeline(startButton.dataset.projectId);
+    return;
+  }
+  if (completeButton) {
+    completeStage(completeButton.dataset.completeStage);
+    return;
+  }
+  if (reopenButton) {
+    reopenStage(reopenButton.dataset.reopenStage);
+  }
+});
 
 // =====================================================
 // PROJECT CREATE / EDIT
