@@ -2025,4 +2025,17 @@ button, .nav-item, .task-row, .team-card {
 }
 .contacts-table .cell-delete:hover { background: var(--red-bg); }
 .contacts-table-empty { padding: 20px; color: var(--muted); font-size: 12px; }
+/* Color únicamente del selector de estado */
+
+.contact-status-select.status-cerrado {
+  background: #d9ead3;
+}
+
+.contact-status-select.status-seguimiento {
+  background: #fce5cd;
+}
+
+.contact-status-select.status-no-interesado {
+  background: #f4cccc;
+}
 
