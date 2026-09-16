@@ -1184,6 +1184,35 @@ document.getElementById("openCotizadorCard")?.addEventListener("click", () => {
     frame.src = "./Herramientas/cotizador.html";
   }
 });
+
+// Ajusta automáticamente el alto del iframe del cotizador a su
+// contenido real, para que no sobre ni falte espacio.
+(function setupCotizadorAutoResize() {
+  const frame = document.getElementById("cotizadorFrame");
+  if (!frame) {
+    return;
+  }
+  function resizeFrame() {
+    try {
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      const height = doc.documentElement.scrollHeight;
+      if (height) {
+        frame.style.height = `${height + 20}px`;
+      }
+    } catch (error) {
+      // Si no se puede leer (origen distinto, etc.), no rompemos nada.
+    }
+  }
+  frame.addEventListener("load", () => {
+    resizeFrame();
+    try {
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      new ResizeObserver(resizeFrame).observe(doc.documentElement);
+    } catch (error) {
+      // Ignorar si no se puede observar.
+    }
+  });
+})();
 document.getElementById("backToToolsButton")?.addEventListener("click", () => {
   document.getElementById("cotizadorView")?.classList.add("hidden");
   document.getElementById("toolsListView")?.classList.remove("hidden");
