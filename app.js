@@ -2272,6 +2272,8 @@ function renderActiveProductionCard(project) {
   const meta = current
     ? PRODUCTION_STAGES.find((item) => item.key === current.stage_key)
     : null;
+  const task = current?.task_id ? tasks.find((t) => t.id === current.task_id) : null;
+  const overdue = task && task.status !== "completed" && isPastDate(task.deadline);
   return `
     <article class="smart-task-card">
       <div class="smart-task-card-top">
@@ -2294,7 +2296,13 @@ function renderActiveProductionCard(project) {
               <span class="smart-task-detail">
                 Etapa actual: <strong>${escapeHTML(meta?.label || current.stage_key)}</strong>
               </span>
+              ${
+                task?.deadline
+                  ? `<span class="smart-task-detail">Deadline: ${formatDate(task.deadline)}</span>`
+                  : ""
+              }
             </div>
+            ${overdue ? `<div class="task-overdue">⚠ Etapa atrasada</div>` : ""}
             <div class="smart-task-actions">
               ${
                 canManage(currentProfile)
@@ -2367,13 +2375,35 @@ function renderProductionStages(projectId) {
           const isDone = stage.status === "completed";
           const isCurrent = index === currentIndex;
           const isLocked = !isDone && !isCurrent;
+          const task = stage.task_id ? tasks.find((t) => t.id === stage.task_id) : null;
+          const overdueNow = isCurrent && task && task.status !== "completed" && isPastDate(task.deadline);
           return `
             <div class="production-stage ${isDone ? "done" : ""} ${isCurrent ? "current" : ""} ${isLocked ? "locked" : ""}">
               <div class="production-stage-dot">${isDone ? "✓" : index + 1}</div>
-              <div class="production-stage-label">${escapeHTML(meta.label)}</div>
+              <div class="production-stage-label">
+                ${escapeHTML(meta.label)}
+                ${
+                  isDone && stage.late_days
+                    ? `<span class="badge vencida" style="margin-left:6px">Atrasado ${stage.late_days}d</span>`
+                    : ""
+                }
+                ${
+                  isCurrent && task
+                    ? `
+                      <div class="assignment-help" style="margin-top:3px">
+                        ${task.deadline ? `Deadline: ${formatDate(task.deadline)}` : "Sin deadline"}
+                        ${overdueNow ? ` · <span style="color:var(--red);font-weight:800">Atrasada</span>` : ""}
+                      </div>
+                    `
+                    : ""
+                }
+              </div>
               ${
                 isCurrent && canManage(currentProfile)
-                  ? `<button type="button" class="smart-task-action primary" data-complete-stage="${stage.id}">Marcar terminado</button>`
+                  ? `
+                    <button type="button" class="smart-task-action" data-edit-stage-task="${task ? task.id : ""}">Editar fechas</button>
+                    <button type="button" class="smart-task-action primary" data-complete-stage="${stage.id}">Marcar terminado</button>
+                  `
                   : ""
               }
               ${
@@ -2389,7 +2419,46 @@ function renderProductionStages(projectId) {
   `;
 }
 
+function daysLateFor(deadline, referenceDate) {
+  const deadlineDate = dateOnly(deadline);
+  if (!deadlineDate) {
+    return 0;
+  }
+  const refDate = dateOnly(toISODate(referenceDate)) || startOfToday();
+  const diff = Math.round((refDate.getTime() - deadlineDate.getTime()) / 86400000);
+  return diff > 0 ? diff : 0;
+}
+
+async function createTaskForStage(project, stage) {
+  const meta = PRODUCTION_STAGES.find((item) => item.key === stage.stage_key);
+  const { data, error } = await db
+    .from("tasks")
+    .insert({
+      title: meta?.label || stage.stage_key,
+      description: `Etapa del pipeline de producción de "${project.name}".`,
+      project_id: project.id,
+      status: "pending",
+      priority: "medium",
+      start_date: toISODate(new Date()),
+      created_by: currentUser.id,
+    })
+    .select()
+    .single();
+  if (error) {
+    throw error;
+  }
+  const { error: linkError } = await db
+    .from("production_stages")
+    .update({ task_id: data.id })
+    .eq("id", stage.id);
+  if (linkError) {
+    throw linkError;
+  }
+  return data;
+}
+
 async function startProductionPipeline(projectId) {
+  const project = projects.find((item) => item.id === projectId);
   const rows = PRODUCTION_STAGES.map((stage, index) => ({
     project_id: projectId,
     stage_key: stage.key,
@@ -2401,9 +2470,20 @@ async function startProductionPipeline(projectId) {
     if (error) {
       throw error;
     }
-     await loadProductionStages();
+    await loadProductionStages();
+
+    const firstStage = productionStages.find(
+      (item) => item.project_id === projectId && item.stage_order === 1,
+    );
+    if (firstStage && project) {
+      await createTaskForStage(project, firstStage);
+      await loadProductionStages();
+      await loadTasks();
+    }
+
     renderProductionStages(projectId);
     renderActiveProductions();
+    renderTasks();
     showToast("Producción iniciada.");
   } catch (error) {
     console.error("Error iniciando producción:", error);
@@ -2412,24 +2492,53 @@ async function startProductionPipeline(projectId) {
 }
 async function completeStage(stageId) {
   try {
+    const stage = productionStages.find((item) => item.id === stageId);
+    if (!stage) {
+      return;
+    }
+    const project = projects.find((p) => p.id === stage.project_id);
+    const task = stage.task_id ? tasks.find((t) => t.id === stage.task_id) : null;
+    const today = new Date();
+    const lateDays = task ? daysLateFor(task.deadline, today) : 0;
+
+    if (task) {
+      const { error: taskError } = await db.from("tasks").update({ status: "completed" }).eq("id", task.id);
+      if (taskError) {
+        throw taskError;
+      }
+    }
     const { error } = await db
       .from("production_stages")
       .update({
         status: "completed",
-        completed_at: new Date().toISOString(),
+        completed_at: today.toISOString(),
         completed_by: currentUser.id,
+        late_days: lateDays,
       })
       .eq("id", stageId);
     if (error) {
       throw error;
     }
-    const stage = productionStages.find((item) => item.id === stageId);
+
     await loadProductionStages();
-    if (stage && selectedProject && stage.project_id === selectedProject.id) {
+    await loadTasks();
+
+    const nextStage = productionStages.find(
+      (item) => item.project_id === stage.project_id && item.stage_order === stage.stage_order + 1,
+    );
+    if (nextStage && !nextStage.task_id && project) {
+      await createTaskForStage(project, nextStage);
+      await loadProductionStages();
+      await loadTasks();
+    }
+
+    if (selectedProject && stage.project_id === selectedProject.id) {
       renderProductionStages(selectedProject.id);
     }
     renderActiveProductions();
-    showToast("Etapa completada.");
+    renderTasks();
+    updateDashboard();
+    showToast(lateDays > 0 ? `Etapa completada (atrasada ${lateDays} día(s)).` : "Etapa completada.");
   } catch (error) {
     console.error("Error completando etapa:", error);
     showToast(error.message || "No se pudo actualizar la etapa.");
@@ -2437,23 +2546,40 @@ async function completeStage(stageId) {
 }
 async function reopenStage(stageId) {
   try {
+    const stage = productionStages.find((item) => item.id === stageId);
+    if (!stage) {
+      return;
+    }
+
+    const nextStage = productionStages.find(
+      (item) => item.project_id === stage.project_id && item.stage_order === stage.stage_order + 1,
+    );
+    if (nextStage?.task_id) {
+      const nextTask = tasks.find((t) => t.id === nextStage.task_id);
+      if (nextTask && nextTask.status === "pending") {
+        await db.from("tasks").delete().eq("id", nextTask.id);
+      }
+      await db.from("production_stages").update({ task_id: null }).eq("id", nextStage.id);
+    }
+
+    if (stage.task_id) {
+      await db.from("tasks").update({ status: "in_progress" }).eq("id", stage.task_id);
+    }
     const { error } = await db
       .from("production_stages")
-      .update({
-        status: "pending",
-        completed_at: null,
-        completed_by: null,
-      })
+      .update({ status: "pending", completed_at: null, completed_by: null, late_days: null })
       .eq("id", stageId);
     if (error) {
       throw error;
     }
-   const stage = productionStages.find((item) => item.id === stageId);
+
     await loadProductionStages();
-    if (stage && selectedProject && stage.project_id === selectedProject.id) {
+    await loadTasks();
+    if (selectedProject && stage.project_id === selectedProject.id) {
       renderProductionStages(selectedProject.id);
     }
     renderActiveProductions();
+    renderTasks();
   } catch (error) {
     console.error("Error reabriendo etapa:", error);
     showToast(error.message || "No se pudo reabrir la etapa.");
@@ -2463,6 +2589,7 @@ projectDetailContent.addEventListener("click", (event) => {
   const startButton = event.target.closest("#startProductionButton");
   const completeButton = event.target.closest("[data-complete-stage]");
   const reopenButton = event.target.closest("[data-reopen-stage]");
+  const editStageTaskButton = event.target.closest("[data-edit-stage-task]");
   if (startButton) {
     startProductionPipeline(startButton.dataset.projectId);
     return;
@@ -2473,6 +2600,10 @@ projectDetailContent.addEventListener("click", (event) => {
   }
   if (reopenButton) {
     reopenStage(reopenButton.dataset.reopenStage);
+    return;
+  }
+  if (editStageTaskButton && editStageTaskButton.dataset.editStageTask) {
+    editTask(editStageTaskButton.dataset.editStageTask);
   }
 });
 document.getElementById("activeProductionsList")?.addEventListener("click", (event) => {
