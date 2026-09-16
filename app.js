@@ -149,10 +149,10 @@ function roleLabel(role) {
   }
   return "Miembro";
 }
-const PROJECT_STATUS_LABELS = {
-  pending: "Pendiente",
-  active: "En producción",
-  completed: "Completado",
+const PROJECT_TYPE_LABELS = {
+  general: "General",
+  video: "Producción de video",
+  ventas: "Ventas",
 };
 const TASK_STATUS_LABELS = {
   pending: "Pendiente",
@@ -2435,6 +2435,19 @@ function buildProjectForm(project = null) {
         value="${project?.deadline || ""}"
       >
     </div>
+        <div class="modal-field">
+      <label for="projectType">
+        Tipo de proyecto
+      </label>
+      <select id="projectType">
+        <option value="general">General</option>
+        <option value="video">Producción de video</option>
+        <option value="ventas">Ventas</option>
+      </select>
+      <p class="assignment-help">
+        Define qué herramientas aparecen dentro del proyecto (producción por etapas, tareas de llamadas, etc.).
+      </p>
+    </div>
     <div class="modal-field">
       <label for="projectStatus">
         Estado
@@ -2489,6 +2502,7 @@ function editProject(projectId) {
   modalFields.innerHTML = buildProjectForm(project);
   document.getElementById("projectStatus").value = project.status;
   document.getElementById("projectPriority").value = project.priority || "medium";
+  document.getElementById("projectType").value = project.project_type || "general";
   openModal();
 }
 
@@ -2590,6 +2604,7 @@ async function saveProject() {
     deadline: deadline,
     status: document.getElementById("projectStatus").value,
     priority: document.getElementById("projectPriority").value,
+    project_type: document.getElementById("projectType").value,
   };
   try {
     let projectId;
