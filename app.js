@@ -5510,17 +5510,58 @@ function getContactStage(contact) {
 }
 async function loadContacts() {
   if (!CONTACTS_API_URL || CONTACTS_API_URL.includes("PON_AQUI")) return;
+
   const statusEl = document.getElementById("contactsSyncStatus");
+
   try {
-    const response = await fetch(`${CONTACTS_API_URL}?t=${Date.now()}`);
-    const data = await response.json();
+    const callbackName = `contactsCallback_${Date.now()}`;
+
+    const data = await new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error("Tiempo de espera agotado al cargar contactos."));
+      }, 15000);
+
+      function cleanup() {
+        clearTimeout(timeout);
+        delete window[callbackName];
+        script.remove();
+      }
+
+      window[callbackName] = (data) => {
+        cleanup();
+        resolve(data);
+      };
+
+      script.onerror = () => {
+        cleanup();
+        reject(new Error("No se pudo conectar con Google Sheets."));
+      };
+
+      script.src =
+        `${CONTACTS_API_URL}?prefix=${encodeURIComponent(callbackName)}&t=${Date.now()}`;
+
+      document.body.appendChild(script);
+    });
+
     if (data.error) throw new Error(data.error);
+
     contacts = data.contacts || [];
     renderContactsList();
-    if (statusEl) statusEl.textContent = `Sincronizado ${new Date().toLocaleTimeString("es-ES")}`;
+
+    if (statusEl) {
+      statusEl.textContent =
+        `Sincronizado ${new Date().toLocaleTimeString("es-ES")}`;
+    }
+
   } catch (error) {
     console.error("Error cargando contactos:", error);
-    if (statusEl) statusEl.textContent = "No se pudo sincronizar.";
+
+    if (statusEl) {
+      statusEl.textContent = "No se pudo sincronizar.";
+    }
   }
 }
 function startContactsPolling() {
@@ -5587,9 +5628,12 @@ function renderContactsList() {
 // Guarda cualquier campo editado (empresa, celular, telefono, instagram, estado)
 async function updateContactField(id, field, value) {
   try {
-    const response = await fetch(CONTACTS_API_URL, {
+    await fetch(CONTACTS_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain"
+      },
       body: JSON.stringify({
         token: CONTACTS_API_TOKEN,
         action: "updateField",
@@ -5598,34 +5642,51 @@ async function updateContactField(id, field, value) {
         actualizadoPor: currentProfile?.name || "",
       }),
     });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error);
+
     const contact = contacts.find((c) => c.id === id);
-    if (contact) contact[field] = value;
-    if (field === "estado") renderContactsList();
+
+    if (contact) {
+      contact[field] = value;
+    }
+
+    if (field === "estado") {
+      renderContactsList();
+    }
+
     showToast("Guardado.");
+
   } catch (error) {
     console.error("Error actualizando contacto:", error);
-    showToast(error.message || "No se pudo guardar. Revisa la conexión.");
+    showToast("No se pudo guardar. Revisa la conexión.");
   }
 }
 
 async function deleteContact(id) {
   if (!confirm("¿Eliminar este contacto? Se borrará también de la hoja de Excel.")) return;
+
   try {
-    const response = await fetch(CONTACTS_API_URL, {
+    await fetch(CONTACTS_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
-      body: JSON.stringify({ token: CONTACTS_API_TOKEN, action: "deleteContact", id }),
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain"
+      },
+      body: JSON.stringify({
+        token: CONTACTS_API_TOKEN,
+        action: "deleteContact",
+        id
+      }),
     });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error);
+
     contacts = contacts.filter((c) => c.id !== id);
+
     renderContactsList();
+
     showToast("Contacto eliminado.");
+
   } catch (error) {
     console.error("Error eliminando contacto:", error);
-    showToast(error.message || "No se pudo eliminar.");
+    showToast("No se pudo eliminar.");
   }
 }
 document.getElementById("contactsList")?.addEventListener("change", (event) => {
@@ -5671,12 +5732,17 @@ function openContactStatusModal(contactId) {
 }
 async function saveContactStatus() {
   if (!editingContactId) return;
+
   const estado = document.getElementById("contactEstado").value;
   const notas = document.getElementById("contactNotas").value.trim();
+
   try {
-    const response = await fetch(CONTACTS_API_URL, {
+    await fetch(CONTACTS_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain"
+      },
       body: JSON.stringify({
         token: CONTACTS_API_TOKEN,
         action: "updateStatus",
@@ -5686,14 +5752,16 @@ async function saveContactStatus() {
         actualizadoPor: currentProfile?.name || "",
       }),
     });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error);
+
     closeModalWindow();
+
     showToast("Contacto actualizado.");
+
     await loadContacts();
+
   } catch (error) {
     console.error("Error actualizando contacto:", error);
-    showToast(error.message || "No se pudo actualizar. Revisa la conexión con Google Sheets.");
+    showToast("No se pudo actualizar. Revisa la conexión con Google Sheets.");
   }
 }
 document.getElementById("addContactButton")?.addEventListener("click", () => {
@@ -5721,14 +5789,19 @@ document.getElementById("addContactButton")?.addEventListener("click", () => {
 });
 async function saveNewContact() {
   const empresa = document.getElementById("newContactEmpresa").value.trim();
+
   if (!empresa) {
     showToast("Escribe un nombre para el contacto.");
     return;
   }
+
   try {
-    const response = await fetch(CONTACTS_API_URL, {
+    await fetch(CONTACTS_API_URL, {
       method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "text/plain"
+      },
       body: JSON.stringify({
         token: CONTACTS_API_TOKEN,
         action: "addContact",
@@ -5739,14 +5812,16 @@ async function saveNewContact() {
         actualizadoPor: currentProfile?.name || "",
       }),
     });
-    const data = await response.json();
-    if (data.error) throw new Error(data.error);
+
     closeModalWindow();
+
     showToast("Contacto agregado.");
+
     await loadContacts();
+
   } catch (error) {
     console.error("Error agregando contacto:", error);
-    showToast(error.message || "No se pudo agregar. Revisa la conexión con Google Sheets.");
+    showToast("No se pudo agregar. Revisa la conexión con Google Sheets.");
   }
 }
 document.getElementById("openContactsCard")?.addEventListener("click", () => {
