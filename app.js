@@ -5407,30 +5407,105 @@ function renderContactsList() {
   if (!container) return;
   const filtered = contacts.filter((contact) => getContactStage(contact) === contactsTab);
   if (!filtered.length) {
-    container.innerHTML = `<p class="empty-text">No hay contactos en esta lista todavía.</p>`;
+    container.innerHTML = `<p class="contacts-table-empty">No hay contactos en esta lista todavía.</p>`;
     return;
   }
-  container.innerHTML = filtered
-    .map((contact) => {
-      const stage = getContactStage(contact);
-      return `
-        <div class="contact-row status-${stage}" data-contact-open="${escapeHTML(contact.id)}">
-          <div>
-            <div class="contact-row-name">${escapeHTML(contact.empresa || "Sin nombre")}</div>
-            <div class="contact-row-meta">
-              ${contact.celular ? `📱 ${escapeHTML(contact.celular)}` : ""}
-              ${contact.telefono ? ` · ☎ ${escapeHTML(contact.telefono)}` : ""}
-              ${contact.instagram ? ` · ${escapeHTML(contact.instagram)}` : ""}
-            </div>
-          </div>
-          <span class="badge">
-            ${contact.estado ? escapeHTML(CONTACT_STATUS_LABELS[contact.estado] || contact.estado) : "Sin contactar"}
-          </span>
-        </div>
-      `;
-    })
-    .join("");
+  container.innerHTML = `
+    <table class="contacts-table">
+      <thead>
+        <tr>
+          <th>Empresa</th>
+          <th>Celular</th>
+          <th>Teléfono</th>
+          <th>Instagram/Web</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${filtered
+          .map((contact) => {
+            const stage = getContactStage(contact);
+            const id = escapeHTML(contact.id);
+            return `
+              <tr class="status-${stage}" data-contact-id="${id}">
+                <td><input class="cell-input" data-field="empresa" value="${escapeHTML(contact.empresa || "")}"></td>
+                <td><input class="cell-input" data-field="celular" value="${escapeHTML(contact.celular || "")}"></td>
+                <td><input class="cell-input" data-field="telefono" value="${escapeHTML(contact.telefono || "")}"></td>
+                <td><input class="cell-input" data-field="instagram" value="${escapeHTML(contact.instagram || "")}"></td>
+                <td>
+                  <select class="cell-select" data-field="estado">
+                    <option value="" ${!contact.estado ? "selected" : ""}>Sin contactar</option>
+                    <option value="no_contesto" ${contact.estado === "no_contesto" ? "selected" : ""}>No contestó</option>
+                    <option value="contesto" ${contact.estado === "contesto" ? "selected" : ""}>Contestó</option>
+                    <option value="cerrado" ${contact.estado === "cerrado" ? "selected" : ""}>Cerrado</option>
+                    <option value="no_cerrado" ${contact.estado === "no_cerrado" ? "selected" : ""}>No cerrado</option>
+                  </select>
+                </td>
+                <td><button type="button" class="cell-delete" data-delete-contact="${id}" title="Eliminar">✕</button></td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
 }
+
+// Guarda cualquier campo editado (empresa, celular, telefono, instagram, estado)
+async function updateContactField(id, field, value) {
+  try {
+    const response = await fetch(CONTACTS_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({
+        token: CONTACTS_API_TOKEN,
+        action: "updateField",
+        id,
+        [field]: value,
+        actualizadoPor: currentProfile?.name || "",
+      }),
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    const contact = contacts.find((c) => c.id === id);
+    if (contact) contact[field] = value;
+    if (field === "estado") renderContactsList();
+    showToast("Guardado.");
+  } catch (error) {
+    console.error("Error actualizando contacto:", error);
+    showToast(error.message || "No se pudo guardar. Revisa la conexión.");
+  }
+}
+
+async function deleteContact(id) {
+  if (!confirm("¿Eliminar este contacto? Se borrará también de la hoja de Excel.")) return;
+  try {
+    const response = await fetch(CONTACTS_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ token: CONTACTS_API_TOKEN, action: "deleteContact", id }),
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error);
+    contacts = contacts.filter((c) => c.id !== id);
+    renderContactsList();
+    showToast("Contacto eliminado.");
+  } catch (error) {
+    console.error("Error eliminando contacto:", error);
+    showToast(error.message || "No se pudo eliminar.");
+  }
+}
+document.getElementById("contactsList")?.addEventListener("change", (event) => {
+  const cell = event.target.closest("[data-field]");
+  const row = event.target.closest("tr[data-contact-id]");
+  if (!cell || !row) return;
+  updateContactField(row.dataset.contactId, cell.dataset.field, cell.value);
+});
+document.getElementById("contactsList")?.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-contact]");
+  if (deleteButton) deleteContact(deleteButton.dataset.deleteContact);
+});
 document.querySelectorAll("[data-contacts-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     contactsTab = button.dataset.contactsTab;
@@ -5438,10 +5513,6 @@ document.querySelectorAll("[data-contacts-tab]").forEach((button) => {
     button.classList.add("active");
     renderContactsList();
   });
-});
-document.getElementById("contactsList")?.addEventListener("click", (event) => {
-  const row = event.target.closest("[data-contact-open]");
-  if (row) openContactStatusModal(row.dataset.contactOpen);
 });
 function openContactStatusModal(contactId) {
   const contact = contacts.find((item) => item.id === contactId);
