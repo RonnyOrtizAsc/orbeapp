@@ -1175,14 +1175,9 @@ document.querySelectorAll(".org-tab").forEach((button) => {
   });
 });
 
-// Cotizador embebido: el src se carga solo al abrirlo (más rápido al entrar).
+// Cotizador: abrir directamente la página de herramientas.
 document.getElementById("openCotizadorCard")?.addEventListener("click", () => {
-  const frame = document.getElementById("cotizadorFrame");
-  if (frame && !frame.src) {
-    frame.src = "./Herramientas/cotizador.html";
-  }
-  document.getElementById("toolsListView")?.classList.add("hidden");
-  document.getElementById("cotizadorView")?.classList.remove("hidden");
+  window.location.href = "./Herramientas/cotizador.html";
 });
 document.getElementById("backToToolsButton")?.addEventListener("click", () => {
   document.getElementById("cotizadorView")?.classList.add("hidden");
