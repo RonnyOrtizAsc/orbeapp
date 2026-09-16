@@ -170,15 +170,15 @@
             align-items: flex-start;
         }
 
-        .logo-placeholder {
+           .logo-placeholder {
             width: 100px;
             height: 100px;
-            border: 2px dashed #cbd5e1;
+            border: 2px solid #141312;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f8fafc;
+            background: #141312;
             color: #94a3b8;
             font-size: 0.75rem;
             text-align: center;
@@ -186,10 +186,12 @@
             overflow: hidden;
         }
 
-        .logo-placeholder img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
+        .logo-placeholder .logo-mark {
+            width: 78%;
+            height: 78%;
+            background: #ffffff;
+            -webkit-mask: url("../Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
+            mask: url("../Recursos/Imagenes/Logotipo.png") center / contain no-repeat;
         }
 
         .company-info h1 {
@@ -463,9 +465,8 @@
             <!-- Header -->
             <div class="doc-header">
                 <div class="brand-section">
-                    <div class="logo-placeholder">
-                        <!-- Busca logoimg.png o muestra fallback -->
-                        <img src="../Recursos/Imagenes/Logotipo.png" onerror="this.onerror=null; this.parentElement.innerHTML='[LOGO]';" alt="Logo Orbe-c Films">
+                     <div class="logo-placeholder">
+                        <div class="logo-mark" id="cotizadorLogoMark"></div>
                     </div>
                     <div class="company-info">
                         <h1>ORBE-C FILMS</h1>
@@ -614,10 +615,24 @@
         ]
     };
 
-    let itemsList = [];
+       let itemsList = [];
 
     // Carga inicial
     document.getElementById('lblDate').innerText = new Date().toLocaleDateString('es-SV');
+
+    // Si el logo no carga, muestra un texto de respaldo en vez del
+    // cuadro vacío.
+    (function checkLogo() {
+        const probe = new Image();
+        probe.onerror = function () {
+            const mark = document.getElementById('cotizadorLogoMark');
+            const box = mark ? mark.parentElement : null;
+            if (box) {
+                box.innerHTML = '[LOGO]';
+            }
+        };
+        probe.src = '../Recursos/Imagenes/Logotipo.png';
+    })();
 
     function loadCategoryItems() {
         const cat = document.getElementById('projectCategory').value;
