@@ -958,6 +958,9 @@ button.dashboard-item:hover { background: var(--surface-raised); }
 .badge.high { background: var(--red-bg); color: var(--red); }
 .badge.vencida { background: var(--red-bg); color: var(--red); }
 .badge.smart { background: var(--purple-bg); color: var(--purple); }
+.badge.type-video { background: var(--blue-bg); color: var(--blue); }
+.badge.type-ventas { background: var(--purple-bg); color: var(--purple); }
+.badge.type-general { background: var(--surface-raised); color: var(--muted); }
 
 /* Logo de la productora como icono dentro de los badges de
    prioridad — mismo criterio de color que las barras de progreso. */
