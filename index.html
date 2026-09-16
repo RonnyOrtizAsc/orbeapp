@@ -534,34 +534,59 @@
 
   </div>
 
-  <!-- ===== HERRAMIENTAS ===== -->
+   <!-- ===== HERRAMIENTAS ===== -->
   <div id="orgTabTools" class="org-tab-panel hidden">
-    <div class="org-tab-header">
-      <p class="assignment-help">Herramientas para agilizar cotizaciones, facturas y otros procesos del equipo.</p>
-    </div>
-    <div class="tools-grid">
-      <a class="tool-card" href="./Herramientas/cotizador.html" target="_blank" rel="noopener">
-        <div class="tool-card-icon">🧾</div>
-        <div>
-          <strong>Cotizador y Factura</strong>
-          <p>Genera cotizaciones y facturas por proyecto con catálogo de servicios.</p>
+
+    <div id="toolsListView">
+      <div class="org-tab-header">
+        <p class="assignment-help">Herramientas para agilizar cotizaciones, facturas y otros procesos del equipo.</p>
+      </div>
+      <div class="tools-grid">
+        <button type="button" class="tool-card" id="openCotizadorCard">
+          <div class="tool-card-icon">🧾</div>
+          <div>
+            <strong>Cotizador y Factura</strong>
+            <p>Genera cotizaciones y facturas por proyecto con catálogo de servicios.</p>
+          </div>
+        </button>
+        <div class="tool-card tool-card-soon">
+          <div class="tool-card-icon">📋</div>
+          <div>
+            <strong>Call sheet</strong>
+            <p>Próximamente.</p>
+          </div>
         </div>
-      </a>
-      <div class="tool-card tool-card-soon">
-        <div class="tool-card-icon">📋</div>
-        <div>
-          <strong>Call sheet</strong>
-          <p>Próximamente.</p>
+        <div class="tool-card tool-card-soon">
+          <div class="tool-card-icon">💰</div>
+          <div>
+            <strong>Control de gastos</strong>
+            <p>Próximamente.</p>
+          </div>
         </div>
       </div>
-      <div class="tool-card tool-card-soon">
-        <div class="tool-card-icon">💰</div>
-        <div>
-          <strong>Control de gastos</strong>
-          <p>Próximamente.</p>
+    </div>
+
+    <div id="cotizadorView" class="hidden">
+      <button type="button" class="text-back" id="backToToolsButton">← Volver a herramientas</button>
+      <div class="section-card">
+        <div class="section-header">
+          <div>
+            <p class="eyebrow">HERRAMIENTAS</p>
+            <h3>Cotizador y Factura</h3>
+          </div>
+          <a class="button button-light" href="./Herramientas/cotizador.html" target="_blank" rel="noopener">
+            Abrir en pestaña nueva
+          </a>
         </div>
+        <div class="tool-frame-wrap">
+          <iframe id="cotizadorFrame" class="tool-frame" title="Cotizador y Factura"></iframe>
+        </div>
+        <p class="assignment-help">
+          Si el cotizador aparece en blanco, revisa que el archivo exista en <code>Herramientas/cotizador.html</code> (respetando mayúsculas).
+        </p>
       </div>
     </div>
+
   </div>
 
 </section>
