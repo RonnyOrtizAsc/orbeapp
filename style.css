@@ -1929,3 +1929,34 @@ button, .nav-item, .task-row, .team-card {
 @media (max-width: 650px) {
   .tool-frame { height: 70vh; min-height: 420px; }
 }
+/* =====================================================
+   PIPELINE DE PRODUCCIÓN
+===================================================== */
+.production-pipeline { display: grid; gap: 10px; }
+.production-stage {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  background: var(--surface-soft);
+}
+.production-stage.done { border-color: var(--green); }
+.production-stage.current { border-color: var(--amarillo); background: var(--surface-raised); }
+.production-stage.locked { opacity: .5; }
+.production-stage-dot {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+}
+.production-stage.done .production-stage-dot { background: var(--green); color: #0c2415; }
+.production-stage.current .production-stage-dot { background: var(--amarillo); color: var(--negro); }
+.production-stage-label { flex: 1; font-size: 13px; font-weight: 700; color: var(--text); }
