@@ -5587,12 +5587,7 @@ function renderContactsList() {
   if (!container) return;
 
   const filtered = contacts.filter((contact) => {
-    const estado = normalizeContactStatus(contact.estado);
-
-    // Si la pestaña actual es "todos", mostrar todos
-    if (contactsTab === "todos") return true;
-
-    return estado === contactsTab;
+    return getContactStage(contact) === contactsTab;
   });
 
   if (!filtered.length) {
@@ -5623,13 +5618,17 @@ function renderContactsList() {
             const estado = normalizeContactStatus(contact.estado);
             const id = escapeHTML(contact.id || "");
 
+            const statusClass =
+              estado === "Cerrado"
+                ? "status-cerrado"
+                : estado === "Seguimiento"
+                ? "status-seguimiento"
+                : estado === "No interesado"
+                ? "status-no-interesado"
+                : "";
+
             return `
-              <tr
-                class="contact-row contact-status-${estado
-                  .toLowerCase()
-                  .replace(/\s+/g, "-")}"
-                data-contact-id="${id}"
-              >
+              <tr data-contact-id="${id}">
 
                 <td>
                   <input
@@ -5665,13 +5664,11 @@ function renderContactsList() {
 
                 <td>
                   <select
-  class="cell-select contact-status-select"
-  data-field="estado"
-  onchange="this.className='cell-select contact-status-select status-' + this.value.toLowerCase().replace(/\s+/g, '-')"
-              >
-
-                    <option value="" ${!estado ? "selected" : ""}>
-                      Seleccionar
+                    class="cell-select contact-status-select ${statusClass}"
+                    data-field="estado"
+                  >
+                    <option value="" disabled ${!estado ? "selected" : ""}>
+                      Pendiente
                     </option>
 
                     <option value="Seguimiento"
@@ -5688,7 +5685,6 @@ function renderContactsList() {
                       ${estado === "No interesado" ? "selected" : ""}>
                       No interesado
                     </option>
-
                   </select>
                 </td>
 
