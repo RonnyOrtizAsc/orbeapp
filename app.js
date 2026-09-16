@@ -5,7 +5,7 @@ const SUPABASE_URL = "https://ijnetiyxrxxfhurlsnbc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dnjsWgsrPMUQov5JTJuthw_KEAqjMfK";
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const CONTACTS_API_URL = "https://script.google.com/macros/s/AKfycbw8qTQTsiPN-J_C6Anefpp41RgjW5XGN2er80LW9E2udyXpcIjUGTbaFkqBjaBwBglt/exec";
+const CONTACTS_API_URL = "https://script.google.com/macros/s/AKfycbwxu8CDQ34TjUBC9arQj1WULVR3l27dxC_A9UpLmNSfqcnIBA0-lIzSTHteg0ipglsz/exec";
 const CONTACTS_API_TOKEN = "cineronilio";
 
 // =====================================================
