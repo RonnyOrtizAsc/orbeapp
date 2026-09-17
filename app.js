@@ -4373,7 +4373,7 @@ if (endCallSessionButton) {
   endCallSessionButton.addEventListener("click", endCallSession);
 }
 if (registerCallButton) {
-  registerCallButton.addEventListener("click", openCallRegistration);
+  registerCallButton.addEventListener("click", openContactsForCall);
 }
 function openCallSessionForTemplate(templateId) {
   const template = getTemplateById(templateId);
@@ -6057,6 +6057,26 @@ contactsTab = tabMap[tab] ?? "pendiente";
     renderContactsList();
   });
 });
+// Al hacer clic en "Ver contactos por llamar" desde la sesión de
+// llamadas, en vez de abrir el modal viejo, llevamos a la persona
+// directo a la hoja de contactos, en la pestaña "Por contactar".
+function openContactsForCall() {
+  showPage("organization");
+  document.querySelectorAll(".org-tab").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.orgTab === "tools");
+  });
+  document.getElementById("orgTabGames")?.classList.add("hidden");
+  document.getElementById("orgTabTools")?.classList.remove("hidden");
+  document.getElementById("contactsToolView")?.classList.remove("hidden");
+  document.getElementById("toolsExtraGrid")?.classList.add("hidden");
+
+  contactsTab = "pendiente";
+  document.querySelectorAll("[data-contacts-tab]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.contactsTab === "pendiente");
+  });
+  renderContactsList();
+  startContactsPolling();
+}
 function openContactStatusModal(contactId) {
   const contact = contacts.find((item) => item.id === contactId);
   if (!contact) return;
