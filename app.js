@@ -6128,6 +6128,7 @@ function openContactsForCall() {
   startContactsPolling();
 }
 let callContactsInlineOpen = false;
+let callContactsInlineTab = "pendiente";
 
 async function toggleCallContactsInline() {
   const panel = document.getElementById("callContactsInline");
@@ -6139,6 +6140,10 @@ async function toggleCallContactsInline() {
     return;
   }
   callContactsInlineOpen = true;
+  callContactsInlineTab = "pendiente";
+  document.querySelectorAll("[data-call-contacts-tab]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.callContactsTab === "pendiente");
+  });
   panel.classList.remove("hidden");
   if (registerCallButton) {
     registerCallButton.textContent = "🔼 Ocultar contactos";
@@ -6147,6 +6152,7 @@ async function toggleCallContactsInline() {
   renderCallContactsInline();
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
+
 
 function closeCallContactsInline() {
   callContactsInlineOpen = false;
@@ -6162,11 +6168,13 @@ function renderCallContactsInline() {
     return;
   }
   const filtered = contacts.filter((contact) => {
-    const stage = getContactStage(contact);
-    return stage === "pendiente" || stage === "seguimiento";
+    if (callContactsInlineTab === "todos") {
+      return true;
+    }
+    return getContactStage(contact) === callContactsInlineTab;
   });
   if (!filtered.length) {
-    container.innerHTML = `<p class="contacts-table-empty">No hay contactos pendientes ni en seguimiento.</p>`;
+    container.innerHTML = `<p class="contacts-table-empty">No hay contactos en esta lista.</p>`;
     return;
   }
   container.innerHTML = `
@@ -6206,6 +6214,16 @@ function renderCallContactsInline() {
 }
 
 document.getElementById("callContactsHideButton")?.addEventListener("click", closeCallContactsInline);
+  document.getElementById("callContactsHideButton")?.addEventListener("click", closeCallContactsInline);
+
+document.querySelectorAll("[data-call-contacts-tab]").forEach((button) => {
+  button.addEventListener("click", () => {
+    callContactsInlineTab = button.dataset.callContactsTab;
+    document.querySelectorAll("[data-call-contacts-tab]").forEach((btn) => btn.classList.remove("active"));
+    button.classList.add("active");
+    renderCallContactsInline();
+  });
+});
 
 document.getElementById("callContactsAddButtonInline")?.addEventListener("click", () => {
   openAddContactModal();
