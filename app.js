@@ -81,6 +81,8 @@ let presenceChannel = null;
 let currentCallSession = null;
 let currentCallTemplate = null;
 let currentCallOccurrence = null;
+let callContactsReturnPending = false;
+let callSessionTimerInterval = null;
 const presenceStrip = document.getElementById("presenceStrip");
 const recurringTasksList = document.getElementById("recurringTasksList");
 const callSessionPanel = document.getElementById("callSessionPanel");
@@ -4296,6 +4298,8 @@ function openModal() {
   modal.classList.remove("hidden");
 }
 function closeModalWindow() {
+  const shouldReturnToCallContacts = callContactsReturnPending;
+  callContactsReturnPending = false;
   modal.classList.add("hidden");
   modalFields.innerHTML = "";
   activeModalMode = null;
@@ -4307,6 +4311,10 @@ function closeModalWindow() {
   editingArea = null;
   editingProfileAreaId = null;
   editingContactId = null;
+  document.querySelector(".modal-buttons").style.display = "";
+  if (shouldReturnToCallContacts) {
+    openCallContactsModal();
+  }
 }
 closeModal.addEventListener("click", closeModalWindow);
 cancelModal.addEventListener("click", closeModalWindow);
@@ -4372,8 +4380,51 @@ if (startCallSessionButton) {
 if (endCallSessionButton) {
   endCallSessionButton.addEventListener("click", endCallSession);
 }
-if (registerCallButton) {
-  registerCallButton.addEventListener("click", openContactsForCall);
+function formatElapsed(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+}
+function getAccumulatedOccurrenceMs(occurrenceId, excludeSessionId) {
+  return workSessions
+    .filter(
+      (session) =>
+        session.occurrence_id === occurrenceId &&
+        session.ended_at &&
+        session.id !== excludeSessionId,
+    )
+    .reduce((total, session) => {
+      const start = new Date(session.started_at).getTime();
+      const end = new Date(session.ended_at).getTime();
+      return total + Math.max(0, end - start);
+    }, 0);
+}
+function startCallSessionTimer() {
+  stopCallSessionTimer();
+  const timerEl = document.getElementById("callSessionTimer");
+  if (!timerEl || !currentCallSession || !currentCallOccurrence) return;
+  const accumulatedMs = getAccumulatedOccurrenceMs(currentCallOccurrence.id, currentCallSession.id);
+  timerEl.classList.remove("hidden");
+  const update = () => {
+    const elapsed = accumulatedMs + (Date.now() - new Date(currentCallSession.started_at).getTime());
+    timerEl.textContent = `⏱ ${formatElapsed(elapsed)}`;
+  };
+  update();
+  callSessionTimerInterval = setInterval(update, 1000);
+}
+function stopCallSessionTimer() {
+  if (callSessionTimerInterval) {
+    clearInterval(callSessionTimerInterval);
+    callSessionTimerInterval = null;
+  }
+  const timerEl = document.getElementById("callSessionTimer");
+  if (timerEl) {
+    timerEl.textContent = "";
+    timerEl.classList.add("hidden");
+  }
 }
 function openCallSessionForTemplate(templateId) {
   const template = getTemplateById(templateId);
@@ -4458,7 +4509,9 @@ async function startCallSession() {
       throw error;
     }
     currentCallSession = data;
+    await loadWorkSessions();
     updateCallSessionUI();
+    startCallSessionTimer();
     showToast("Sesión de llamadas iniciada.");
   } catch (error) {
     console.error("Error iniciando sesión:", error);
@@ -4467,13 +4520,6 @@ async function startCallSession() {
 }
 async function endCallSession() {
   if (!currentCallSession) {
-    return;
-  }
-  const elapsedMs = Date.now() - new Date(currentCallSession.started_at).getTime();
-  const minMs = 60 * 60 * 1000;
-  if (elapsedMs < minMs) {
-    const remaining = Math.ceil((minMs - elapsedMs) / 60000);
-    showToast(`La sesión debe durar al menos 1 hora. Faltan ${remaining} minuto(s).`);
     return;
   }
   try {
@@ -4487,7 +4533,9 @@ async function endCallSession() {
       throw error;
     }
     currentCallSession = null;
+    await loadWorkSessions();
     updateCallSessionUI();
+    stopCallSessionTimer();
     showToast("Sesión de llamadas terminada.");
   } catch (error) {
     console.error("Error terminando sesión:", error);
@@ -5984,9 +6032,9 @@ async function updateContactField(id, field, value) {
     if (contact) {
       contact[field] = value;
     }
-
     if (field === "estado") {
       renderContactsList();
+      renderCallContactsTable();
     }
 
     showToast("Guardado.");
@@ -6013,10 +6061,10 @@ async function deleteContact(id) {
         id
       }),
     });
-
+    
     contacts = contacts.filter((c) => c.id !== id);
-
     renderContactsList();
+    renderCallContactsTable();
 
     showToast("Contacto eliminado.");
 
@@ -6075,6 +6123,84 @@ function openContactsForCall() {
   renderContactsList();
   startContactsPolling();
 }
+async function openCallContactsModal() {
+  activeModalMode = "callContacts";
+  modalTitle.textContent = "Contactos por llamar";
+  modalFields.innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+      <button type="button" class="button button-dark" id="callContactsAddButton">+ Contacto</button>
+    </div>
+    <div class="contacts-table-wrap">
+      <div id="callContactsList">
+        <p class="contacts-table-empty">Cargando...</p>
+      </div>
+    </div>
+  `;
+  document.querySelector(".modal-buttons").style.display = "none";
+  document.getElementById("callContactsAddButton")?.addEventListener("click", () => {
+    callContactsReturnPending = true;
+    openAddContactModal();
+  });
+  openModal();
+  await loadContacts();
+  renderCallContactsTable();
+}
+
+function renderCallContactsTable() {
+  const container = document.getElementById("callContactsList");
+  if (!container) {
+    return;
+  }
+  const filtered = contacts.filter((contact) => getContactStage(contact) === "pendiente");
+  if (!filtered.length) {
+    container.innerHTML = `<p class="contacts-table-empty">No hay contactos pendientes por llamar.</p>`;
+    return;
+  }
+  container.innerHTML = `
+    <table class="contacts-table">
+      <thead>
+        <tr><th>Empresa</th><th>Celular</th><th>Teléfono</th><th>Instagram/Web</th><th>Estado</th><th></th></tr>
+      </thead>
+      <tbody>
+        ${filtered
+          .map((contact) => {
+            const estado = normalizeContactStatus(contact.estado);
+            const id = escapeHTML(contact.id || "");
+            const statusClass =
+              estado === "Cerrado" ? "status-cerrado" : estado === "Seguimiento" ? "status-seguimiento" : estado === "No interesado" ? "status-no-interesado" : "";
+            return `
+              <tr data-contact-id="${id}">
+                <td><input class="cell-input" data-field="empresa" value="${escapeHTML(contact.empresa || "")}"></td>
+                <td><input class="cell-input" data-field="celular" value="${escapeHTML(contact.celular || "")}"></td>
+                <td><input class="cell-input" data-field="telefono" value="${escapeHTML(contact.telefono || "")}"></td>
+                <td><input class="cell-input" data-field="instagram" value="${escapeHTML(contact.instagram || "")}"></td>
+                <td>
+                  <select class="cell-select contact-status-select ${statusClass}" data-field="estado">
+                    <option value="" disabled ${!estado ? "selected" : ""}>Pendiente</option>
+                    <option value="Seguimiento" ${estado === "Seguimiento" ? "selected" : ""}>Seguimiento</option>
+                    <option value="Cerrado" ${estado === "Cerrado" ? "selected" : ""}>Cerrado</option>
+                    <option value="No interesado" ${estado === "No interesado" ? "selected" : ""}>No interesado</option>
+                  </select>
+                </td>
+                <td><button type="button" class="cell-delete" data-delete-contact="${id}" title="Eliminar">✕</button></td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </tbody>
+    </table>
+  `;
+}
+modalFields.addEventListener("change", (event) => {
+  const cell = event.target.closest("[data-field]");
+  const row = event.target.closest("tr[data-contact-id]");
+  if (!cell || !row) return;
+  updateContactField(row.dataset.contactId, cell.dataset.field, cell.value);
+});
+modalFields.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-contact]");
+  if (deleteButton) deleteContact(deleteButton.dataset.deleteContact);
+});
 function openContactStatusModal(contactId) {
   const contact = contacts.find((item) => item.id === contactId);
   if (!contact) return;
@@ -6132,7 +6258,7 @@ async function saveContactStatus() {
     showToast("No se pudo actualizar. Revisa la conexión con Google Sheets.");
   }
 }
-document.getElementById("addContactButton")?.addEventListener("click", () => {
+function openAddContactModal() {
   activeModalMode = "addContact";
   modalTitle.textContent = "Nuevo contacto";
   modalFields.innerHTML = `
@@ -6154,7 +6280,8 @@ document.getElementById("addContactButton")?.addEventListener("click", () => {
     </div>
   `;
   openModal();
-});
+}
+document.getElementById("addContactButton")?.addEventListener("click", openAddContactModal);
 async function saveNewContact() {
   const empresa = document.getElementById("newContactEmpresa").value.trim();
 
