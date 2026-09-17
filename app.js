@@ -6167,10 +6167,13 @@ function renderCallContactsInline() {
   if (!container) {
     return;
   }
-  const filtered = contacts.filter((contact) => {
-    if (callContactsInlineTab === "todos") {
-      return true;
+    const filtered = contacts.filter((contact) => {
+    const stage = getContactStage(contact);
+    if (callContactsInlineTab === "ambos") {
+      return stage === "pendiente" || stage === "seguimiento";
     }
+    return stage === callContactsInlineTab;
+  });
     return getContactStage(contact) === callContactsInlineTab;
   });
   if (!filtered.length) {
