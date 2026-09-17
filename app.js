@@ -2465,6 +2465,7 @@ async function createTaskForStage(project, stage) {
       status: "pending",
       priority: "medium",
       start_date: toISODate(new Date()),
+      deadline: project.deadline || null,
       created_by: currentUser.id,
     })
     .select()
@@ -2478,6 +2479,14 @@ async function createTaskForStage(project, stage) {
     .eq("id", stage.id);
   if (linkError) {
     throw linkError;
+  }
+  const memberIds = getProjectMemberIds(project.id);
+  if (memberIds.length) {
+    try {
+      await syncTaskMembers(data.id, memberIds);
+    } catch (memberError) {
+      console.error("Error asignando equipo a la tarea de etapa:", memberError);
+    }
   }
   return data;
 }
