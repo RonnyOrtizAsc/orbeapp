@@ -522,7 +522,7 @@ a { color: var(--blue); }
 .presence-user::before {
   content: "";
   position: absolute;
-  right: 4px;
+  right: 3px;
   bottom: 1px;
   z-index: 1;
   width: 14px;
