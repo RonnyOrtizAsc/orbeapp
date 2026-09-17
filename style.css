@@ -522,8 +522,8 @@ a { color: var(--blue); }
 .presence-user::before {
   content: "";
   position: absolute;
-  right: -1px;
-  bottom: -1px;
+  right: 1px;
+  bottom: 1px;
   z-index: 1;
   width: 14px;
   height: 14px;
