@@ -6215,7 +6215,6 @@ function renderCallContactsInline() {
 }
 
 document.getElementById("callContactsHideButton")?.addEventListener("click", closeCallContactsInline);
-  document.getElementById("callContactsHideButton")?.addEventListener("click", closeCallContactsInline);
 
 document.getElementById("callContactsInline")?.addEventListener("click", (event) => {
   const tabButton = event.target.closest("[data-call-contacts-tab]");
