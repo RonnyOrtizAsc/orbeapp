@@ -81,7 +81,6 @@ let presenceChannel = null;
 let currentCallSession = null;
 let currentCallTemplate = null;
 let currentCallOccurrence = null;
-let callContactsReturnPending = false;
 let callSessionTimerInterval = null;
 const presenceStrip = document.getElementById("presenceStrip");
 const recurringTasksList = document.getElementById("recurringTasksList");
@@ -4298,23 +4297,21 @@ function openModal() {
   modal.classList.remove("hidden");
 }
 function closeModalWindow() {
-  const shouldReturnToCallContacts = callContactsReturnPending;
-  callContactsReturnPending = false;
+  const wasAddContact = activeModalMode === "addContact";
   modal.classList.add("hidden");
   modalFields.innerHTML = "";
   activeModalMode = null;
   editingProject = null;
   editingTask = null;
   editingTemplate = null;
-  currentCallTemplate = null;
-  currentCallOccurrence = null;
+  if (!wasAddContact) {
+    currentCallTemplate = null;
+    currentCallOccurrence = null;
+  }
   editingArea = null;
   editingProfileAreaId = null;
   editingContactId = null;
   document.querySelector(".modal-buttons").style.display = "";
-  if (shouldReturnToCallContacts) {
-    openCallContactsModal();
-  }
 }
 closeModal.addEventListener("click", closeModalWindow);
 cancelModal.addEventListener("click", closeModalWindow);
@@ -4381,7 +4378,7 @@ if (endCallSessionButton) {
   endCallSessionButton.addEventListener("click", endCallSession);
 }
 if (registerCallButton) {
-  registerCallButton.addEventListener("click", openCallContactsModal);
+  registerCallButton.addEventListener("click", toggleCallContactsInline);
 }
 function formatElapsed(ms) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -5859,9 +5856,9 @@ async function loadContacts() {
     });
 
     if (data.error) throw new Error(data.error);
-
-    contacts = data.contacts || [];
+     contacts = data.contacts || [];
     renderContactsList();
+    renderCallContactsInline();
 
     if (statusEl) {
       statusEl.textContent =
@@ -6035,9 +6032,9 @@ async function updateContactField(id, field, value) {
     if (contact) {
       contact[field] = value;
     }
-    if (field === "estado") {
+      if (field === "estado") {
       renderContactsList();
-      renderCallContactsTable();
+      renderCallContactsInline();
     }
 
     showToast("Guardado.");
@@ -6065,9 +6062,9 @@ async function deleteContact(id) {
       }),
     });
     
-    contacts = contacts.filter((c) => c.id !== id);
+   contacts = contacts.filter((c) => c.id !== id);
     renderContactsList();
-    renderCallContactsTable();
+    renderCallContactsInline();
 
     showToast("Contacto eliminado.");
 
@@ -6126,37 +6123,46 @@ function openContactsForCall() {
   renderContactsList();
   startContactsPolling();
 }
-async function openCallContactsModal() {
-  activeModalMode = "callContacts";
-  modalTitle.textContent = "Contactos por llamar";
-  modalFields.innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
-      <button type="button" class="button button-dark" id="callContactsAddButton">+ Contacto</button>
-    </div>
-    <div class="contacts-table-wrap">
-      <div id="callContactsList">
-        <p class="contacts-table-empty">Cargando...</p>
-      </div>
-    </div>
-  `;
-  document.querySelector(".modal-buttons").style.display = "none";
-  document.getElementById("callContactsAddButton")?.addEventListener("click", () => {
-    callContactsReturnPending = true;
-    openAddContactModal();
-  });
-  openModal();
+let callContactsInlineOpen = false;
+
+async function toggleCallContactsInline() {
+  const panel = document.getElementById("callContactsInline");
+  if (!panel) {
+    return;
+  }
+  if (callContactsInlineOpen) {
+    closeCallContactsInline();
+    return;
+  }
+  callContactsInlineOpen = true;
+  panel.classList.remove("hidden");
+  if (registerCallButton) {
+    registerCallButton.textContent = "🔼 Ocultar contactos";
+  }
   await loadContacts();
-  renderCallContactsTable();
+  renderCallContactsInline();
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function renderCallContactsTable() {
-  const container = document.getElementById("callContactsList");
+function closeCallContactsInline() {
+  callContactsInlineOpen = false;
+  document.getElementById("callContactsInline")?.classList.add("hidden");
+  if (registerCallButton) {
+    registerCallButton.textContent = "📋 Ver contactos por llamar";
+  }
+}
+
+function renderCallContactsInline() {
+  const container = document.getElementById("callContactsListInline");
   if (!container) {
     return;
   }
-  const filtered = contacts.filter((contact) => getContactStage(contact) === "pendiente");
+  const filtered = contacts.filter((contact) => {
+    const stage = getContactStage(contact);
+    return stage === "pendiente" || stage === "seguimiento";
+  });
   if (!filtered.length) {
-    container.innerHTML = `<p class="contacts-table-empty">No hay contactos pendientes por llamar.</p>`;
+    container.innerHTML = `<p class="contacts-table-empty">No hay contactos pendientes ni en seguimiento.</p>`;
     return;
   }
   container.innerHTML = `
@@ -6194,6 +6200,24 @@ function renderCallContactsTable() {
     </table>
   `;
 }
+
+document.getElementById("callContactsHideButton")?.addEventListener("click", closeCallContactsInline);
+
+document.getElementById("callContactsAddButtonInline")?.addEventListener("click", () => {
+  openAddContactModal();
+});
+
+document.getElementById("callContactsListInline")?.addEventListener("change", (event) => {
+  const cell = event.target.closest("[data-field]");
+  const row = event.target.closest("tr[data-contact-id]");
+  if (!cell || !row) return;
+  updateContactField(row.dataset.contactId, cell.dataset.field, cell.value);
+});
+
+document.getElementById("callContactsListInline")?.addEventListener("click", (event) => {
+  const deleteButton = event.target.closest("[data-delete-contact]");
+  if (deleteButton) deleteContact(deleteButton.dataset.deleteContact);
+});
 modalFields.addEventListener("change", (event) => {
   const cell = event.target.closest("[data-field]");
   const row = event.target.closest("tr[data-contact-id]");
