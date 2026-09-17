@@ -866,14 +866,11 @@ async function loadUser(user) {
       showToast("No se pudo cargar tu perfil.");
       return;
     }
-    currentProfile = profile;
+      currentProfile = profile;
     showApp();
     updateUserInterface();
     setTodayLabel();
-    const page = PAGES.includes(location.hash.replace("#", ""))
-      ? location.hash.replace("#", "")
-      : "dashboard";
-    showPage(page, {
+    showPage("dashboard", {
       pushHistory: false,
     });
     await loadAllData();
