@@ -2601,7 +2601,12 @@ async function reopenStage(stageId) {
     );
     if (nextStage?.task_id) {
       const nextTask = tasks.find((t) => t.id === nextStage.task_id);
-      if (nextTask && nextTask.status === "pending") {
+      // Antes solo borraba si status === "pending", pero el watcher de
+      // autoAdjustStatuses() promueve la tarea a "in_progress" casi de
+      // inmediato (start_date = hoy), así que casi nunca se cumplía.
+      // Ahora se borra mientras no esté "completed" (si ya se completó,
+      // se asume que hubo trabajo real y no se toca).
+      if (nextTask && nextTask.status !== "completed") {
         await db.from("tasks").delete().eq("id", nextTask.id);
       }
       await db.from("production_stages").update({ task_id: null }).eq("id", nextStage.id);
