@@ -6216,13 +6216,15 @@ function renderCallContactsInline() {
 document.getElementById("callContactsHideButton")?.addEventListener("click", closeCallContactsInline);
   document.getElementById("callContactsHideButton")?.addEventListener("click", closeCallContactsInline);
 
-document.querySelectorAll("[data-call-contacts-tab]").forEach((button) => {
-  button.addEventListener("click", () => {
-    callContactsInlineTab = button.dataset.callContactsTab;
-    document.querySelectorAll("[data-call-contacts-tab]").forEach((btn) => btn.classList.remove("active"));
-    button.classList.add("active");
-    renderCallContactsInline();
-  });
+document.getElementById("callContactsInline")?.addEventListener("click", (event) => {
+  const tabButton = event.target.closest("[data-call-contacts-tab]");
+  if (!tabButton) {
+    return;
+  }
+  callContactsInlineTab = tabButton.dataset.callContactsTab;
+  document.querySelectorAll("[data-call-contacts-tab]").forEach((btn) => btn.classList.remove("active"));
+  tabButton.classList.add("active");
+  renderCallContactsInline();
 });
 
 document.getElementById("callContactsAddButtonInline")?.addEventListener("click", () => {
