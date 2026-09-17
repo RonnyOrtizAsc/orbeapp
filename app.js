@@ -6167,14 +6167,12 @@ function renderCallContactsInline() {
   if (!container) {
     return;
   }
-    const filtered = contacts.filter((contact) => {
+  const filtered = contacts.filter((contact) => {
     const stage = getContactStage(contact);
     if (callContactsInlineTab === "ambos") {
       return stage === "pendiente" || stage === "seguimiento";
     }
     return stage === callContactsInlineTab;
-  });
-    return getContactStage(contact) === callContactsInlineTab;
   });
   if (!filtered.length) {
     container.innerHTML = `<p class="contacts-table-empty">No hay contactos en esta lista.</p>`;
