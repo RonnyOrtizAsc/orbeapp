@@ -5888,7 +5888,10 @@ function renderContactsList() {
   const container = document.getElementById("contactsList");
   if (!container) return;
 
-  const filtered = contacts.filter((contact) => {
+   const filtered = contacts.filter((contact) => {
+    if (contactsTab === "todos") {
+      return true;
+    }
     return getContactStage(contact) === contactsTab;
   });
 
@@ -6087,7 +6090,8 @@ document.querySelectorAll("[data-contacts-tab]").forEach((button) => {
   button.addEventListener("click", () => {
     const tab = button.dataset.contactsTab;
 
-    const tabMap = {
+      const tabMap = {
+  todos: "todos",
   pendiente: "pendiente",
   seguimiento: "seguimiento",
   cerrado: "cerrado",
