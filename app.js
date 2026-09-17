@@ -6004,7 +6004,7 @@ function renderContactsList() {
                     class="cell-select contact-status-select ${statusClass}"
                     data-field="estado"
                   >
-                    <option value="" disabled ${!estado ? "selected" : ""}>
+                    <option value="" ${!estado ? "selected" : ""}>
                       Pendiente
                     </option>
 
@@ -6230,7 +6230,7 @@ function renderCallContactsInline() {
                 <td><input class="cell-input" data-field="instagram" value="${escapeHTML(contact.instagram || "")}"></td>
                 <td>
                   <select class="cell-select contact-status-select ${statusClass}" data-field="estado">
-                    <option value="" disabled ${!estado ? "selected" : ""}>Pendiente</option>
+                    <option value="" ${!estado ? "selected" : ""}>Pendiente</option>
                     <option value="Seguimiento" ${estado === "Seguimiento" ? "selected" : ""}>Seguimiento</option>
                     <option value="Cerrado" ${estado === "Cerrado" ? "selected" : ""}>Cerrado</option>
                     <option value="No interesado" ${estado === "No interesado" ? "selected" : ""}>No interesado</option>
