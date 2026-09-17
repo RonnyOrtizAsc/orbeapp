@@ -1551,12 +1551,37 @@ async function loadAllData() {
   }
   await autoAdjustOverdueOccurrences();
   await loadTaskOccurrences();
+  await repairMissingStageTasks();
   renderProjects();
   renderTasks();
   renderRecurringTasks();
   renderActiveProductions();
   renderAreaChips();
   renderTeam();
+}
+
+async function repairMissingStageTasks() {
+  const videoProjects = projects.filter((project) => project.project_type === "video");
+  let changed = false;
+  for (const project of videoProjects) {
+    const stages = getProjectStages(project.id);
+    if (!stages.length) {
+      continue;
+    }
+    const current = stages.find((stage) => stage.status !== "completed");
+    if (current && !current.task_id) {
+      try {
+        await createTaskForStage(project, current);
+        changed = true;
+      } catch (error) {
+        console.error("Error reparando tarea de etapa:", error);
+      }
+    }
+  }
+  if (changed) {
+    await loadProductionStages();
+    await loadTasks();
+  }
 }
 async function loadProjects() {
   const { data, error } = await db.from("projects").select("*").order("created_at", {
@@ -4670,12 +4695,17 @@ document.getElementById("dashboardProjects").addEventListener("click", (event) =
   openProjectDetail(button.dataset.dashboardProject);
 });
 document.getElementById("dashboardTasks").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-goto-task]");
-  if (!button) {
+  const taskButton = event.target.closest("[data-goto-task]");
+  const templateButton = event.target.closest("[data-goto-template]");
+  if (taskButton) {
+    event.stopPropagation();
+    goToTask(taskButton.dataset.gotoTask);
     return;
   }
-  event.stopPropagation();
-  goToTask(button.dataset.gotoTask);
+  if (templateButton) {
+    event.stopPropagation();
+    goToTemplate(templateButton.dataset.gotoTemplate);
+  }
 });
 function renderDashboardAlerts() {
   const container = document.getElementById("dashboardAlerts");
@@ -4782,8 +4812,33 @@ function renderDashboardTasks() {
   if (!container) {
     return;
   }
-  const pending = tasks
+  const pendingTasks = tasks
     .filter((task) => task.status !== "completed")
+    .map((task) => ({
+      kind: "task",
+      id: task.id,
+      title: task.title,
+      meta:
+        `${getTaskMembers(task).map((member) => escapeHTML(member.name)).join(", ") || "Sin asignar"} · ${formatDate(task.deadline)}`,
+      deadline: task.deadline,
+    }));
+
+  const pendingSmart = taskTemplates
+    .filter((template) => template.is_active !== false)
+    .map((template) => ({ template, occurrence: getOccurrenceForToday(template.id) }))
+    .filter(
+      ({ occurrence }) =>
+        occurrence && occurrence.status !== "completed" && occurrence.status !== "vencida",
+    )
+    .map(({ template, occurrence }) => ({
+      kind: "smart",
+      id: template.id,
+      title: template.title,
+      meta: `${formatNumber(getOccurrenceActualValue(occurrence))}/${formatNumber(occurrence.target_value)} ${escapeHTML(template.target_unit || "unidades")} · hoy`,
+      deadline: null,
+    }));
+
+  const combined = [...pendingSmart, ...pendingTasks]
     .sort((a, b) => {
       const aDate = dateOnly(a.deadline);
       const bDate = dateOnly(b.deadline);
@@ -4799,7 +4854,8 @@ function renderDashboardTasks() {
       return aDate.getTime() - bDate.getTime();
     })
     .slice(0, 6);
-  if (!pending.length) {
+
+  if (!combined.length) {
     container.innerHTML = `
       <p class="empty-text">
         No hay tareas pendientes.
@@ -4807,26 +4863,20 @@ function renderDashboardTasks() {
     `;
     return;
   }
-  container.innerHTML = pending
+  container.innerHTML = combined
     .map(
-      (task) => `
+      (item) => `
           <button
             class="dashboard-item"
             type="button"
             style="text-align:left"
-            data-goto-task="${task.id}"
+            ${item.kind === "smart" ? `data-goto-template="${item.id}"` : `data-goto-task="${item.id}"`}
           >
             <div class="dashboard-item-title">
-              ${escapeHTML(task.title)}
+              ${item.kind === "smart" ? "📞 " : ""}${escapeHTML(item.title)}
             </div>
             <div class="dashboard-item-meta">
-              ${
-                getTaskMembers(task)
-                  .map((member) => escapeHTML(member.name))
-                  .join(", ") || "Sin asignar"
-              }
-              ·
-              ${formatDate(task.deadline)}
+              ${item.meta}
             </div>
           </button>
         `,
