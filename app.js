@@ -6057,9 +6057,7 @@ contactsTab = tabMap[tab] ?? "pendiente";
     renderContactsList();
   });
 });
-// Al hacer clic en "Ver contactos por llamar" desde la sesión de
-// llamadas, en vez de abrir el modal viejo, llevamos a la persona
-// directo a la hoja de contactos, en la pestaña "Por contactar".
+//para la tabla contactos pero en llaamdas
 function openContactsForCall() {
   showPage("organization");
   document.querySelectorAll(".org-tab").forEach((btn) => {
