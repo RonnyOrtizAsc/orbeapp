@@ -6465,8 +6465,19 @@ document.getElementById("backToToolsFromContacts")?.addEventListener("click", ()
   const START_LIVES = 2;
   const MAX_LIVES = 3;
 
-  const logoImage = new Image();
+    const logoImage = new Image();
   logoImage.src = "./Recursos/Imagenes/Logotipo.png";
+
+  let pilotAvatarImage = null;
+  function loadPilotAvatarImage() {
+    if (currentProfile?.avatar_url) {
+      const img = new Image();
+      img.src = currentProfile.avatar_url;
+      pilotAvatarImage = img;
+    } else {
+      pilotAvatarImage = null;
+    }
+  }
 
   const SHIP_MODELS = {
     veloz: { name: "Interceptor", color: "#79ABF2", moveSpeed: 7, fireCooldown: 250, damage: 1, worldSpeedMultiplier: 1.35, size: 30 },
@@ -6492,7 +6503,8 @@ document.getElementById("backToToolsFromContacts")?.addEventListener("click", ()
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, "0")}`;
   }
 
-    function resetGame() {
+        function resetGame() {
+    loadPilotAvatarImage();
     const model = SHIP_MODELS[selectedShipId];
        ship = { x: 55, y: H / 2, size: model.size || 30, model, lives: START_LIVES, invulnerable: 0 };
     lasers = [];
@@ -6887,8 +6899,12 @@ document.getElementById("backToToolsFromContacts")?.addEventListener("click", ()
     ctx.fillStyle = "#141312";
     ctx.fill();
     ctx.clip();
-    if (logoImage.complete && logoImage.naturalWidth) {
-      ctx.drawImage(logoImage, cx - r, cy - r, r * 2, r * 2);
+    const badgeImage =
+      pilotAvatarImage && pilotAvatarImage.complete && pilotAvatarImage.naturalWidth
+        ? pilotAvatarImage
+        : logoImage;
+    if (badgeImage.complete && badgeImage.naturalWidth) {
+      ctx.drawImage(badgeImage, cx - r, cy - r, r * 2, r * 2);
     }
     ctx.restore();
     ctx.beginPath();
