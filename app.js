@@ -3748,8 +3748,6 @@ function editRecurringTask(templateId) {
 
 async function saveRecurringTask() {
   const title = document.getElementById("smartTaskTitle").value.trim();
-async function saveRecurringTask() {
-  const title = document.getElementById("smartTaskTitle").value.trim();
   const description = document.getElementById("smartTaskDescription").value.trim();
   const projectId = document.getElementById("smartTaskProject").value || null;
   const profileIds = getSmartTaskSelectedMemberIds();
