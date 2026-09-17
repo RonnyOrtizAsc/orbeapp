@@ -20,6 +20,7 @@ let projectMembers = [];
 let taskMembers = [];
 let editingProject = null;
 let editingTask = null;
+let editingTemplate = null;
 let activeModalMode = null;
 let selectedTeamProfile = null;
 let selectedProject = null;
@@ -849,31 +850,41 @@ function showApp() {
 // Los datos (proyectos, tareas, etc.) y la presencia en tiempo real
 // se cargan después, sin bloquear el primer pintado — así el login
 // se siente inmediato en vez de esperar todas las llamadas en fila.
+let userLoadInFlight = false;
+
 async function loadUser(user) {
-  currentUser = user;
-  const { data: profile, error } = await db.from("profiles").select("*").eq("id", user.id).single();
-  if (error) {
-    console.error("Error obteniendo perfil:", error);
-    showToast("No se pudo cargar tu perfil.");
+  if (userLoadInFlight) {
     return;
   }
-  currentProfile = profile;
-  showApp();
-  updateUserInterface();
-  setTodayLabel();
-  const page = PAGES.includes(location.hash.replace("#", ""))
-    ? location.hash.replace("#", "")
-    : "dashboard";
-  showPage(page, {
-    pushHistory: false,
-  });
-  await loadAllData();
-  updateDashboard();
-  // No se espera: el canal de presencia en tiempo real puede tardar
-  // en conectar y no debe retrasar el resto de la app.
-  setupPresence();
-  startAutoPriorityWatcher();
-  startLiveColorWatcher();
+  userLoadInFlight = true;
+  try {
+    currentUser = user;
+    const { data: profile, error } = await db.from("profiles").select("*").eq("id", user.id).single();
+    if (error) {
+      console.error("Error obteniendo perfil:", error);
+      showToast("No se pudo cargar tu perfil.");
+      return;
+    }
+    currentProfile = profile;
+    showApp();
+    updateUserInterface();
+    setTodayLabel();
+    const page = PAGES.includes(location.hash.replace("#", ""))
+      ? location.hash.replace("#", "")
+      : "dashboard";
+    showPage(page, {
+      pushHistory: false,
+    });
+    await loadAllData();
+    updateDashboard();
+    // No se espera: el canal de presencia en tiempo real puede tardar
+    // en conectar y no debe retrasar el resto de la app.
+    setupPresence();
+    startAutoPriorityWatcher();
+    startLiveColorWatcher();
+  } finally {
+    userLoadInFlight = false;
+  }
 }
 function updateUserInterface() {
   const name = currentProfile.name || "Usuario";
@@ -3459,6 +3470,7 @@ if (newRecurringTaskButton) {
     if (!canManage(currentProfile)) {
       return;
     }
+    editingTemplate = null;
     activeModalMode = "recurringTask";
     modalTitle.textContent = "Nueva tarea inteligente";
     modalFields.innerHTML = buildRecurringTaskForm();
@@ -3721,6 +3733,21 @@ function updateRecurringTaskPreview() {
     }
   `;
 }
+function editRecurringTask(templateId) {
+  const template = getTemplateById(templateId);
+  if (!template || !canManage(currentProfile)) {
+    return;
+  }
+  editingTemplate = template;
+  activeModalMode = "recurringTask";
+  modalTitle.textContent = "Editar tarea inteligente";
+  modalFields.innerHTML = buildRecurringTaskForm(template);
+  bindRecurringTaskPreview();
+  openModal();
+}
+
+async function saveRecurringTask() {
+  const title = document.getElementById("smartTaskTitle").value.trim();
 async function saveRecurringTask() {
   const title = document.getElementById("smartTaskTitle").value.trim();
   const description = document.getElementById("smartTaskDescription").value.trim();
@@ -3761,30 +3788,46 @@ async function saveRecurringTask() {
     return;
   }
   try {
-    const { data: template, error } = await db
-      .from("task_templates")
-      .insert({
-        title,
-        description,
-        project_id: projectId,
-        assigned_profile_id: profileIds[0],
-        created_by: currentUser.id,
-        start_date: startDate,
-        end_date: endDate,
-        weekdays,
-        target_value: targetValue,
-        target_unit: targetUnit,
-        priority,
-        is_active: true,
-      })
-      .select()
-      .single();
-    if (error) {
-      throw error;
+    const payload = {
+      title,
+      description,
+      project_id: projectId,
+      assigned_profile_id: profileIds[0],
+      start_date: startDate,
+      end_date: endDate,
+      weekdays,
+      target_value: targetValue,
+      target_unit: targetUnit,
+      priority,
+    };
+    let template;
+    if (editingTemplate) {
+      const { data, error } = await db
+        .from("task_templates")
+        .update(payload)
+        .eq("id", editingTemplate.id)
+        .select()
+        .single();
+      if (error) {
+        throw error;
+      }
+      template = data;
+    } else {
+      const { data, error } = await db
+        .from("task_templates")
+        .insert({ ...payload, created_by: currentUser.id, is_active: true })
+        .select()
+        .single();
+      if (error) {
+        throw error;
+      }
+      template = data;
     }
     const generated = await generateOccurrencesForTemplate(template, profileIds);
     closeModalWindow();
-    showToast(`Tarea inteligente creada (${generated} día(s))`);
+    showToast(
+      editingTemplate ? "Tarea inteligente actualizada" : `Tarea inteligente creada (${generated} día(s))`,
+    );
     await loadTaskTemplates();
     await loadTaskOccurrences();
     await loadTasks();
@@ -3794,8 +3837,8 @@ async function saveRecurringTask() {
     renderTeam();
     updateDashboard();
   } catch (error) {
-    console.error("Error creando tarea inteligente:", error);
-    showToast(error.message || "No se pudo crear la tarea inteligente.");
+    console.error("Error guardando tarea inteligente:", error);
+    showToast(error.message || "No se pudo guardar la tarea inteligente.");
   }
 }
 async function generateOccurrencesForTemplate(template) {
@@ -4132,9 +4175,16 @@ function renderRecurringTaskCard(template) {
             `
             : ""
         }
-        ${
+                ${
           canManage(currentProfile)
             ? `
+              <button
+                class="smart-task-action"
+                type="button"
+                data-smart-edit="${template.id}"
+              >
+                Editar
+              </button>
               <button
                 class="smart-task-action"
                 type="button"
@@ -4158,9 +4208,14 @@ function renderRecurringTaskCard(template) {
 }
 if (recurringTasksList) {
   recurringTasksList.addEventListener("click", (event) => {
+    const editButton = event.target.closest("[data-smart-edit]");
     const generateButton = event.target.closest("[data-smart-generate]");
     const startCallButton = event.target.closest("[data-start-call-template]");
     const deleteButton = event.target.closest("[data-smart-delete]");
+    if (editButton) {
+      editRecurringTask(editButton.dataset.smartEdit);
+      return;
+    }
     if (generateButton) {
       prepareTemplateGeneration(generateButton.dataset.smartGenerate);
       return;
@@ -4243,6 +4298,7 @@ function closeModalWindow() {
   activeModalMode = null;
   editingProject = null;
   editingTask = null;
+  editingTemplate = null;
   currentCallTemplate = null;
   currentCallOccurrence = null;
   editingArea = null;
