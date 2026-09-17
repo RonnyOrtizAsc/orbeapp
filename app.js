@@ -2414,6 +2414,9 @@ function renderProductionStages(projectId) {
           const isLocked = !isDone && !isCurrent;
           const task = stage.task_id ? tasks.find((t) => t.id === stage.task_id) : null;
           const overdueNow = isCurrent && task && task.status !== "completed" && isPastDate(task.deadline);
+          const managerHere = canManage(currentProfile);
+          const isAssignedHere = task ? getTaskMemberIds(task).includes(currentProfile.id) : false;
+          const canActHere = managerHere || isAssignedHere;
           return `
             <div class="production-stage ${isDone ? "done" : ""} ${isCurrent ? "current" : ""} ${isLocked ? "locked" : ""}">
               <div class="production-stage-dot">${isDone ? "✓" : index + 1}</div>
@@ -2436,15 +2439,17 @@ function renderProductionStages(projectId) {
                 }
               </div>
               ${
-                isCurrent && canManage(currentProfile)
-                  ? `
-                    <button type="button" class="smart-task-action" data-edit-stage-task="${task ? task.id : ""}">Editar fechas</button>
-                    <button type="button" class="smart-task-action primary" data-complete-stage="${stage.id}">Marcar terminado</button>
-                  `
+                managerHere
+                  ? `<button type="button" class="smart-task-action" data-edit-stage="${stage.id}">Editar fechas</button>`
                   : ""
               }
               ${
-                isDone && canManage(currentProfile) && index === currentIndex - 1
+                isCurrent && canActHere
+                  ? `<button type="button" class="smart-task-action primary" data-complete-stage="${stage.id}">Marcar terminado</button>`
+                  : ""
+              }
+              ${
+                isDone && canActHere && index === currentIndex - 1
                   ? `<button type="button" class="smart-task-action" data-reopen-stage="${stage.id}">Reabrir</button>`
                   : ""
               }
@@ -2500,7 +2505,34 @@ async function createTaskForStage(project, stage) {
       console.error("Error asignando equipo a la tarea de etapa:", memberError);
     }
   }
-  return data;
+    return data;
+}
+
+async function editStageTaskFromButton(stageId) {
+  const stage = productionStages.find((item) => item.id === stageId);
+  if (!stage) {
+    return;
+  }
+  let task = stage.task_id ? tasks.find((t) => t.id === stage.task_id) : null;
+  if (!task) {
+    const project = projects.find((p) => p.id === stage.project_id);
+    if (!project) {
+      return;
+    }
+    try {
+      task = await createTaskForStage(project, stage);
+      await loadProductionStages();
+      await loadTasks();
+      renderProductionStages(project.id);
+      renderActiveProductions();
+      renderTasks();
+    } catch (error) {
+      console.error("Error creando tarea de la etapa:", error);
+      showToast(error.message || "No se pudo crear la tarea de la etapa.");
+      return;
+    }
+  }
+  editTask(task.id);
 }
 
 async function startProductionPipeline(projectId) {
@@ -2640,7 +2672,7 @@ projectDetailContent.addEventListener("click", (event) => {
   const startButton = event.target.closest("#startProductionButton");
   const completeButton = event.target.closest("[data-complete-stage]");
   const reopenButton = event.target.closest("[data-reopen-stage]");
-  const editStageTaskButton = event.target.closest("[data-edit-stage-task]");
+  const editStageButton = event.target.closest("[data-edit-stage]");
   if (startButton) {
     startProductionPipeline(startButton.dataset.projectId);
     return;
@@ -2653,8 +2685,8 @@ projectDetailContent.addEventListener("click", (event) => {
     reopenStage(reopenButton.dataset.reopenStage);
     return;
   }
-  if (editStageTaskButton && editStageTaskButton.dataset.editStageTask) {
-    editTask(editStageTaskButton.dataset.editStageTask);
+  if (editStageButton) {
+    editStageTaskFromButton(editStageButton.dataset.editStage);
   }
 });
 document.getElementById("activeProductionsList")?.addEventListener("click", (event) => {
