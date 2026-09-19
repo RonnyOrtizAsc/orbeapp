@@ -1965,6 +1965,36 @@ button, .nav-item, .task-row, .team-card {
 .production-stage.done .production-stage-dot { background: var(--green); color: #0c2415; }
 .production-stage.current .production-stage-dot { background: var(--amarillo); color: var(--negro); }
 .production-stage-label { flex: 1; font-size: 13px; font-weight: 700; color: var(--text); }
+.production-stage { flex-wrap: wrap; }
+.production-stage-main { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 180px; }
+.production-stage-main-clickable { cursor: pointer; }
+.production-stage-chevron { margin-left: 4px; color: var(--muted-dim); font-size: 11px; flex-shrink: 0; }
+.production-stage-expand {
+  flex-basis: 100%;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-soft);
+}
+.stage-expand-textarea {
+  width: 100%;
+  min-height: 70px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-soft);
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+}
+.stage-expand-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  color: var(--muted-dim);
+  font-size: 11px;
+}
 
 /* =====================================================
    SEGUIMIENTO DE CONTACTOS
