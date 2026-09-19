@@ -5928,17 +5928,17 @@ function renderContactsList() {
 
   container.innerHTML = `
     <table class="contacts-table">
-      <thead>
+       <thead>
         <tr>
           <th>Empresa</th>
           <th>Celular</th>
           <th>Teléfono</th>
           <th>Instagram/Web</th>
+          <th>Notas</th>
           <th>Estado</th>
           <th></th>
         </tr>
       </thead>
-
       <tbody>
         ${filtered
           .map((contact) => {
@@ -5981,11 +5981,20 @@ function renderContactsList() {
                   >
                 </td>
 
-                <td>
+             <td>
                   <input
                     class="cell-input"
                     data-field="instagram"
                     value="${escapeHTML(contact.instagram || "")}"
+                  >
+                </td>
+
+                <td>
+                  <input
+                    class="cell-input"
+                    data-field="notas"
+                    value="${escapeHTML(contact.notas || "")}"
+                    placeholder="Notas..."
                   >
                 </td>
 
@@ -6203,7 +6212,7 @@ function renderCallContactsInline() {
   container.innerHTML = `
     <table class="contacts-table">
       <thead>
-        <tr><th>Empresa</th><th>Celular</th><th>Teléfono</th><th>Instagram/Web</th><th>Estado</th><th></th></tr>
+        <tr><th>Empresa</th><th>Celular</th><th>Teléfono</th><th>Instagram/Web</th><th>Notas</th><th>Estado</th><th></th></tr>
       </thead>
       <tbody>
         ${filtered
@@ -6217,7 +6226,8 @@ function renderCallContactsInline() {
                 <td><input class="cell-input" data-field="empresa" value="${escapeHTML(contact.empresa || "")}"></td>
                 <td><input class="cell-input" data-field="celular" value="${escapeHTML(contact.celular || "")}"></td>
                 <td><input class="cell-input" data-field="telefono" value="${escapeHTML(contact.telefono || "")}"></td>
-                <td><input class="cell-input" data-field="instagram" value="${escapeHTML(contact.instagram || "")}"></td>
+               <td><input class="cell-input" data-field="instagram" value="${escapeHTML(contact.instagram || "")}"></td>
+                <td><input class="cell-input" data-field="notas" value="${escapeHTML(contact.notas || "")}" placeholder="Notas..."></td>
                 <td>
                   <select class="cell-select contact-status-select ${statusClass}" data-field="estado">
                     <option value="" ${!estado ? "selected" : ""}>Pendiente</option>
@@ -6347,9 +6357,13 @@ function openAddContactModal() {
       <label for="newContactTelefono">Teléfono</label>
       <input id="newContactTelefono">
     </div>
-    <div class="modal-field">
+       <div class="modal-field">
       <label for="newContactInstagram">Instagram / Web</label>
       <input id="newContactInstagram">
+    </div>
+    <div class="modal-field">
+      <label for="newContactNotas">Notas</label>
+      <textarea id="newContactNotas" placeholder="Opcional"></textarea>
     </div>
   `;
   openModal();
@@ -6376,7 +6390,8 @@ async function saveNewContact() {
         empresa,
         celular: document.getElementById("newContactCelular").value.trim(),
         telefono: document.getElementById("newContactTelefono").value.trim(),
-        instagram: document.getElementById("newContactInstagram").value.trim(),
+       instagram: document.getElementById("newContactInstagram").value.trim(),
+        notas: document.getElementById("newContactNotas").value.trim(),
         actualizadoPor: currentProfile?.name || "",
       }),
     });
