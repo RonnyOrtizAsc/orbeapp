@@ -672,6 +672,7 @@ button.dashboard-item:hover { background: var(--surface-raised); }
   flex-direction: column;
   gap: 12px;
   padding: 18px;
+  cursor: pointer;
   transition: border-color .15s ease, transform .15s ease;
 }
 
