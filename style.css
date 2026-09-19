@@ -2070,3 +2070,62 @@ button, .nav-item, .task-row, .team-card {
   background: #f4cccc;
 }
 
+/* =====================================================
+   Estilo celulares
+===================================================== */
+
+/* Zonas seguras (notch / barra inferior) en iOS. env() vale 0
+   en cualquier pantalla sin notch, así que en PC no cambia nada. */
+.sidebar {
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+}
+.modal {
+  padding-top: max(18px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(18px, env(safe-area-inset-bottom, 0px));
+}
+.avatar-viewer-modal {
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+}
+.toast {
+  bottom: max(22px, env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 880px) {
+  /* Evita que un nombre/usuario largo desborde la tarjeta de
+     perfil y genere scroll horizontal en toda la página. */
+  .profile-hero {
+    flex-wrap: wrap;
+  }
+  .profile-hero > div:last-child {
+    min-width: 0;
+  }
+  .profile-hero h1 {
+    word-break: break-word;
+  }
+
+  /* Botones más fáciles de tocar con el dedo. */
+  .edit-button,
+  .danger-button {
+    min-height: 34px;
+  }
+  .contacts-table .cell-delete {
+    width: 34px;
+    height: 34px;
+  }
+  .weekday-option label {
+    min-height: 42px;
+  }
+  .task-project-label {
+    padding: 4px 0;
+  }
+
+  /* Evita el zoom automático de iOS al tocar estos campos
+     (Safari hace zoom si la letra es menor a 16px). */
+  .contacts-table input.cell-input,
+  .contacts-table select.cell-select {
+    font-size: 16px;
+  }
+}
+
