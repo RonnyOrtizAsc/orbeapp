@@ -4146,6 +4146,7 @@ async function saveRecurringTask() {
     showToast("Indica la unidad de la meta.");
     return;
   }
+   const previousWeekdays = editingTemplate ? parseWeekdays(editingTemplate.weekdays) : null;
   try {
     const payload = {
       title,
@@ -4182,6 +4183,7 @@ async function saveRecurringTask() {
       }
       template = data;
     }
+    await cleanupRemovedWeekdayOccurrences(template, previousWeekdays);
     const generated = await generateOccurrencesForTemplate(template, profileIds);
     closeModalWindow();
     showToast(
@@ -4264,9 +4266,16 @@ function getLastSessionForTemplate(templateId) {
   return sessions[0] || null;
 }
 function getOccurrenceForToday(templateId) {
-  const today = toISODate(new Date());
+  const template = getTemplateById(templateId);
+  const todayISO = toISODate(new Date());
+  if (template) {
+    const weekdays = parseWeekdays(template.weekdays);
+    if (!weekdays.includes(weekdayNumber(new Date()))) {
+      return null;
+    }
+  }
   return taskOccurrences.find(
-    (occurrence) => occurrence.template_id === templateId && occurrence.occurrence_date === today,
+    (occurrence) => occurrence.template_id === templateId && occurrence.occurrence_date === todayISO,
   );
 }
 function getOccurrenceActualValue(occurrence) {
@@ -4274,6 +4283,43 @@ function getOccurrenceActualValue(occurrence) {
     return 0;
   }
   return normalizeNumericValue(occurrence.actual_value);
+}
+async function cleanupRemovedWeekdayOccurrences(template, previousWeekdays) {
+  if (!previousWeekdays || !previousWeekdays.length) {
+    return;
+  }
+  const currentWeekdays = parseWeekdays(template.weekdays);
+  const removedWeekdays = previousWeekdays.filter((day) => !currentWeekdays.includes(day));
+  if (!removedWeekdays.length) {
+    return;
+  }
+  const todayISO = toISODate(new Date());
+  const occurrenceIdsWithSessions = new Set(
+    workSessions.map((session) => session.occurrence_id).filter(Boolean),
+  );
+  const toDelete = taskOccurrences.filter((occurrence) => {
+    if (occurrence.template_id !== template.id) return false;
+    if (occurrence.occurrence_date < todayISO) return false; // nunca tocar el pasado
+    if (occurrence.status !== "pending") return false; // nunca tocar algo con progreso real
+    if (normalizeNumericValue(occurrence.actual_value) > 0) return false; // nunca tocar algo con avance
+    if (occurrenceIdsWithSessions.has(occurrence.id)) return false; // nunca tocar algo con sesión registrada
+    const day = weekdayNumber(dateOnly(occurrence.occurrence_date));
+    return removedWeekdays.includes(day);
+  });
+  if (!toDelete.length) {
+    return;
+  }
+  try {
+    const { error } = await db
+      .from("task_occurrences")
+      .delete()
+      .in("id", toDelete.map((occurrence) => occurrence.id));
+    if (error) {
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error limpiando ocurrencias de días quitados:", error);
+  }
 }
 function getUpcomingDateForTemplate(template) {
   const todayISO = toISODate(new Date());
