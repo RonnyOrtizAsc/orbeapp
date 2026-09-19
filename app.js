@@ -1888,6 +1888,11 @@ document.getElementById("projectsList").addEventListener("click", (event) => {
   }
   if (deleteButton) {
     deleteProject(deleteButton.dataset.projectDelete);
+    return;
+  }
+  const card = event.target.closest("[data-project-id]");
+  if (card) {
+    openProjectDetail(card.dataset.projectId);
   }
 });
 
