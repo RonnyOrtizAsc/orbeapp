@@ -2295,6 +2295,7 @@ function buildTimelineHTML(project, projectTasks, projectTemplates = []) {
 let productionStages = [];
 let expandedProductionStages = new Set();
 let editingStageNotes = new Set();
+let stageActionsInFlight = new Set();
 const EXPANDABLE_STAGE_KEYS = ["investigacion", "escritura", "preproduccion", "grabacion"];
 const PRODUCTION_STAGES = [
   { key: "investigacion", label: "Investigación" },
@@ -2843,6 +2844,10 @@ async function startProductionPipeline(projectId) {
   }
 }
 async function completeStage(stageId) {
+  if (stageActionsInFlight.has(stageId)) {
+    return;
+  }
+  stageActionsInFlight.add(stageId);
   try {
     const stage = productionStages.find((item) => item.id === stageId);
     if (!stage) {
@@ -2878,8 +2883,18 @@ async function completeStage(stageId) {
     const nextStage = productionStages.find(
       (item) => item.project_id === stage.project_id && item.stage_order === stage.stage_order + 1,
     );
-    if (nextStage && !nextStage.task_id && project) {
-      await createTaskForStage(project, nextStage);
+    if (nextStage && project) {
+      // Doble chequeo directo contra la base justo antes de crear,
+      // para evitar duplicados si dos personas (o un doble clic)
+      // disparan esto casi al mismo tiempo.
+      const { data: freshNextStage } = await db
+        .from("production_stages")
+        .select("task_id")
+        .eq("id", nextStage.id)
+        .single();
+      if (!freshNextStage || !freshNextStage.task_id) {
+        await createTaskForStage(project, nextStage);
+      }
       await loadProductionStages();
       await loadTasks();
     }
@@ -2894,9 +2909,15 @@ async function completeStage(stageId) {
   } catch (error) {
     console.error("Error completando etapa:", error);
     showToast(error.message || "No se pudo actualizar la etapa.");
+  } finally {
+    stageActionsInFlight.delete(stageId);
   }
 }
 async function reopenStage(stageId) {
+  if (stageActionsInFlight.has(stageId)) {
+    return;
+  }
+  stageActionsInFlight.add(stageId);
   try {
     const stage = productionStages.find((item) => item.id === stageId);
     if (!stage) {
@@ -2940,6 +2961,8 @@ async function reopenStage(stageId) {
   } catch (error) {
     console.error("Error reabriendo etapa:", error);
     showToast(error.message || "No se pudo reabrir la etapa.");
+  } finally {
+    stageActionsInFlight.delete(stageId);
   }
 }
 projectDetailContent.addEventListener("click", (event) => {
