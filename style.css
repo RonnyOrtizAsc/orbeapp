@@ -1970,7 +1970,7 @@ button, .nav-item, .task-row, .team-card {
    SEGUIMIENTO DE CONTACTOS
 ===================================================== */
 .contacts-table-wrap { width: 100%; overflow-x: auto; margin-top: 14px; }
-.contacts-table { width: 100%; min-width: 720px; border-collapse: collapse; }
+.contacts-table { width: 100%; min-width: 820px; border-collapse: collapse; }
 .contacts-table th {
   text-align: left;
   padding: 9px 10px;
