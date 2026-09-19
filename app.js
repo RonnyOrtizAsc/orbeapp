@@ -82,6 +82,7 @@ let currentCallSession = null;
 let currentCallTemplate = null;
 let currentCallOccurrence = null;
 let callSessionTimerInterval = null;
+let callSessionCountedContacts = new Set();
 const presenceStrip = document.getElementById("presenceStrip");
 const recurringTasksList = document.getElementById("recurringTasksList");
 const callSessionPanel = document.getElementById("callSessionPanel");
@@ -456,7 +457,8 @@ async function autoAdjustStatuses() {
 async function autoAdjustPriorities() {
   const taskUpdates = tasks
     .filter((task) => task.status !== "completed")
-    .map((task) => ({ id: task.id, next: computeAutoPriority(task) }))
+    .map((task) => ({ 
+      id: task.id, next: computeAutoPriority(task) }))
     .filter((u) => u.next && u.next !== tasks.find((t) => t.id === u.id).priority);
   const projectUpdates = projects
     .filter((project) => project.status !== "completed")
@@ -2307,6 +2309,19 @@ function getProjectStages(projectId) {
     .filter((stage) => stage.project_id === projectId)
     .sort((a, b) => a.stage_order - b.stage_order);
 }
+function isVisiblePendingTask(task) {
+  if (task.status === "completed") {
+    return true;
+  }
+  const stage = productionStages.find((item) => item.task_id === task.id);
+  if (!stage) {
+    return true;
+  }
+  const projectStages = getProjectStages(stage.project_id);
+  const currentIndex = projectStages.findIndex((item) => item.status !== "completed");
+  const current = currentIndex === -1 ? null : projectStages[currentIndex];
+  return current ? current.id === stage.id : true;
+}
 function getVideoProjectsInProduction() {
   return projects.filter(
     (project) => project.project_type === "video" && getProjectStages(project.id).length > 0,
@@ -3332,7 +3347,7 @@ function renderTasks() {
     } else if (projectFilter !== "all") {
       projectMatch = task.project_id === projectFilter;
     }
-    return searchMatch && statusMatch && priorityMatch && projectMatch;
+    return searchMatch && statusMatch && priorityMatch && projectMatch && isVisiblePendingTask(task);
   });
   const columns = {
     pending: filtered.filter((task) => task.status === "pending"),
@@ -4814,7 +4829,8 @@ async function startCallSession() {
     if (error) {
       throw error;
     }
-    currentCallSession = data;
+   currentCallSession = data;
+    callSessionCountedContacts = new Set();
     await loadWorkSessions();
     updateCallSessionUI();
     startCallSessionTimer();
@@ -4857,13 +4873,11 @@ function checkAutoCompleteCallSession() {
   }
   const startedAt = new Date(currentCallSession.started_at).getTime();
   const elapsed = Date.now() - startedAt;
-  if (elapsed >= 60 * 60 * 1000) {
+  if (elapsed >= 30 * 60 * 1000) {
     autoCompleteCurrentOccurrence();
   }
 }
 async function autoCompleteCurrentOccurrence() {
-  // Si en la hora sí se alcanzó la meta, deja que el estado que ya
-  // puso saveCallActivity ("completed") se quede tal cual.
   if (getOccurrenceActualValue(currentCallOccurrence) >= normalizeNumericValue(currentCallOccurrence.target_value)) {
     return;
   }
@@ -4871,7 +4885,7 @@ async function autoCompleteCurrentOccurrence() {
     const { error } = await db
       .from("task_occurrences")
       .update({
-        status: "vencida",
+        status: "completed",
       })
       .eq("id", currentCallOccurrence.id);
     if (error) {
@@ -4879,21 +4893,21 @@ async function autoCompleteCurrentOccurrence() {
     }
     currentCallOccurrence = {
       ...currentCallOccurrence,
-      status: "vencida",
+      status: "completed",
     };
     const index = taskOccurrences.findIndex((item) => item.id === currentCallOccurrence.id);
     if (index !== -1) {
       taskOccurrences[index] = {
         ...taskOccurrences[index],
-        status: "vencida",
+        status: "completed",
       };
     }
     updateCallSessionUI();
     renderRecurringTasks();
     updateDashboard();
-    showToast("Se cumplió la hora de sesión sin llegar a la meta: el objetivo quedó vencido.");
+    showToast("Se cumplieron los 30 minutos de sesión: el objetivo quedó completado.");
   } catch (error) {
-    console.error("Error marcando ocurrencia vencida:", error);
+    console.error("Error marcando ocurrencia completada:", error);
   }
 }
 function openCallRegistration() {
@@ -5234,8 +5248,8 @@ function renderDashboardTasks() {
   if (!container) {
     return;
   }
-  const pendingTasks = tasks
-    .filter((task) => task.status !== "completed")
+   const pendingTasks = tasks
+    .filter((task) => task.status !== "completed" && isVisiblePendingTask(task))
     .map((task) => ({
       kind: "task",
       id: task.id,
@@ -5389,7 +5403,7 @@ function openTeamProfile(profileId) {
     getProjectMemberIds(project.id).includes(profile.id),
   );
   const memberTasks = tasks.filter((task) => getTaskMemberIds(task).includes(profile.id));
-  const pending = memberTasks.filter((task) => task.status !== "completed");
+  const pending = memberTasks.filter((task) => task.status !== "completed" && isVisiblePendingTask(task));
   const completed = memberTasks.filter((task) => task.status === "completed");
   const memberSmartTemplates = taskTemplates.filter(
     (template) => template.assigned_profile_id === profile.id,
@@ -6311,6 +6325,54 @@ function renderContactsList() {
   `;
 }
 // Guarda cualquier campo editado (empresa, celular, telefono, instagram, estado)
+const CONTACT_STATUS_TO_CALL_RESULT = {
+  "Cerrado": "meeting",
+  "Seguimiento": "conversation",
+  "No interesado": "not_interested",
+};
+async function registerAutoCallFromContact(contactId, estado) {
+  if (!currentCallSession || !currentCallOccurrence) {
+    return;
+  }
+  if (callSessionCountedContacts.has(contactId)) {
+    return;
+  }
+  const result = CONTACT_STATUS_TO_CALL_RESULT[estado];
+  if (!result) {
+    return;
+  }
+  callSessionCountedContacts.add(contactId);
+  const contact = contacts.find((c) => c.id === contactId);
+  const now = new Date().toISOString();
+  try {
+    await db.from("activity_logs").insert({
+      session_id: currentCallSession.id,
+      profile_id: currentUser.id,
+      occurrence_id: currentCallOccurrence.id,
+      activity_type: "call",
+      started_at: now,
+      ended_at: now,
+      result,
+      notes: contact ? `Auto: ${contact.empresa || ""}` : "Auto",
+    });
+    const newActual = getOccurrenceActualValue(currentCallOccurrence) + 1;
+    const target = normalizeNumericValue(currentCallOccurrence.target_value);
+    const newStatus = newActual >= target ? "completed" : "in_progress";
+    await db
+      .from("task_occurrences")
+      .update({ actual_value: newActual, status: newStatus })
+      .eq("id", currentCallOccurrence.id);
+    await loadTaskOccurrences();
+    currentCallOccurrence = getOccurrenceForToday(currentCallTemplate.id);
+    updateCallSessionUI();
+    renderRecurringTasks();
+    updateDashboard();
+    showToast(`Llamada registrada · ${newActual}/${target}`);
+  } catch (error) {
+    console.error("Error registrando llamada automática:", error);
+    callSessionCountedContacts.delete(contactId);
+  }
+}
 async function updateContactField(id, field, value) {
   try {
     await fetch(CONTACTS_API_URL, {
@@ -6333,9 +6395,12 @@ async function updateContactField(id, field, value) {
     if (contact) {
       contact[field] = value;
     }
-      if (field === "estado") {
+           if (field === "estado") {
       renderContactsList();
       renderCallContactsInline();
+      if (value) {
+        registerAutoCallFromContact(id, value);
+      }
     }
 
     showToast("Guardado.");
