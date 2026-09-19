@@ -2285,6 +2285,8 @@ function buildTimelineHTML(project, projectTasks, projectTemplates = []) {
 // PIPELINE DE PRODUCCIÓN DE VIDEO
 // =====================================================
 let productionStages = [];
+let expandedProductionStages = new Set();
+const EXPANDABLE_STAGE_KEYS = ["investigacion", "escritura", "preproduccion", "grabacion"];
 const PRODUCTION_STAGES = [
   { key: "investigacion", label: "Investigación" },
   { key: "escritura", label: "Escritura" },
@@ -2439,26 +2441,34 @@ function renderProductionStages(projectId) {
           const managerHere = canManage(currentProfile);
           const isAssignedHere = task ? getTaskMemberIds(task).includes(currentProfile.id) : false;
           const canActHere = managerHere || isAssignedHere;
+                const isExpandable = EXPANDABLE_STAGE_KEYS.includes(stage.stage_key);
+          const isExpanded = expandedProductionStages.has(stage.id);
           return `
             <div class="production-stage ${isDone ? "done" : ""} ${isCurrent ? "current" : ""} ${isLocked ? "locked" : ""}">
-              <div class="production-stage-dot">${isDone ? "✓" : index + 1}</div>
-              <div class="production-stage-label">
-                ${escapeHTML(meta.label)}
-                ${
-                  isDone && stage.late_days
-                    ? `<span class="badge vencida" style="margin-left:6px">Atrasado ${stage.late_days}d</span>`
-                    : ""
-                }
-                ${
-                  isCurrent && task
-                    ? `
-                      <div class="assignment-help" style="margin-top:3px">
-                        ${task.deadline ? `Deadline: ${formatDate(task.deadline)}` : "Sin deadline"}
-                        ${overdueNow ? ` · <span style="color:var(--red);font-weight:800">Atrasada</span>` : ""}
-                      </div>
-                    `
-                    : ""
-                }
+              <div
+                class="production-stage-main ${isExpandable ? "production-stage-main-clickable" : ""}"
+                ${isExpandable ? `data-stage-toggle="${stage.id}"` : ""}
+              >
+                <div class="production-stage-dot">${isDone ? "✓" : index + 1}</div>
+                <div class="production-stage-label">
+                  ${escapeHTML(meta.label)}
+                  ${
+                    isDone && stage.late_days
+                      ? `<span class="badge vencida" style="margin-left:6px">Atrasado ${stage.late_days}d</span>`
+                      : ""
+                  }
+                  ${
+                    isCurrent && task
+                      ? `
+                        <div class="assignment-help" style="margin-top:3px">
+                          ${task.deadline ? `Deadline: ${formatDate(task.deadline)}` : "Sin deadline"}
+                          ${overdueNow ? ` · <span style="color:var(--red);font-weight:800">Atrasada</span>` : ""}
+                        </div>
+                      `
+                      : ""
+                  }
+                </div>
+                ${isExpandable ? `<span class="production-stage-chevron">${isExpanded ? "▲" : "▼"}</span>` : ""}
               </div>
               ${
                 managerHere
@@ -2475,6 +2485,7 @@ function renderProductionStages(projectId) {
                   ? `<button type="button" class="smart-task-action" data-reopen-stage="${stage.id}">Reabrir</button>`
                   : ""
               }
+              ${isExpandable && isExpanded ? renderStageExpandedContent(stage) : ""}
             </div>
           `;
         })
@@ -2482,7 +2493,202 @@ function renderProductionStages(projectId) {
     </div>
   `;
 }
-
+function toggleStageExpanded(stageId) {
+  if (expandedProductionStages.has(stageId)) {
+    expandedProductionStages.delete(stageId);
+  } else {
+    expandedProductionStages.add(stageId);
+  }
+  if (selectedProject) {
+    renderProductionStages(selectedProject.id);
+  }
+}
+function parseStageExtra(stage) {
+  if (!stage.notes) {
+    return null;
+  }
+  try {
+    return JSON.parse(stage.notes);
+  } catch {
+    return stage.notes;
+  }
+}
+function canEditStageExtra(stage) {
+  if (canManage(currentProfile)) {
+    return true;
+  }
+  const task = stage.task_id ? tasks.find((t) => t.id === stage.task_id) : null;
+  return task ? getTaskMemberIds(task).includes(currentProfile.id) : false;
+}
+async function saveStageNotes(stageId, notesValue) {
+  try {
+    const { error } = await db.from("production_stages").update({ notes: notesValue }).eq("id", stageId);
+    if (error) throw error;
+    const index = productionStages.findIndex((s) => s.id === stageId);
+    if (index !== -1) {
+      productionStages[index] = { ...productionStages[index], notes: notesValue };
+    }
+    showToast("Guardado.");
+  } catch (error) {
+    console.error("Error guardando la etapa:", error);
+    showToast(error.message || "No se pudo guardar.");
+  }
+}
+function renderStageExpandedContent(stage) {
+  const canEdit = canEditStageExtra(stage);
+  if (stage.stage_key === "investigacion") {
+    const text = typeof parseStageExtra(stage) === "string" ? parseStageExtra(stage) : "";
+    return `
+      <div class="production-stage-expand">
+        <p class="assignment-help" style="margin-bottom:6px">RESULTADOS DE LA INVESTIGACIÓN</p>
+        <textarea
+          class="stage-expand-textarea"
+          data-stage-notes-input="${stage.id}"
+          maxlength="100"
+          ${canEdit ? "" : "disabled"}
+          placeholder="Escribe los resultados de la investigación (máx. 100 caracteres)..."
+        >${escapeHTML(text)}</textarea>
+        <div class="stage-expand-footer">
+          <span data-stage-notes-count="${stage.id}">${text.length}/100</span>
+          ${canEdit ? `<button type="button" class="smart-task-action primary" data-save-stage-notes="${stage.id}">Guardar</button>` : ""}
+        </div>
+      </div>
+    `;
+  }
+  if (stage.stage_key === "escritura") {
+    const text = typeof parseStageExtra(stage) === "string" ? parseStageExtra(stage) : "";
+    return `
+      <div class="production-stage-expand">
+        <p class="assignment-help" style="margin-bottom:6px">SINOPSIS DE GUION</p>
+        <textarea
+          class="stage-expand-textarea"
+          data-stage-notes-input="${stage.id}"
+          maxlength="300"
+          ${canEdit ? "" : "disabled"}
+          placeholder="Escribe la sinopsis del guion (máx. 300 caracteres)..."
+        >${escapeHTML(text)}</textarea>
+        <div class="stage-expand-footer">
+          <span data-stage-notes-count="${stage.id}">${text.length}/300</span>
+          ${canEdit ? `<button type="button" class="smart-task-action primary" data-save-stage-notes="${stage.id}">Guardar</button>` : ""}
+        </div>
+      </div>
+    `;
+  }
+  if (stage.stage_key === "preproduccion") {
+    const parsed = parseStageExtra(stage);
+    const rows = Array.isArray(parsed) ? parsed : [];
+    return `
+      <div class="production-stage-expand">
+        <p class="assignment-help" style="margin-bottom:6px">PROPS</p>
+        <div class="contacts-table-wrap">
+          <table class="contacts-table" data-props-table="${stage.id}" style="min-width:380px">
+            <thead><tr><th>Prop</th><th>Dónde encontrar</th><th></th></tr></thead>
+            <tbody>
+              ${
+                rows.length
+                  ? rows
+                      .map(
+                        (row, index) => `
+                          <tr data-prop-row="${index}">
+                            <td><input class="cell-input" data-prop-field="prop" value="${escapeHTML(row.prop || "")}" ${canEdit ? "" : "disabled"}></td>
+                            <td><input class="cell-input" data-prop-field="donde" value="${escapeHTML(row.donde || "")}" ${canEdit ? "" : "disabled"}></td>
+                            <td>${canEdit ? `<button type="button" class="cell-delete" data-prop-delete="${index}" title="Eliminar">✕</button>` : ""}</td>
+                          </tr>
+                        `,
+                      )
+                      .join("")
+                  : `<tr><td colspan="3" class="contacts-table-empty">Sin props todavía.</td></tr>`
+              }
+            </tbody>
+          </table>
+        </div>
+        ${
+          canEdit
+            ? `
+              <div class="stage-expand-footer">
+                <button type="button" class="smart-task-action" data-prop-add="${stage.id}">+ Prop</button>
+                <button type="button" class="smart-task-action primary" data-save-stage-props="${stage.id}">Guardar</button>
+              </div>
+            `
+            : ""
+        }
+      </div>
+    `;
+  }
+  if (stage.stage_key === "grabacion") {
+    const parsed = parseStageExtra(stage);
+    const date = parsed && typeof parsed === "object" ? parsed.date : null;
+    return `
+      <div class="production-stage-expand">
+        <p class="assignment-help" style="margin-bottom:6px">FECHA DE GRABACIÓN</p>
+        ${
+          date
+            ? `
+              <p style="font-weight:800;margin-bottom:8px">${formatDate(date)}</p>
+              ${canEdit ? `<button type="button" class="smart-task-action" data-edit-recording-date="${stage.id}">Editar fecha</button>` : ""}
+            `
+            : canEdit
+            ? `<button type="button" class="smart-task-action primary" data-open-recording-date="${stage.id}">Agendar fecha de grabación</button>`
+            : `<p class="assignment-help">Sin fecha agendada todavía.</p>`
+        }
+        ${
+          canEdit
+            ? `
+              <div class="hidden" data-recording-date-form="${stage.id}" style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="date" data-recording-date-input="${stage.id}" value="${date || ""}">
+                <button type="button" class="smart-task-action primary" data-save-recording-date="${stage.id}">Guardar</button>
+              </div>
+            `
+            : ""
+        }
+      </div>
+    `;
+  }
+  return "";
+}
+function addPropRow(stageId) {
+  const tbody = document.querySelector(`[data-props-table="${stageId}"] tbody`);
+  if (!tbody) return;
+  const emptyRow = tbody.querySelector("td.contacts-table-empty")?.closest("tr");
+  if (emptyRow) emptyRow.remove();
+  const index = tbody.querySelectorAll("tr[data-prop-row]").length;
+  const tr = document.createElement("tr");
+  tr.dataset.propRow = index;
+  tr.innerHTML = `
+    <td><input class="cell-input" data-prop-field="prop" value=""></td>
+    <td><input class="cell-input" data-prop-field="donde" value=""></td>
+    <td><button type="button" class="cell-delete" data-prop-delete="${index}" title="Eliminar">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+}
+function removePropRow(stageId, button) {
+  button.closest("tr")?.remove();
+}
+async function savePropsTable(stageId) {
+  const tbody = document.querySelector(`[data-props-table="${stageId}"] tbody`);
+  const rows = [...(tbody?.querySelectorAll("tr[data-prop-row]") || [])]
+    .map((tr) => ({
+      prop: tr.querySelector('[data-prop-field="prop"]').value.trim(),
+      donde: tr.querySelector('[data-prop-field="donde"]').value.trim(),
+    }))
+    .filter((row) => row.prop || row.donde);
+  await saveStageNotes(stageId, JSON.stringify(rows));
+}
+function openRecordingDateForm(stageId) {
+  document.querySelector(`[data-recording-date-form="${stageId}"]`)?.classList.remove("hidden");
+}
+async function saveRecordingDate(stageId) {
+  const input = document.querySelector(`[data-recording-date-input="${stageId}"]`);
+  const value = input?.value;
+  if (!value) {
+    showToast("Selecciona una fecha.");
+    return;
+  }
+  await saveStageNotes(stageId, JSON.stringify({ date: value }));
+  if (selectedProject) {
+    renderProductionStages(selectedProject.id);
+  }
+}
 function daysLateFor(deadline, referenceDate) {
   const deadlineDate = dateOnly(deadline);
   if (!deadlineDate) {
@@ -2695,6 +2901,13 @@ projectDetailContent.addEventListener("click", (event) => {
   const completeButton = event.target.closest("[data-complete-stage]");
   const reopenButton = event.target.closest("[data-reopen-stage]");
   const editStageButton = event.target.closest("[data-edit-stage]");
+  const toggleButton = event.target.closest("[data-stage-toggle]");
+  const saveNotesButton = event.target.closest("[data-save-stage-notes]");
+  const propAddButton = event.target.closest("[data-prop-add]");
+  const propDeleteButton = event.target.closest("[data-prop-delete]");
+  const savePropsButton = event.target.closest("[data-save-stage-props]");
+  const openRecordingButton = event.target.closest("[data-open-recording-date],[data-edit-recording-date]");
+  const saveRecordingButton = event.target.closest("[data-save-recording-date]");
   if (startButton) {
     startProductionPipeline(startButton.dataset.projectId);
     return;
@@ -2709,6 +2922,45 @@ projectDetailContent.addEventListener("click", (event) => {
   }
   if (editStageButton) {
     editStageTaskFromButton(editStageButton.dataset.editStage);
+    return;
+  }
+  if (toggleButton) {
+    toggleStageExpanded(toggleButton.dataset.stageToggle);
+    return;
+  }
+  if (saveNotesButton) {
+    const stageId = saveNotesButton.dataset.saveStageNotes;
+    const textarea = document.querySelector(`[data-stage-notes-input="${stageId}"]`);
+    saveStageNotes(stageId, textarea ? textarea.value : "");
+    return;
+  }
+  if (propAddButton) {
+    addPropRow(propAddButton.dataset.propAdd);
+    return;
+  }
+  if (propDeleteButton) {
+    removePropRow(propDeleteButton.dataset.propDelete, propDeleteButton);
+    return;
+  }
+  if (savePropsButton) {
+    savePropsTable(savePropsButton.dataset.saveStageProps);
+    return;
+  }
+  if (openRecordingButton) {
+    const stageId = openRecordingButton.dataset.openRecordingDate || openRecordingButton.dataset.editRecordingDate;
+    openRecordingDateForm(stageId);
+    return;
+  }
+  if (saveRecordingButton) {
+    saveRecordingDate(saveRecordingButton.dataset.saveRecordingDate);
+  }
+});
+projectDetailContent.addEventListener("input", (event) => {
+  const textarea = event.target.closest("[data-stage-notes-input]");
+  if (!textarea) return;
+  const counter = document.querySelector(`[data-stage-notes-count="${textarea.dataset.stageNotesInput}"]`);
+  if (counter) {
+    counter.textContent = `${textarea.value.length}/${textarea.maxLength}`;
   }
 });
 document.getElementById("activeProductionsList")?.addEventListener("click", (event) => {
