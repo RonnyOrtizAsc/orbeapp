@@ -1580,6 +1580,11 @@ async function loadAllData() {
 }
 
 async function repairMissingStageTasks() {
+  // Solo managers/admin disparan esto — reduce mucho la chance de que
+  // dos personas lo hagan al mismo tiempo y dupliquen tareas.
+  if (!canManage(currentProfile)) {
+    return;
+  }
   const videoProjects = projects.filter((project) => project.project_type === "video");
   let changed = false;
   for (const project of videoProjects) {
@@ -1589,6 +1594,16 @@ async function repairMissingStageTasks() {
     }
     const current = stages.find((stage) => stage.status !== "completed");
     if (current && !current.task_id) {
+      // Doble chequeo directo contra la base antes de crear, por si
+      // alguien más ya la creó en los últimos segundos.
+      const { data: freshStage } = await db
+        .from("production_stages")
+        .select("task_id")
+        .eq("id", current.id)
+        .single();
+      if (freshStage && freshStage.task_id) {
+        continue;
+      }
       try {
         await createTaskForStage(project, current);
         changed = true;
