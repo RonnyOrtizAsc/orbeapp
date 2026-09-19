@@ -1350,7 +1350,8 @@ function showPage(page, { pushHistory = true } = {}) {
   document.getElementById("pageTitle").textContent = titles[page][0];
   document.getElementById("pageSubtitle").textContent = titles[page][1];
   backButton.classList.toggle("visible", page !== "dashboard");
-  if (page === "projects") {
+   if (page === "projects") {
+  closeProjectDetail();
   renderProjects();
 }
   if (page === "tasks") {
@@ -4905,7 +4906,8 @@ async function autoCompleteCurrentOccurrence() {
     updateCallSessionUI();
     renderRecurringTasks();
     updateDashboard();
-    showToast("Se cumplieron los 30 minutos de sesión: el objetivo quedó completado.");
+    const achieved = formatNumber(getOccurrenceActualValue(currentCallOccurrence));
+    showToast(`Se cumplieron los 30 minutos de sesión: tarea completada con ${achieved} llamada(s).`);
   } catch (error) {
     console.error("Error marcando ocurrencia completada:", error);
   }
