@@ -834,6 +834,7 @@ function showLogin() {
   loginScreen.classList.remove("hidden");
   currentUser = null;
   currentProfile = null;
+  appInitialized = false;
   document.body.classList.remove("can-manage");
   stopPresence();
   stopBackgroundWatchers();
@@ -853,6 +854,8 @@ function showApp() {
 // se siente inmediato en vez de esperar todas las llamadas en fila.
 let userLoadInFlight = false;
 
+let appInitialized = false;
+
 async function loadUser(user) {
   if (userLoadInFlight) {
     return;
@@ -870,9 +873,16 @@ async function loadUser(user) {
     showApp();
     updateUserInterface();
     setTodayLabel();
-    showPage("dashboard", {
-      pushHistory: false,
-    });
+    if (!appInitialized) {
+      // Solo navegamos a dashboard la primera vez que arranca la app
+      // (login real o F5). Si Supabase vuelve a disparar este evento
+      // por refresco de token al volver a la pestaña, no debe sacar
+      // a la persona de donde estaba.
+      showPage("dashboard", {
+        pushHistory: false,
+      });
+      appInitialized = true;
+    }
     await loadAllData();
     updateDashboard();
     // No se espera: el canal de presencia en tiempo real puede tardar
@@ -5846,46 +5856,28 @@ function getContactStage(contact) {
 
   return "pendiente";
 }
+
 async function loadContacts() {
   if (!CONTACTS_API_URL || CONTACTS_API_URL.includes("PON_AQUI")) return;
 
   const statusEl = document.getElementById("contactsSyncStatus");
 
   try {
-    const callbackName = `contactsCallback_${Date.now()}`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
 
-    const data = await new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-
-      const timeout = setTimeout(() => {
-        cleanup();
-        reject(new Error("Tiempo de espera agotado al cargar contactos."));
-      }, 15000);
-
-      function cleanup() {
-        clearTimeout(timeout);
-        delete window[callbackName];
-        script.remove();
-      }
-
-      window[callbackName] = (data) => {
-        cleanup();
-        resolve(data);
-      };
-
-      script.onerror = () => {
-        cleanup();
-        reject(new Error("No se pudo conectar con Google Sheets."));
-      };
-
-      script.src =
-        `${CONTACTS_API_URL}?prefix=${encodeURIComponent(callbackName)}&t=${Date.now()}`;
-
-      document.body.appendChild(script);
+    const response = await fetch(`${CONTACTS_API_URL}?t=${Date.now()}`, {
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const data = await response.json();
 
     if (data.error) throw new Error(data.error);
-     contacts = data.contacts || [];
+    contacts = data.contacts || [];
     renderContactsList();
     renderCallContactsInline();
 
@@ -5902,6 +5894,7 @@ async function loadContacts() {
     }
   }
 }
+
 function startContactsPolling() {
   loadContacts();
   if (contactsPollInterval) return;
