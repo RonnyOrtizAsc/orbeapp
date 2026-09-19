@@ -2289,6 +2289,7 @@ function buildTimelineHTML(project, projectTasks, projectTemplates = []) {
 // =====================================================
 let productionStages = [];
 let expandedProductionStages = new Set();
+let editingStageNotes = new Set();
 const EXPANDABLE_STAGE_KEYS = ["investigacion", "escritura", "preproduccion", "grabacion"];
 const PRODUCTION_STAGES = [
   { key: "investigacion", label: "Investigación" },
@@ -2544,7 +2545,11 @@ async function saveStageNotes(stageId, notesValue) {
     if (index !== -1) {
       productionStages[index] = { ...productionStages[index], notes: notesValue };
     }
+    editingStageNotes.delete(stageId);
     showToast("Guardado.");
+    if (selectedProject) {
+      renderProductionStages(selectedProject.id);
+    }
   } catch (error) {
     console.error("Error guardando la etapa:", error);
     showToast(error.message || "No se pudo guardar.");
@@ -2554,18 +2559,28 @@ function renderStageExpandedContent(stage) {
   const canEdit = canEditStageExtra(stage);
   if (stage.stage_key === "investigacion") {
     const text = typeof parseStageExtra(stage) === "string" ? parseStageExtra(stage) : "";
+    const isEditing = editingStageNotes.has(stage.id) || !text;
+    if (!isEditing) {
+      return `
+        <div class="production-stage-expand">
+          <p class="assignment-help" style="margin-bottom:6px">RESULTADOS DE LA INVESTIGACIÓN</p>
+          <p style="white-space:pre-wrap;font-size:12.5px;color:var(--text)">${escapeHTML(text)}</p>
+          ${canEdit ? `<div class="stage-expand-footer"><button type="button" class="smart-task-action" data-edit-stage-notes="${stage.id}">Editar</button></div>` : ""}
+        </div>
+      `;
+    }
     return `
       <div class="production-stage-expand">
         <p class="assignment-help" style="margin-bottom:6px">RESULTADOS DE LA INVESTIGACIÓN</p>
         <textarea
           class="stage-expand-textarea"
           data-stage-notes-input="${stage.id}"
-          maxlength="100"
+          maxlength="500"
           ${canEdit ? "" : "disabled"}
-          placeholder="Escribe los resultados de la investigación (máx. 100 caracteres)..."
+          placeholder="Escribe los resultados de la investigación (máx. 500 caracteres)..."
         >${escapeHTML(text)}</textarea>
         <div class="stage-expand-footer">
-          <span data-stage-notes-count="${stage.id}">${text.length}/100</span>
+          <span data-stage-notes-count="${stage.id}">${text.length}/500</span>
           ${canEdit ? `<button type="button" class="smart-task-action primary" data-save-stage-notes="${stage.id}">Guardar</button>` : ""}
         </div>
       </div>
@@ -2573,18 +2588,28 @@ function renderStageExpandedContent(stage) {
   }
   if (stage.stage_key === "escritura") {
     const text = typeof parseStageExtra(stage) === "string" ? parseStageExtra(stage) : "";
+    const isEditing = editingStageNotes.has(stage.id) || !text;
+    if (!isEditing) {
+      return `
+        <div class="production-stage-expand">
+          <p class="assignment-help" style="margin-bottom:6px">SINOPSIS DE GUION</p>
+          <p style="white-space:pre-wrap;font-size:12.5px;color:var(--text)">${escapeHTML(text)}</p>
+          ${canEdit ? `<div class="stage-expand-footer"><button type="button" class="smart-task-action" data-edit-stage-notes="${stage.id}">Editar</button></div>` : ""}
+        </div>
+      `;
+    }
     return `
       <div class="production-stage-expand">
         <p class="assignment-help" style="margin-bottom:6px">SINOPSIS DE GUION</p>
         <textarea
           class="stage-expand-textarea"
           data-stage-notes-input="${stage.id}"
-          maxlength="300"
+          maxlength="500"
           ${canEdit ? "" : "disabled"}
-          placeholder="Escribe la sinopsis del guion (máx. 300 caracteres)..."
+          placeholder="Escribe la sinopsis del guion (máx. 500 caracteres)..."
         >${escapeHTML(text)}</textarea>
         <div class="stage-expand-footer">
-          <span data-stage-notes-count="${stage.id}">${text.length}/300</span>
+          <span data-stage-notes-count="${stage.id}">${text.length}/500</span>
           ${canEdit ? `<button type="button" class="smart-task-action primary" data-save-stage-notes="${stage.id}">Guardar</button>` : ""}
         </div>
       </div>
@@ -2918,6 +2943,7 @@ projectDetailContent.addEventListener("click", (event) => {
   const reopenButton = event.target.closest("[data-reopen-stage]");
   const editStageButton = event.target.closest("[data-edit-stage]");
   const toggleButton = event.target.closest("[data-stage-toggle]");
+  const editNotesButton = event.target.closest("[data-edit-stage-notes]");
   const saveNotesButton = event.target.closest("[data-save-stage-notes]");
   const propAddButton = event.target.closest("[data-prop-add]");
   const propDeleteButton = event.target.closest("[data-prop-delete]");
@@ -2942,6 +2968,13 @@ projectDetailContent.addEventListener("click", (event) => {
   }
   if (toggleButton) {
     toggleStageExpanded(toggleButton.dataset.stageToggle);
+    return;
+  }
+  if (editNotesButton) {
+    editingStageNotes.add(editNotesButton.dataset.editStageNotes);
+  if (selectedProject) {
+      renderProductionStages(selectedProject.id);
+  }
     return;
   }
   if (saveNotesButton) {
