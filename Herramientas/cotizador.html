@@ -644,12 +644,26 @@
         }
     }
 
-    // Auto-completar precio cuando se selecciona un ítem
+    // Auto-completar precio cuando se selecciona un ítem, y fijar
+    // ese precio como piso: no se puede escribir un número menor.
     document.getElementById('itemSelect').addEventListener('change', function() {
         const cat = document.getElementById('projectCategory').value;
         const idx = this.value;
+        const priceInput = document.getElementById('itemPrice');
         if (cat && idx !== "" && catalog[cat][idx]) {
-            document.getElementById('itemPrice').value = catalog[cat][idx].price.toFixed(2);
+            const price = catalog[cat][idx].price;
+            priceInput.value = price.toFixed(2);
+            priceInput.min = price;
+        } else {
+            priceInput.removeAttribute('min');
+        }
+    });
+
+    // Si al salir del campo el precio quedó por debajo del piso, lo corrige.
+    document.getElementById('itemPrice').addEventListener('blur', function() {
+        const min = parseFloat(this.min);
+        if (!isNaN(min) && (this.value === "" || parseFloat(this.value) < min)) {
+            this.value = min.toFixed(2);
         }
     });
 
