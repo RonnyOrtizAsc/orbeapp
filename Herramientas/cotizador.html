@@ -426,13 +426,11 @@
             <label>1. Tipo de Proyecto</label>
             <select id="projectCategory" onchange="loadCategoryItems()">
                 <option value="">-- Seleccionar Categoría --</option>
-                <option value="alquiler">Alquiler de Equipo</option>
+                <option value="paquetes">Paquetes / Combos por Jornada</option>
+                <option value="equipo">Alquiler de Equipo</option>
                 <option value="talento">Talento Humano (Crew/Staff)</option>
-                <option value="cortometraje">Cortometraje / Película</option>
-                <option value="redes">Redes Sociales / Content Creation</option>
-                <option value="publicidad">Publicidad (TV, Vallas, Cine)</option>
-                <option value="fotografia">Fotografía (Headshots, Eventos, Prod.)</option>
-                <option value="musica">Videos Musicales</option>
+                <option value="produccion">Gastos de Producción</option>
+                <option value="post">Postproducción / Entregables</option>
             </select>
         </div>
 
@@ -564,58 +562,55 @@
 </div>
 
 <script>
-    // Catálogo de ítems sugeridos por tipo de proyecto en la industria audiovisual en El Salvador
+      // Catálogo Orbe-c Films — precios NETOS (sin IVA). Usar modo CCF para que sume el 13%.
     const catalog = {
-        alquiler: [
-            { name: "Cámara Cinema (RED / Blackmagic / Sony FX6) [Día]", price: 250.00 },
-            { name: "Set de Lentes Cine Prime (Anamórficos / Esféricos) [Día]", price: 180.00 },
-            { name: "Kit de Iluminación LED Aputure + Modificadores [Día]", price: 120.00 },
-            { name: "Estabilizador Gimbal Dji RS3 Pro + Follow Focus [Día]", price: 60.00 },
-            { name: "Micrófonos Lavaliers Inalámbricos + Grabadora Zoom [Día]", price: 50.00 },
-            { name: "Drone 4K Cine con Piloto Certificado [Jornada]", price: 300.00 }
+        paquetes: [
+            { name: "Combo Redes Sociales — 1 jornada (equipo, crew, 10 piezas editadas)", price: 425.00 },
+            { name: "Combo Lanzamiento / Cobertura de Evento + Headshots — 1 jornada", price: 518.00 },
+            { name: "Paquete Equipo Redes Sociales (celular, DJI Mic, luces, props) [Día]", price: 70.00 },
+            { name: "Paquete Equipo Fotografía (cámara, lente 50mm, props) [Día]", price: 55.00 }
+        ],
+        equipo: [
+            { name: "Cámara Sony A6500 [Día]", price: 30.00 },
+            { name: "Cámara Sony ZV-E10 [Día]", price: 30.00 },
+            { name: "Kit de lentes Sony E [Día]", price: 5.00 },
+            { name: "Lente Sony 50mm E [Día]", price: 10.00 },
+            { name: "iPhone 16 Pro — captura vertical [Día]", price: 20.00 },
+            { name: "iPhone 15 Pro — captura vertical [Día]", price: 20.00 },
+            { name: "Grabadora de audio Zoom H1N [Día]", price: 10.00 },
+            { name: "Boom + micrófono RODE [Día]", price: 10.00 },
+            { name: "Micrófonos DJI Mic Mini [Día]", price: 5.00 },
+            { name: "Luces Neewer 660 + modificadores [Día]", price: 30.00 },
+            { name: "Flash de estudio / speedlite [Día]", price: 15.00 }
         ],
         talento: [
-            { name: "Director de Fotografía (DP) [Jornada 10h]", price: 350.00 },
-            { name: "Director de Escena [Jornada 10h]", price: 400.00 },
-            { name: "Gaffer / Jefe de Iluminación [Jornada 10h]", price: 150.00 },
-            { name: "Técnico de Sonido Directo [Jornada 10h]", price: 200.00 },
-            { name: "Asistente de Cámara (1st AC / Focus Puller) [Jornada]", price: 120.00 },
-            { name: "Editor / Colorista Senior [Proyecto/Día]", price: 250.00 },
-            { name: "Maquillaje Cinematográfico / FX [Jornada]", price: 150.00 }
+            { name: "Director de escena [Jornada]", price: 50.00 },
+            { name: "Asistente de dirección [Jornada]", price: 40.00 },
+            { name: "Presentador / Host [Jornada]", price: 35.00 },
+            { name: "Fotógrafo [Jornada]", price: 50.00 },
+            { name: "Asistente de fotografía [Jornada]", price: 35.00 },
+            { name: "Modelo masculino [Jornada]", price: 65.00 },
+            { name: "Modelo femenino [Jornada]", price: 65.00 },
+            { name: "Actor principal [Jornada]", price: 65.00 },
+            { name: "Actor de reparto / extra [Jornada]", price: 25.00 },
+            { name: "Editor [Jornada]", price: 10.00 }
         ],
-        cortometraje: [
-            { name: "Paquete Pre-Producción (Guion, Storyboard, Casting)", price: 800.00 },
-            { name: "Rodaje Completo de Cortometraje [Día de Rodaje]", price: 120.000 },
-            { name: "Post-Producción (Montaje, Edición off/online)", price: 900.00 },
-            { name: "Colorización Profesional en DaVinci Resolve", price: 450.00 },
-            { name: "Diseño de Sonido, Foley y Mezcla 5.1 / Stereo", price: 500.00 }
+        produccion: [
+            { name: "Preproducción (guion, plan de rodaje, coordinación)", price: 30.00 },
+            { name: "Alimentación por persona [Jornada]", price: 20.00 },
+            { name: "Alimentación crew completo [Jornada]", price: 25.00 },
+            { name: "Transporte / gasolina — área metropolitana", price: 25.00 },
+            { name: "Transporte / gasolina — fuera de San Salvador", price: 40.00 },
+            { name: "Props / utilería [Jornada]", price: 15.00 }
         ],
-        redes: [
-            { name: "Paquete 4 Reels/TikToks Pro (Grabación + Edición)", price: 350.00 },
-            { name: "Paquete 8 Reels/TikToks Mensuales (Estrategia + Post)", price: 650.00 },
-            { name: "Cobertura de Evento Especial para Redes (3-4 horas)", price: 250.00 },
-            { name: "Diseño y Animación de Intro/Outro/LOWER THIRDS", price: 100.00 }
-        ],
-        publicidad: [
-            { name: "Producción Comercial TV / Cine 30 seg (Full Crew)", price: 2500.00 },
-            { name: "Spot Publicitario Adaptado para Redes y Vallas", price: 1200.00 },
-            { name: "Locución Comercial Profesional (Voiceover)", price: 150.00 },
-            { name: "Licenciatura de Música Comercial y Derechos", price: 200.00 }
-        ],
-        fotografia: [
-            { name: "Sesión de Fotos Headshots Corporativos / Actores (10 Fotos)", price: 150.00 },
-            { name: "Fotografía de Producto e Iluminación de Estudio (por ítem)", price: 25.00 },
-            { name: "Cobertura Fotográfica de Evento (por hora)", price: 85.00 },
-            { name: "Fotografía Still de Rodaje (Behind the scenes)", price: 180.00 }
-        ],
-        musica: [
-            { name: "Video Musical Estándar (1 Locación, Crew Reducido)", price: 800.00 },
-            { name: "Video Musical Premium (Múltiples Locaciones, Iluminación Cine)", price: 1800.00 },
-            { name: "Visualizer 4K / Lyric Video Animado para YouTube", price: 250.00 }
+        post: [
+            { name: "Edición paquete 10 piezas cortas (estilo película)", price: 50.00 },
+            { name: "Revelado y retoque Lightroom (sesión completa)", price: 8.00 },
+            { name: "Foto entregable editada (c/u)", price: 3.00 }
         ]
     };
 
-       let itemsList = [];
+      let itemsList = [];
 
     // Carga inicial
     document.getElementById('lblDate').innerText = new Date().toLocaleDateString('es-SV');
