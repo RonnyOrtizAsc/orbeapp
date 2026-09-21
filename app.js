@@ -1260,6 +1260,14 @@ document.getElementById("backToGamesButton")?.addEventListener("click", () => {
   document.getElementById("orbeGameView")?.classList.add("hidden");
   document.getElementById("gamesListView")?.classList.remove("hidden");
 });
+document.getElementById("openBusGameCard")?.addEventListener("click", () => {
+  document.getElementById("gamesListView")?.classList.add("hidden");
+  document.getElementById("busGameView")?.classList.remove("hidden");
+});
+document.getElementById("backToGamesFromBusButton")?.addEventListener("click", () => {
+  document.getElementById("busGameView")?.classList.add("hidden");
+  document.getElementById("gamesListView")?.classList.remove("hidden");
+});
 document.querySelectorAll(".nav-item").forEach((button) => {
   button.addEventListener("click", () => {
     showPage(button.dataset.page);
