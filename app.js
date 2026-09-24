@@ -702,11 +702,19 @@ function getProjectTasks(projectId) {
 }
 function getProjectProgress(projectId) {
   const projectTasks = getProjectTasks(projectId);
-  if (!projectTasks.length) {
+  const projectTemplates = taskTemplates.filter(
+    (template) => template.project_id === projectId && template.is_active !== false,
+  );
+  const templateOccurrences = projectTemplates.flatMap((template) => getTemplateOccurrences(template.id));
+  const totalItems = projectTasks.length + templateOccurrences.length;
+  if (!totalItems) {
     return 0;
   }
-  const completed = projectTasks.filter((task) => task.status === "completed").length;
-  return Math.round((completed / projectTasks.length) * 100);
+  const completedTasks = projectTasks.filter((task) => task.status === "completed").length;
+  const completedOccurrences = templateOccurrences.filter(
+    (occurrence) => occurrence.status === "completed",
+  ).length;
+  return Math.round(((completedTasks + completedOccurrences) / totalItems) * 100);
 }
 function projectStatusMessage(project) {
   const progress = getProjectProgress(project.id);
@@ -4404,9 +4412,13 @@ function getAllOccurrencesByStatus(status) {
 }
 function renderSmartSummaryCounts() {
   const completedEl = document.getElementById("smartCompletedCount");
+  const incompleteEl = document.getElementById("smartIncompleteCount");
   const overdueEl = document.getElementById("smartOverdueCount");
   if (completedEl) {
     completedEl.textContent = getAllOccurrencesByStatus("completed").length;
+  }
+  if (incompleteEl) {
+    incompleteEl.textContent = getAllOccurrencesByStatus("incompleta").length;
   }
   if (overdueEl) {
     overdueEl.textContent = getAllOccurrencesByStatus("vencida").length;
@@ -4414,13 +4426,19 @@ function renderSmartSummaryCounts() {
 }
 function openOccurrencesModal(status) {
   const list = getAllOccurrencesByStatus(status);
-  const title = status === "completed" ? "Tareas completadas" : "Tareas vencidas";
-  document.getElementById("occurrencesModalTitle").textContent = title;
+  const titles = {
+    completed: "Tareas completadas",
+    incompleta: "Tareas incompletas",
+    vencida: "Tareas vencidas",
+  };
+  document.getElementById("occurrencesModalTitle").textContent = titles[status] || "Ocurrencias";
   const content = document.getElementById("occurrencesModalContent");
   if (!list.length) {
     content.innerHTML = `
       <p class="profile-empty">
-        Todavía no hay ocurrencias ${status === "completed" ? "completadas" : "vencidas"}.
+        Todavía no hay ocurrencias ${
+          status === "completed" ? "completadas" : status === "incompleta" ? "incompletas" : "vencidas"
+        }.
       </p>
     `;
   } else {
@@ -4433,6 +4451,7 @@ function openOccurrencesModal(status) {
           : session
           ? getProfileById(session.profile_id)
           : null;
+        const sessionMs = getAccumulatedOccurrenceMs(occurrence.id);
         return `
           <div class="occurrence-list-item">
             <strong>${escapeHTML(template?.title || "Tarea inteligente")}</strong>
@@ -4444,6 +4463,17 @@ function openOccurrencesModal(status) {
               ${formatNumber(occurrence.actual_value)} / ${formatNumber(occurrence.target_value)}
               ${escapeHTML(template?.target_unit || "")}
             </p>
+            ${
+              status === "incompleta"
+                ? `
+                  <p>
+                    Tiempo de sesión: ${sessionMs > 0 ? formatElapsed(sessionMs) : "Sin sesión registrada"}
+                    ·
+                    Objetivo de llamadas no alcanzado
+                  </p>
+                `
+                : ""
+            }
           </div>
         `;
       })
@@ -4452,6 +4482,7 @@ function openOccurrencesModal(status) {
   document.getElementById("occurrencesModal")?.classList.remove("hidden");
 }
 document.getElementById("smartCompletedCard")?.addEventListener("click", () => openOccurrencesModal("completed"));
+document.getElementById("smartIncompleteCard")?.addEventListener("click", () => openOccurrencesModal("incompleta"));
 document.getElementById("smartOverdueCard")?.addEventListener("click", () => openOccurrencesModal("vencida"));
 document.getElementById("occurrencesModalClose")?.addEventListener("click", () => {
   document.getElementById("occurrencesModal")?.classList.add("hidden");
@@ -4813,7 +4844,7 @@ modalForm.addEventListener("submit", async (event) => {
 // =====================================================
 // LLAMADAS — SESIONES
 // =====================================================.
-const CALL_COMPLETION_THRESHOLD = 10;
+const CALL_COMPLETION_THRESHOLD = 15;
 
 if (startCallSessionButton) {
   startCallSessionButton.addEventListener("click", startCallSession);
