@@ -490,20 +490,25 @@ async function autoAdjustOverdueOccurrences() {
     (occurrence) =>
       occurrence.occurrence_date < todayISO &&
       occurrence.status !== "completed" &&
-      occurrence.status !== "vencida",
+      occurrence.status !== "vencida" &&
+      occurrence.status !== "incompleta",
   );
   if (!updates.length) {
     return false;
   }
   try {
     await Promise.all(
-      updates.map((occurrence) =>
-        db.from("task_occurrences").update({ status: "vencida" }).eq("id", occurrence.id),
-      ),
+      updates.map((occurrence) => {
+        // Si hizo al menos una llamada pero no llegó al umbral, queda
+        // "incompleta" (con su tiempo de sesión). Si no llamó nada,
+        // queda "vencida", como antes.
+        const nextStatus = getOccurrenceActualValue(occurrence) > 0 ? "incompleta" : "vencida";
+        return db.from("task_occurrences").update({ status: nextStatus }).eq("id", occurrence.id);
+      }),
     );
     return true;
   } catch (error) {
-    console.error("Error marcando ocurrencias vencidas:", error);
+    console.error("Error marcando ocurrencias vencidas/incompletas:", error);
     return false;
   }
 }
@@ -549,7 +554,7 @@ function startLiveColorWatcher() {
     document.querySelectorAll("[data-day-progress-value]").forEach((label) => {
       label.textContent = `${dayPercent}%`;
     });
-    updateProjectTimeProgressBars();
+       updateProjectTimeProgressBars();
     checkAutoCompleteCallSession();
   }, 60 * 1000);
 }
@@ -4807,7 +4812,9 @@ modalForm.addEventListener("submit", async (event) => {
 
 // =====================================================
 // LLAMADAS — SESIONES
-// =====================================================
+// =====================================================.
+const CALL_COMPLETION_THRESHOLD = 10;
+
 if (startCallSessionButton) {
   startCallSessionButton.addEventListener("click", startCallSession);
 }
@@ -4980,53 +4987,7 @@ async function endCallSession() {
     showToast(error.message || "No se pudo terminar la sesión.");
   }
 }
-function checkAutoCompleteCallSession() {
-  if (!currentCallSession || !currentCallOccurrence) {
-    return;
-  }
-  if (currentCallOccurrence.status === "completed" || currentCallOccurrence.status === "vencida") {
-    return;
-  }
-  const startedAt = new Date(currentCallSession.started_at).getTime();
-  const elapsed = Date.now() - startedAt;
-  if (elapsed >= 30 * 60 * 1000) {
-    autoCompleteCurrentOccurrence();
-  }
-}
-async function autoCompleteCurrentOccurrence() {
-  if (getOccurrenceActualValue(currentCallOccurrence) >= normalizeNumericValue(currentCallOccurrence.target_value)) {
-    return;
-  }
-  try {
-    const { error } = await db
-      .from("task_occurrences")
-      .update({
-        status: "completed",
-      })
-      .eq("id", currentCallOccurrence.id);
-    if (error) {
-      throw error;
-    }
-    currentCallOccurrence = {
-      ...currentCallOccurrence,
-      status: "completed",
-    };
-    const index = taskOccurrences.findIndex((item) => item.id === currentCallOccurrence.id);
-    if (index !== -1) {
-      taskOccurrences[index] = {
-        ...taskOccurrences[index],
-        status: "completed",
-      };
-    }
-    updateCallSessionUI();
-    renderRecurringTasks();
-    updateDashboard();
-    const achieved = formatNumber(getOccurrenceActualValue(currentCallOccurrence));
-    showToast(`Se cumplieron los 30 minutos de sesión: tarea completada con ${achieved} llamada(s).`);
-  } catch (error) {
-    console.error("Error marcando ocurrencia completada:", error);
-  }
-}
+
 function openCallRegistration() {
   if (!currentCallSession) {
     showToast("Primero inicia una sesión.");
@@ -5151,8 +5112,7 @@ async function saveCallActivity() {
     const currentActual = getOccurrenceActualValue(currentCallOccurrence);
     const newActual = currentActual + 1;
     const target = normalizeNumericValue(currentCallOccurrence.target_value);
-    const newStatus = newActual >= target ? "completed" : "in_progress";
-    const { error: occurrenceError } = await db
+    const newStatus = newActual > CALL_COMPLETION_THRESHOLD ? "completed" : "in_progress";
       .from("task_occurrences")
       .update({
         actual_value: newActual,
@@ -6474,7 +6434,7 @@ async function registerAutoCallFromContact(contactId, estado) {
     });
     const newActual = getOccurrenceActualValue(currentCallOccurrence) + 1;
     const target = normalizeNumericValue(currentCallOccurrence.target_value);
-    const newStatus = newActual >= target ? "completed" : "in_progress";
+    const newStatus = newActual > CALL_COMPLETION_THRESHOLD ? "completed" : "in_progress";
     await db
       .from("task_occurrences")
       .update({ actual_value: newActual, status: newStatus })
