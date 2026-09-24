@@ -554,8 +554,7 @@ function startLiveColorWatcher() {
     document.querySelectorAll("[data-day-progress-value]").forEach((label) => {
       label.textContent = `${dayPercent}%`;
     });
-       updateProjectTimeProgressBars();
-    checkAutoCompleteCallSession();
+           updateProjectTimeProgressBars();
   }, 60 * 1000);
 }
 function stopBackgroundWatchers() {
@@ -5144,6 +5143,7 @@ async function saveCallActivity() {
     const newActual = currentActual + 1;
     const target = normalizeNumericValue(currentCallOccurrence.target_value);
     const newStatus = newActual > CALL_COMPLETION_THRESHOLD ? "completed" : "in_progress";
+    const { error: occurrenceError } = await db
       .from("task_occurrences")
       .update({
         actual_value: newActual,
