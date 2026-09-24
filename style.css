@@ -1677,7 +1677,7 @@ body.can-manage .manager-only { display: inline-flex; }
    RESUMEN DE TAREAS INTELIGENTES (completadas / vencidas)
 ===================================================== */
 
-.smart-summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.smart-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 
 .smart-summary-card {
   display: flex;
@@ -1702,6 +1702,7 @@ body.can-manage .manager-only { display: inline-flex; }
 }
 
 #smartCompletedCard strong { font-size: 26px; color: var(--green); }
+#smartIncompleteCard strong { font-size: 26px; color: var(--orange); }
 #smartOverdueCard strong { font-size: 26px; color: var(--red); }
 /* ===== INICIO MINIJUEGO ORBE (borrar este bloque completo para quitarlo) ===== */
 .orbe-game-card { margin-bottom: 20px; }
