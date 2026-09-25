@@ -430,7 +430,7 @@ a { color: var(--blue); }
 
 .topbar-titles { min-width: 0; flex: 1; }
 
-.topbar h2 { margin-top: 2px; font-size: 22px; color: var(--text); }
+.topbar h2 { font-size: 22px; color: var(--text); }
 
 .page-subtitle { margin-top: 2px; color: var(--muted); font-size: 13px; }
 
