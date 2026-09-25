@@ -1360,15 +1360,14 @@ function showPage(page, { pushHistory = true } = {}) {
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.classList.toggle("active", button.dataset.page === page);
   });
-  const titles = {
-    dashboard: ["Dashboard", "Resumen de producción"],
-    projects: ["Proyectos", "Producciones de Orbe"],
-    tasks: ["Tareas", "Todo lo que hay que hacer"],
-    team: ["Equipo", "Personas de Orbe"],
-    organization: ["Organización", "Áreas y responsabilidades"],
+   const titles = {
+    dashboard: "Dashboard",
+    projects: "Proyectos",
+    tasks: "Tareas",
+    team: "Equipo",
+    organization: "Organización",
   };
-  document.getElementById("pageTitle").textContent = titles[page][0];
-  document.getElementById("pageSubtitle").textContent = titles[page][1];
+  document.getElementById("pageTitle").textContent = titles[page];
   backButton.classList.toggle("visible", page !== "dashboard");
    if (page === "projects") {
   closeProjectDetail();
