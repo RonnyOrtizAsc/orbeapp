@@ -2748,14 +2748,16 @@ function fit(){
     app.classList.toggle('portrait', portrait);
   }
 
-  /*
-   * PC / escritorio:
-   * EXACTAMENTE el comportamiento original.
-   */
+  /* =========================
+     PC / ESCRITORIO
+     COMPORTAMIENTO ORIGINAL
+     ========================= */
   if(!portrait){
+    const padH = 0;
+
     let s = Math.min(
       aw / W,
-      (ah - 8) / H
+      (ah - padH - 8) / H
     );
 
     const fl = Math.floor(s);
@@ -2770,10 +2772,10 @@ function fit(){
     return;
   }
 
-  /*
-   * CELULAR VERTICAL:
-   * Aquí sí hacemos la adaptación.
-   */
+  /* =========================
+     CELULAR VERTICAL
+     ========================= */
+
   const padH = G.touch
     ? Math.min(170, ah * 0.26)
     : 0;
@@ -2783,14 +2785,10 @@ function fit(){
     (ah - padH - 8) / H
   );
 
-  /*
-   * Evita que quede demasiado pequeño.
-   */
-  s = Math.max(s, 0.75);
-
   cv.style.width = Math.floor(W * s) + 'px';
   cv.style.height = Math.floor(H * s) + 'px';
 }
+  window.addEventListener('resize',fit);
 /* --- bucle --- */
 let lastT=0,acc=0;
 function loop(ts){
