@@ -2526,8 +2526,24 @@ function drawPeds(cx){
     // entra al local: dos pasos hacia el marco y luego se hunde en la sombra de la puerta;
     // al salir hace lo inverso, apareciendo primero y terminando de caminar hacia la calle
     let scale=1,stepIn=0;
-    if(p.st==='door'){const tt=Math.min(1,p.t/16);stepIn=Math.sin(tt*Math.PI*.5)*3*p.face;scale=Math.max(0,1-Math.pow(tt,1.4));}
-    else if(p.st==='leave'){const tt=Math.min(1,p.t/16);stepIn=(1-Math.sin(tt*Math.PI*.5))*3*p.face;scale=Math.min(1,Math.pow(tt,.7));}
+    if(p.st==='door'){
+  const tt=Math.min(1,p.t/24);
+
+  // Avanza hacia el interior mientras la puerta se abre.
+  stepIn=Math.sin(tt*Math.PI*.5)*5*p.face;
+
+  // Se hace pequeño gradualmente hasta desaparecer dentro.
+  scale=Math.max(0,1-Math.pow(tt,1.35));
+}
+else if(p.st==='leave'){
+  const tt=Math.min(1,p.t/24);
+
+  // Aparece desde el interior y avanza hacia la calle.
+  stepIn=(1-Math.sin(tt*Math.PI*.5))*5*p.face;
+
+  // Crece hasta recuperar su tamaño normal.
+  scale=Math.min(1,Math.pow(tt,.7));
+}
     if(scale<=.02)continue;
     const sx2=sx+stepIn;
     shadow(sx2,12*scale,.24*scale);
