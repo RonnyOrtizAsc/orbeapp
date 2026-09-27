@@ -1658,20 +1658,24 @@ function busDoor(pal){
 const BUSES={};
 function buildBuses(){for(const k of Object.keys(BUSPAL)){BUSES[k]={body:busBody(BUSPAL[k]),door:busDoor(BUSPAL[k])};}BUSES.wh=[0,1,2,3,4].map(f=>wheel(8,f));BUSES.wc=[0,1,2,3,4].map(f=>wheel(5,f));}
 function carSprite(main,light,dark){
-  const w=76,h=30;const {c,g}=mk(w,h);
-  const top=x=>x<20?14-(x-15)*.0:x<58?4:4;
-  for(let x=2;x<=73;x++){let t,b=26;
-    if(x<15)t=14+(15-x)*.15;else if(x<24)t=14-(x-15)*1.1;else if(x<52)t=4;else if(x<64)t=4+(x-52)*.85;else t=14+(x-64)*.1;
-    t=Math.round(t);if(x<5||x>70)b=25;
-    for(let y=t;y<=b;y++){let col=main;if(y===t)col=light;else if(y>=22)col=dark;else if(y>=14&&y<16)col=mix(main,light,.4);else if(y>=17&&y<21)col=mix(main,dark,.25);if(x<6&&y<18)col=mix(col,dark,.3);P(g,col,x,y);}}
-  // ventanas
-  const gl=(x0,x1)=>FP(g,x0,6,x1-x0+1,8,(i,j)=>{const b=j<3?'#4a6f90':'#2a4560';return ((i+j)%9<2)?'#78a0c0':b;});
-  gl(24,38);gl(41,55);R(g,main,39,5,2,9);R(g,'#20202a',23,5,1,9);R(g,'#20202a',56,7,1,7);
-  R(g,'#20202a',42,15,1,7);R(g,'#d8dce6',36,16,4,1);R(g,'#20202a',20,15,1,7);
-  // luces
-  R(g,'#fff6b0',71,15,3,3);R(g,'#f29a2a',71,19,3,2);R(g,'#d8202a',2,15,3,4);R(g,'#4a4a58',1,23,10,3);R(g,'#4a4a58',66,23,9,3);R(g,'#f6f6f0',3,21,5,2);
-  FP(g,10,22,11,6,(i,j,ax,ay)=>{const dx=ax-15,dy=ay-26;return dx*dx+dy*dy<=30?'#15151b':null;});
-  FP(g,52,22,11,6,(i,j,ax,ay)=>{const dx=ax-57,dy=ay-26;return dx*dx+dy*dy<=30?'#15151b':null;});
+  const w=76,h=30,{c,g}=mk(w,h);
+  const edge='#17171b',glass='#28445a',glassHi='#66879a';
+  // Silueta limpia: un solo cuerpo, sin una línea horizontal por cada fila.
+  FP(g,2,8,72,19,(i,j,x,y)=>{
+    const roof=4+Math.abs(x-38)*.045;
+    const side=24+Math.max(0,(Math.abs(x-38)-25)*.18);
+    if(y<roof||y>side)return null;
+    if(y===Math.floor(roof))return edge;
+    if(y>=22)return dark;
+    return y===Math.floor(roof)+1?light:main;
+  });
+  R(g,edge,15,18,48,8);R(g,main,16,19,46,5);
+  FP(g,22,7,34,10,(i,j)=>j<2?glassHi:glass);
+  R(g,edge,20,7,2,12);R(g,edge,38,6,2,13);R(g,edge,56,7,2,12);
+  R(g,'#9aaab0',18,13,4,2);R(g,'#9aaab0',56,13,4,2);
+  R(g,'#f6e7aa',68,16,5,4);R(g,'#e34a42',3,16,5,4);
+  R(g,'#25262b',7,25,12,3);R(g,'#25262b',57,25,12,3);
+  R(g,'#101116',11,25,10,4);R(g,'#101116',55,25,10,4);
   return c;
 }
 function kiaSoul(main='#d94b3e'){
@@ -1957,13 +1961,13 @@ function initLevel(){
 }
 const G={state:'load',t:0,cam:0,shake:0,time:0,missionMs:0,cap:null,capSeen:{},hint:0,brawl:null,fx:[],cp:null,overMsg:'',overT:0,touch:false,flash:0,bus:null,winT:0,prog:0,roofHint:0,introT:0};
 const MAXROCKS=5;
-const PL={x:150,y:GY,vx:0,vy:0,face:1,big:false,hp:3,coins:0,onG:true,inv:0,coy:0,jbuf:0,st:'walk',t:0,wt:0,stun:0,dizzy:0,grow:0,hidden:false,eatStand:null,fallPit:null,rocks:0,roof:false};
+const PL={x:150,y:GY,vx:0,vy:0,face:1,big:false,hp:3,coins:0,onG:true,inv:0,coy:0,jbuf:0,st:'walk',t:0,wt:0,stun:0,dizzy:0,grow:0,hidden:false,hitLate:false,eatStand:null,fallPit:null,rocks:0,roof:false};
 const KEY={left:0,right:0,jump:0,act:0,run:0,jumpP:0,actP:0};
 function newBus(){return {x:XBUS,vx:0,open:0,st:'wait',t:0,rot:0};}
 function resetGame(){
   initLevel();
   Object.assign(PL,{x:150,y:GY,vx:0,vy:0,face:1,big:false,hp:3,coins:0,onG:true,inv:0,coy:0,jbuf:0,st:'walk',t:0,wt:0,stun:0,dizzy:0,grow:0,hidden:false,eatStand:null,fallPit:null,rocks:0,roof:false});
-  Object.assign(G,{cam:0,shake:0,time:0,missionMs:0,cap:{txt:'EL BUS SALE A LAS 7:00 · AGÁRRALO ANTES QUE TE DEJE',t:0,dur:280},capSeen:{[LOCS[0].n]:1},hint:0,brawl:null,fx:[],cp:null,flash:0,bus:newBus(),winT:0,overT:0,dogWarned:0,pitWarned:0,roofHint:0,introT:0});
+  Object.assign(G,{cam:0,shake:0,time:0,missionMs:0,cap:{txt:'EL BUS SALE A LAS 7:00 · AGÁRRALO ANTES QUE TE DEJE',t:0,dur:280},capSeen:{[LOCS[0].n]:1},hint:0,brawl:null,fx:[],cp:null,flash:0,bus:newBus(),winT:0,overT:0,dogWarned:0,pitWarned:0,roofHint:0,introT:0,lateT:0,hitLate:false});
 }
 function restartGame(){
   resetGame();
@@ -2130,6 +2134,43 @@ function updatePlayer(){
   if(bus.st==='wait'&&PL.x>=bus.x+BUSDOOR-40&&PL.onG&&PL.st==='walk'){bus.st='board';PL.st='board';PL.vx=0;sfx('door');}
 }
 function bus_close(){G.bus.st='close';G.bus.t=0;}
+function startLateScene(){
+  const b=G.bus;
+  G.state='late';
+  G.lateT=0;
+  G.overMsg='¡SE TE HIZO TARDE! EL BUS YA SE FUE SIN VOS';
+  // Colocamos la escena en la parada: Leo está delante del bus, no aparece mágicamente en medio del mapa.
+  PL.st='walk';PL.hidden=false;PL.hitLate=false;PL.vx=0;PL.vy=0;PL.onG=true;PL.face=-1;PL.x=b.x+215;PL.y=GY;
+  b.st='late';b.t=0;b.open=1;b.vx=0;b.rot=0;
+  G.cam=clamp(b.x-170,0,LEN-W);
+  G.cap=null;
+  sfx('over');
+}
+function updateLate(){
+  const b=G.bus;G.lateT++;G.t++;
+  // 0-48: Leo corre hacia la parada.
+  if(G.lateT<48){PL.x=Math.max(b.x+154,PL.x-1.15);PL.face=-1;PL.wt+=.18;}
+  // 48-88: se detiene y hace señas al bus.
+  else if(G.lateT<88){PL.vx=0;PL.face=-1;PL.wt=0;}
+  // 88-105: el bus cierra y arranca.
+  else if(G.lateT<105){b.open=Math.max(0,b.open-.09);}
+  else{
+    b.vx=Math.min(4.6,b.vx+.075);b.x+=b.vx;b.rot+=b.vx*.12;
+    if(G.lateT%3===0)G.fx.push({k:'sm',x:b.x+2,y:GY-14,vx:-.7-Math.random()*.5,vy:-.3,t:0,life:26});
+    // impacto cuando el frente del bus alcanza a Leo
+    if(!PL.hitLate&&b.x+142>=PL.x-5){
+      PL.hitLate=true;PL.st='dead';PL.t=0;PL.vx=3.2;PL.vy=-4.8;G.shake=10;G.flash=8;
+      spark(PL.x,PL.y-18,14,['#fff','#ffe45a','#ff7a6a']);sfx('hurt');
+    }
+    if(PL.hitLate){PL.vy+=.32;PL.x+=PL.vx;PL.vx*=.97;PL.y+=PL.vy;}
+    if(G.lateT>190){G.state='over';G.overT=0;G.lateT=0;}
+  }
+  if(G.shake>0)G.shake=Math.max(0,G.shake-.45);
+  if(G.flash>0)G.flash--;
+  G.cam+=(clamp(b.x-150,0,LEN-W)-G.cam)*.12;
+  updateFx();
+}
+
 function updateBus(){
   const b=G.bus;b.t++;
   if(b.st==='wait'&&b.open<1&&PL.x>b.x-150)b.open=Math.min(1,b.open+.03);
@@ -2236,6 +2277,7 @@ function update0(){
   G.t++;
   if(G.state==='title'){G.cam=0;return;}
   if(G.state==='intro'){updateIntro();return;}
+  if(G.state==='late'){updateLate();return;}
   if(G.state==='over'){G.overT++;return;}
   if(G.state==='win'){G.winT++;updateFx();return;}
   if(G.state==='pause')return;
@@ -2245,7 +2287,7 @@ function update0(){
   G.prog=clamp((PL.x-150)/(XBUS+BUSDOOR-150),0,1);
   G.hint=G.time<780?1:0;
   if(G.missionMs/1000>=MISSION_SEC&&PL.st!=='board'&&PL.st!=='enter'&&PL.st!=='in'&&G.state==='play'){
-    G.overMsg='¡SE TE HIZO TARDE! EL BUS YA SE FUE SIN VOS';G.state='over';G.overT=0;sfx('over');
+    startLateScene();
   }
 }
 function update(){update0();KEY.jumpP=0;KEY.actP=0;}
@@ -2425,6 +2467,11 @@ function drawPlayer(cx){
   ctx.restore();
   if(PL.st==='eat'&&PL.t<36){const f=PL.eatStand&&PL.eatStand.t==='pup'?ART.pup:ART.min,p=PL.t/36;
     const hx=sx+PL.face*(10-3*p)-f.width/2,hy=PL.y-(PL.big?24:18)-p*(PL.big?14:11)-f.height/2;spriteAt(f,hx,hy,false);}
+  if(G.state==='late'&&G.lateT>=48&&G.lateT<88&&!PL.hitLate){
+    // Mano levantada: misma paleta de piel/camiseta del protagonista.
+    R(ctx,PAL.Y,Math.round(sx-10),Math.round(PL.y-img.height+15),4,7);
+    R(ctx,PAL.S,Math.round(sx-11),Math.round(PL.y-img.height+12),4,5);
+  }
   if(PL.dizzy>0){for(let i=0;i<3;i++){const a=G.t*.2+i*2.1;spriteAt(STARO,sx+Math.cos(a)*10-4,PL.y-img.height-2+Math.sin(a)*3,false);}}
 }
 function drawBrawl(cx){
@@ -2441,7 +2488,7 @@ function drawBrawl(cx){
     T(ctx,t.s,t.x-cx,t.y-5,'#ffe45a',{s:2,a:'c',o:'#8a1010'});}
 }
 function drawTraffic(cx){
-  for(const c of CARL){const sx=c.wx-cx;if(sx<-110||sx>W+30)continue;const bottom=c.lane?269:262,flip=!!c.lane,im=CARS[c.img],y=bottom-im.height,wheel1=Math.round(im.width*.19),wheel2=Math.round(im.width*.76);ctx.fillStyle='rgba(10,10,20,.35)';ctx.fillRect(Math.round(sx+4),bottom-1,Math.max(60,im.width-8),2);ctx.save();if(flip){ctx.translate(Math.round(sx)+im.width,0);ctx.scale(-1,1);}else ctx.translate(Math.round(sx),0);ctx.drawImage(im,0,y);const f=Math.floor(c.wx*.2)%5,wf=BUSES.wc[((f%5)+5)%5];ctx.drawImage(wf,wheel1,y+im.height-11);ctx.drawImage(wf,wheel2,y+im.height-11);ctx.restore();}}
+  for(const c of CARL){const sx=c.wx-cx;if(sx<-110||sx>W+30)continue;const bottom=c.lane?269:262,flip=!!c.lane,im=CARS[c.img],y=bottom-im.height,wheel1=Math.round(im.width*.19),wheel2=Math.round(im.width*.76);ctx.fillStyle='rgba(10,10,20,.35)';ctx.fillRect(Math.round(sx+4),bottom-1,Math.max(60,im.width-8),2);ctx.save();if(flip){ctx.translate(Math.round(sx)+im.width,0);ctx.scale(-1,1);}else ctx.translate(Math.round(sx),0);ctx.drawImage(im,0,y);const f=Math.floor(c.wx*.2)%5,wf=BUSES.wc[((f%5)+5)%5];ctx.drawImage(wf,wheel1,y+im.height-9);ctx.drawImage(wf,wheel2,y+im.height-9);ctx.restore();}}
 function drawFx(cx){
   for(const f of G.fx){const sx=f.x-cx;
     if(f.k==='txt'){T(ctx,f.txt,sx,f.y,f.col,{a:'c',o:'#1a1424'});}
@@ -2556,6 +2603,13 @@ function drawTitle(){
   T(ctx,'E / ↓ : COMPRAR EN PUESTOS',232,183,'#ffe680');T(ctx,'JUNTA '+fmtMoney(25)+' Y GANA VIDA',232,194,'#8ad0ff');T(ctx,'P: PAUSA   M: SONIDO',232,205,'#c8c0d8');
   T(ctx,'¡CUIDADO CON LOS CHUCHOS RABIOSOS!',W/2,217,'#ff9a8a',{a:'c'});
 }
+function drawLate(){
+  veil(.12);
+  if(G.lateT<48){bigText('¡ESPERÁ!',62,2,'#ffe45a','#5a2a10');}
+  else if(G.lateT<105){bigText('¡ESPERE! ¡ESPERE!',62,2,'#ffe45a','#5a2a10');}
+  else if(!PL.hitLate&&G.lateT<150){bigText('¡NOOO!',62,2,'#ff8a7a','#5a1010');}
+  else if(PL.hitLate&&G.lateT<190){bigText('¡SE TE FUE EL BUS!',62,2,'#ff8a7a','#5a1010');}
+}
 function drawOver(){
   renderScene();veil(.6);
   bigText(G.overMsg,70,2,'#ff8a7a','#3a0a10');
@@ -2592,6 +2646,7 @@ function render(){
   ctx.setTransform(1,0,0,1,0,0);
   if(G.state==='title'){drawTitle();return;}
   if(G.state==='intro'){drawIntro();return;}
+  if(G.state==='late'){renderScene();drawLate();return;}
   if(G.state==='over'){drawOver();return;}
   if(G.state==='win'){drawWin();return;}
   renderScene();drawHUD();
