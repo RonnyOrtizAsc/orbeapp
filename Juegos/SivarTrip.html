@@ -2595,8 +2595,9 @@ function drawPrompt(cx){
   if(PL.st!=='walk')return;
   const s=nearStand();
   if(!s)return;
-  const can=PL.coins>=25&&!(PL.big&&PL.hp>=5),sx=Math.round(s.x-cx+s.w/2);
-  const txt=can?(G.touch?'PULSA E: COMPRAR '+fmtMoney(25):'[E] COMPRAR  '+fmtMoney(25)):(PL.big&&PL.hp>=5?'¡YA ESTÁS LLENO!':'NECESITAS '+fmtMoney(25));
+  const price=s.t==='min'?100:50;
+const can=PL.coins>=price&&!(PL.big&&PL.hp>=5),sx=Math.round(s.x-cx+s.w/2);
+   const txt=can?(G.touch?'PULSA E: COMPRAR '+fmtMoney(price):'[E] COMPRAR  '+fmtMoney(price)):(PL.big&&PL.hp>=5?'¡YA ESTÁS LLENO!':'NECESITAS '+fmtMoney(price));
   const w=TW(txt,1)+12,y=GY-(s.t==='min'?98:118)+(Math.sin(G.t*.12)*2|0);
   panel(sx-w/2|0,y,w,15,can?'#1c3a20':'#3a1c20',can?'#8aff9a':'#ff9a8a');
   T(ctx,txt,sx,y+4,can?'#dfffe4':'#ffe0dc',{a:'c'});
