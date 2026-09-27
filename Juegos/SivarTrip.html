@@ -2654,7 +2654,7 @@ function drawTitle(){
   if((G.t>>5)%2===0)bigText(G.touch?'TOCA LA PANTALLA PARA JUGAR':'PRESIONA ENTER O ESPACIO',150,2,'#ffffff','#1a1030');
   panel(60,176,360,52);
   T(ctx,'← → / A D : MOVER',80,183,'#fff');T(ctx,'ESPACIO / ↑ : SALTAR',80,194,'#fff');T(ctx,'SHIFT : CORRER',80,205,'#fff');
-  T(ctx,'E / ↓ : COMPRAR EN PUESTOS',232,183,'#ffe680');T(ctx,'JUNTA '+fmtMoney(25)+' Y GANA VIDA',232,194,'#8ad0ff');T(ctx,'P: PAUSA   M: SONIDO',232,205,'#c8c0d8');
+  T(ctx,'E / ↓ : COMPRAR EN PUESTOS',232,183,'#ffe680');T(ctx,'JUNTA '+fmtMoney(price)+' Y GANA VIDA',232,194,'#8ad0ff');T(ctx,'P: PAUSA   M: SONIDO',232,205,'#c8c0d8');
   T(ctx,'¡CUIDADO CON LOS CHUCHOS RABIOSOS!',W/2,217,'#ff9a8a',{a:'c'});
 }
 function drawOver(){
