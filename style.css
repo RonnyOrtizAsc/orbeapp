@@ -43,6 +43,8 @@
   --radius-sm: 9px;
 
   --shadow-card: 0 16px 40px rgba(0, 0, 0, .35);
+  --safe-top:env(safe-area-inset-top,0px);
+--safe-bottom:env(safe-area-inset-bottom,0px);
 }
 
 html, body { min-height: 100%; }
