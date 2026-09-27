@@ -1927,12 +1927,18 @@ button, .nav-item, .task-row, .team-card {
 .tool-frame-wrap { width: 100%; }
 
 .tool-frame {
+  display: block;
+
   width: 100%;
   height: 78vh;
   min-height: 520px;
+
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: #fff;
+
+  background: #14101c;
+
+  overflow: hidden;
 }
 
 @media (max-width: 650px) {
