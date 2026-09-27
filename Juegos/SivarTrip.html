@@ -2740,7 +2740,7 @@ function fit(){
   const aw = window.innerWidth;
   const ah = window.innerHeight;
 
-  const portrait = ah > aw;
+  const portrait = ah > aw * 1.05;
 
   const app = document.getElementById('app');
 
@@ -2748,41 +2748,49 @@ function fit(){
     app.classList.toggle('portrait', portrait);
   }
 
-  let scale;
+  /*
+   * PC / escritorio:
+   * EXACTAMENTE el comportamiento original.
+   */
+  if(!portrait){
+    let s = Math.min(
+      aw / W,
+      (ah - 8) / H
+    );
 
-  if(portrait){
-    /*
-     * CELULAR VERTICAL
-     * El juego ocupa el ancho disponible.
-     * Dejamos espacio abajo para los botones.
-     */
-    scale = Math.min(
-      (aw - 20) / W,
-      (ah - 150) / H
-    );
-  }else{
-    /*
-     * PC / LAPTOP / CELULAR HORIZONTAL
-     * El juego ocupa todo el espacio disponible.
-     */
-    scale = Math.min(
-      (aw - 30) / W,
-      (ah - 30) / H
-    );
+    const fl = Math.floor(s);
+
+    if(fl >= 1 && s - fl < 0.16){
+      s = fl;
+    }
+
+    cv.style.width = Math.floor(W * s) + 'px';
+    cv.style.height = Math.floor(H * s) + 'px';
+
+    return;
   }
 
   /*
-   * Evita que el juego quede demasiado pequeño.
+   * CELULAR VERTICAL:
+   * Aquí sí hacemos la adaptación.
    */
-  scale = Math.max(scale, 1);
+  const padH = G.touch
+    ? Math.min(170, ah * 0.26)
+    : 0;
 
-  const width = Math.floor(W * scale);
-  const height = Math.floor(H * scale);
+  let s = Math.min(
+    aw / W,
+    (ah - padH - 8) / H
+  );
 
-  cv.style.width = width + 'px';
-  cv.style.height = height + 'px';
+  /*
+   * Evita que quede demasiado pequeño.
+   */
+  s = Math.max(s, 0.75);
+
+  cv.style.width = Math.floor(W * s) + 'px';
+  cv.style.height = Math.floor(H * s) + 'px';
 }
-
 /* --- bucle --- */
 let lastT=0,acc=0;
 function loop(ts){
