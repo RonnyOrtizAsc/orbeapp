@@ -2638,9 +2638,28 @@ function drawHUD(){
   R(ctx,'#e8a0c0',px+5,10,7,8);R(ctx,'#a03a5a',px+4,9,9,2);R(ctx,'#ffe680',px+8,13,2,5);
   R(ctx,'#f6f6f2',px+110,11,16,8);R(ctx,'#1f57c9',px+110,15,16,2);R(ctx,'#22384e',px+112,12,3,3);R(ctx,'#22384e',px+117,12,3,3);R(ctx,'#22384e',px+122,12,3,3);
   R(ctx,'#000',px+12+pf-2,10,5,11);R(ctx,'#f2c81e',px+12+pf-1,11,3,9);R(ctx,'#4a2a16',px+12+pf-1,11,3,3);
-  {const sec=G.time/60,remain=MISSION_SEC-sec,totalMin=56+sec/60;let hh=6,mm=Math.floor(totalMin);if(mm>=60){hh=7;mm-=60;}mm=clamp(mm,0,59);const ss=Math.floor(sec)%60;
-   const urgent=remain<=30,col=urgent?((G.t>>3)%2?'#ff4a3a':'#ffe45a'):'#fff';
-   T(ctx,hh+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0'),W-8,26,col,{a:'r',sh:'#000'});}
+{
+  const remain=Math.max(0,MISSION_SEC-(G.time/60));
+  const total=Math.ceil(remain);
+
+  const mm=Math.floor(total/60);
+  const ss=total%60;
+
+  const urgent=total<=30;
+
+  const col=urgent
+    ?((G.t>>3)%2?'#ff4a3a':'#ffe45a')
+    :'#fff';
+
+  T(
+    ctx,
+    mm+':'+String(ss).padStart(2,'0'),
+    W-8,
+    26,
+    col,
+    {a:'r',sh:'#000'}
+  );
+}
   // pista
   if(G.hint&&G.state==='play'){const msg=G.touch?'¡LLEGA A LA PARADA!  JUNTA MONEDAS':'← →: MOVER   ESPACIO: SALTAR   SHIFT: CORRER   E: COMPRAR';const w=TW(msg,1)+14;panel((W-w)/2|0,H-30,w,16,'#1a1424','#f4e8c8');T(ctx,msg,W/2,H-26,'#fff',{a:'c'});}
   // ubicación
