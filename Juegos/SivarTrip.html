@@ -2748,39 +2748,33 @@ function fit(){
     app.classList.toggle('portrait', portrait);
   }
 
-  let availableWidth;
-  let availableHeight;
+  let scale;
 
   if(portrait){
     /*
      * CELULAR VERTICAL
-     * Dejamos espacio para los controles.
+     * El juego ocupa el ancho disponible.
+     * Dejamos espacio abajo para los botones.
      */
-    availableWidth = aw - 18;
-    availableHeight = ah - 150;
+    scale = Math.min(
+      (aw - 20) / W,
+      (ah - 150) / H
+    );
   }else{
     /*
-     * PC / TABLET / CELULAR HORIZONTAL
-     * Aprovechamos prácticamente toda la pantalla.
+     * PC / LAPTOP / CELULAR HORIZONTAL
+     * El juego ocupa todo el espacio disponible.
      */
-    availableWidth = aw - 40;
-    availableHeight = ah - 40;
+    scale = Math.min(
+      (aw - 30) / W,
+      (ah - 30) / H
+    );
   }
 
   /*
-   * Mantener siempre la proporción 16:9
+   * Evita que el juego quede demasiado pequeño.
    */
-  let scale = Math.min(
-    availableWidth / W,
-    availableHeight / H
-  );
-
-  /*
-   * En PC permitimos que el juego crezca bastante.
-   */
-  if(!portrait){
-    scale = Math.max(scale, 1);
-  }
+  scale = Math.max(scale, 1);
 
   const width = Math.floor(W * scale);
   const height = Math.floor(H * scale);
