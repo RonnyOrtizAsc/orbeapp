@@ -2736,7 +2736,6 @@ document.querySelectorAll&&document.querySelectorAll('#pad button').forEach(b=>{
 cv.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'||e.pointerType==='pen')enableTouch();auInit();confirmAction();});
 
 /* --- ajuste de pantalla --- */
-```javascript
 function fit(){
   const aw = window.innerWidth;
   const ah = window.innerHeight;
@@ -2749,22 +2748,6 @@ function fit(){
     app.classList.toggle('portrait', portrait);
   }
 
-  /*
-   * Espacio reservado para los controles táctiles
-   * cuando el teléfono está vertical.
-   */
-  const safeTop =
-    parseFloat(
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--safe-top')
-    ) || 0;
-
-  const safeBottom =
-    parseFloat(
-      getComputedStyle(document.documentElement)
-        .getPropertyValue('--safe-bottom')
-    ) || 0;
-
   let availableWidth = aw - 18;
   let availableHeight = ah - 18;
 
@@ -2775,19 +2758,10 @@ function fit(){
   availableWidth = Math.max(240, availableWidth);
   availableHeight = Math.max(160, availableHeight);
 
-  /*
-   * Mantiene SIEMPRE la proporción original 16:9.
-   */
-  let scale = Math.min(
+  const scale = Math.min(
     availableWidth / W,
     availableHeight / H
   );
-
-  /*
-   * Nunca permitimos una escala menor que la necesaria
-   * para que el juego siga siendo visible.
-   */
-  scale = Math.max(0.5, scale);
 
   const width = Math.floor(W * scale);
   const height = Math.floor(H * scale);
@@ -2795,7 +2769,6 @@ function fit(){
   cv.style.width = width + 'px';
   cv.style.height = height + 'px';
 }
-window.addEventListener('resize',fit);
 
 /* --- bucle --- */
 let lastT=0,acc=0;
