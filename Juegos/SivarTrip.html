@@ -226,44 +226,82 @@ function boyFrame(big,pose){
 const BOY={};
 function buildBoy(){for(const big of [false,true]){const o={};for(const p of Object.keys(POSE))o[p]=boyFrame(big,p);BOY[big?'b':'s']=o;}}
 function introFrame(big,back,step){
-  // Misma paleta, ropa, mochila y proporciones del personaje jugable.
-  const w=32,h=44,{c,g}=mk(w,h),bob=step&1?1:0;
-  const skin=PAL.s,skin2=PAL.S,shirt=PAL.y,shirtHi=PAL.z,shirtDark=PAL.Y;
-  const jean=PAL.j,jeanDark=PAL.J,shoe=PAL.k,hair=PAL.d;
-  // piernas y zapatos
-  if(step===2){R(g,jeanDark,10,28+bob,5,11);R(g,jean,17,28-bob,5,11);}
-  else if(step===1){R(g,jeanDark,9,28-bob,5,11);R(g,jean,18,28+bob,5,11);}
-  else {R(g,jeanDark,10,28+bob,5,11);R(g,jean,17,28+bob,5,11);}
-  R(g,shoe,8+(step===1?1:0),39,7,3);R(g,shoe,17-(step===2?1:0),39,7,3);
-  // torso amarillo igual al personaje jugable
-  R(g,shirt,10,16+bob,13,14);R(g,shirtDark,10,17+bob,2,12);R(g,shirtHi,12,17+bob,9,2);
-  R(g,shirtHi,13,27+bob,8,1);R(g,shirtDark,12,29+bob,9,1);
-  // mochila visible, con los mismos colores
-  R(g,PAL.O,6,17+bob,5,11);R(g,PAL.o,6,18+bob,4,9);R(g,PAL.p,6,18+bob,1,7);
-  // brazos
-  const armY=18+bob;
-  if(step===1){R(g,skin2,7,armY+2,4,10);R(g,shirtDark,8,armY,3,7);R(g,skin2,21,armY+1,4,10);R(g,shirtDark,20,armY,3,7);}
-  else {R(g,shirtDark,7,armY,4,9);R(g,skin2,7,armY+8,4,3);R(g,shirtDark,22,armY,3,9);R(g,skin2,21,armY+8,4,3);}
-  // cabeza frontal/trasera
-  R(g,skin2,12,10+bob,8,5);R(g,skin,9,3+bob,14,9);
-  R(g,hair,9,2+bob,14,4);R(g,hair,11,0+bob,10,3);
+  // Mismas proporciones (32x39 + contorno), paleta, mochila y peinado del personaje jugable.
+  // step 0..3 = caminata, 4 = quieto.
+  const w=32,h=39,cx=16,{c,g}=mk(w,h);
+  const bob=(step===0||step===2)?1:0;
+  const lift=[0,step===1?2:0,0,step===3?2:0,0];
+  const hip=27,legH=12,tH=14,tw=11,tx=cx-5,ty=13+bob;
+  const leg=(x,len,near)=>{
+    for(let i=0;i<len;i++){
+      const y=hip+i;
+      if(i>=len-3){
+        const k=i-(len-3);
+        R(g,k===2?PAL.n:PAL.f,x-1,y,5,1);
+        if(k<2){P(g,PAL.F,x-1,y);P(g,PAL.F,x+3,y);}
+        if(k===0&&!back)R(g,PAL.o,x+1,y,2,1);
+      }else{
+        R(g,PAL.j,x,y,4,1);
+        if(near)P(g,PAL.g,x,y);
+        P(g,PAL.J,x+3,y);
+      }
+    }
+  };
+  leg(cx-5,legH-lift[step],true);
+  leg(cx+1,legH-(step===3?2:0)-(step===1?0:0),false);
+  if(step===3){/* ya aplicado arriba */}
+  // torso amarillo igual al del jugador
+  R(g,PAL.y,tx,ty,tw,tH);
+  R(g,PAL.z,tx,ty+1,1,tH-2);R(g,PAL.z,tx+1,ty,3,1);
+  R(g,PAL.Y,tx+tw-2,ty+1,2,tH-1);R(g,PAL.Y,tx,ty+tH-2,tw,2);
+  for(let i=0;i<tw;i+=2)P(g,PAL.Y,tx+i,ty+tH-1);
+  R(g,PAL.Y,tx+2,ty+6,tw-4,1);R(g,PAL.z,tx+2,ty+5,tw-5,1);
+  R(g,PAL.J,tx+1,ty+tH-1,tw-2,1);
+  // brazos (manga amarilla + piel), con vaivén al caminar
+  const sw=[[0,0],[1,-1],[0,0],[-1,1],[0,0]][step];
+  const arm=(x,dy,left)=>{
+    for(let i=0;i<10;i++){
+      const y=ty+2+dy+i,sl=i<4;
+      R(g,sl?(left?PAL.y:PAL.Y):(left?PAL.s:PAL.S),x,y,3,1);
+    }
+    if(left)P(g,PAL.z,x,ty+2+dy);else P(g,PAL.l,x,ty+8+dy);
+  };
+  arm(cx-8,sw[0],true);arm(cx+6,sw[1],false);
   if(back){
-    // pelo visto desde atrás
-    R(g,hair,10,5+bob,12,6);R(g,PAL.H,11,8+bob,10,3);
+    // mochila vista de espalda
+    R(g,PAL.O,tx-1,ty+1,tw+2,tH-3);R(g,PAL.o,tx,ty+1,tw,tH-5);
+    R(g,PAL.p,tx,ty+1,1,tH-6);R(g,PAL.p,tx+1,ty+1,tw-2,1);
+    R(g,PAL.O,tx+1,ty+tH-5,tw-2,3);R(g,PAL.o,tx+1,ty+tH-5,tw-2,1);P(g,'#e8d8a0',cx,ty+tH-4);
+    // cuello y cabeza de espaldas (todo pelo)
+    R(g,PAL.S,cx-2,ty-1,4,2);
+    R(g,PAL.h,cx-6,bob,12,13);R(g,PAL.h,cx-7,bob+3,14,7);R(g,PAL.h,cx-5,bob+13,10,1);
+    R(g,PAL.H,cx-4,bob+2,5,1);R(g,PAL.H,cx-2,bob+6,3,1);R(g,PAL.d,cx-6,bob+9,2,3);
+    R(g,PAL.s,cx-7,bob+9,1,2);R(g,PAL.S,cx+6,bob+9,1,2);
   }else{
-    // ojos, nariz y cuello; misma combinación de colores del personaje
-    P(g,PAL.k,12,7+bob);P(g,PAL.k,19,7+bob);P(g,PAL.l,13,10+bob);P(g,PAL.l,18,10+bob);
+    // tirantes de la mochila sobre el pecho
+    R(g,PAL.O,tx+1,ty,2,tH-3);R(g,'#c04020',tx+1,ty,1,tH-3);
+    R(g,PAL.O,tx+tw-3,ty,2,tH-3);R(g,'#c04020',tx+tw-3,ty,1,tH-3);
+    R(g,PAL.S,cx-2,ty-1,4,2);
+    // cara
+    R(g,PAL.s,cx-6,bob+4,12,8);R(g,PAL.s,cx-5,bob+12,10,1);
+    R(g,PAL.S,cx+4,bob+5,2,7);R(g,PAL.l,cx-6,bob+5,1,6);
+    R(g,PAL.s,cx-7,bob+7,1,3);R(g,PAL.S,cx+6,bob+7,1,3);
+    // pelo
+    R(g,PAL.h,cx-6,bob+1,12,4);R(g,PAL.h,cx-5,bob,10,2);
+    R(g,PAL.h,cx-7,bob+3,2,6);R(g,PAL.h,cx+5,bob+3,2,6);
+    R(g,PAL.h,cx-6,bob+5,5,1);R(g,PAL.h,cx+2,bob+5,4,1);R(g,PAL.H,cx-3,bob+1,4,1);
+    // ojos, nariz, boca
+    R(g,'#fff',cx-4,bob+7,3,2);R(g,PAL.e,cx-3,bob+7,2,2);
+    R(g,'#fff',cx+1,bob+7,3,2);R(g,PAL.e,cx+2,bob+7,2,2);
+    P(g,PAL.S,cx,bob+9);R(g,PAL.m,cx-2,bob+11,4,1);
   }
   return outline(c,K,false);
 }
 const INTRO={front:[],back:[]};
 function buildIntroSprites(){
-  for(const big of [false,true]){
-    INTRO.front[big?1:0]=[0,1,2,3].map(i=>introFrame(big,false,i));
-    INTRO.back[big?1:0]=[0,1,2,3].map(i=>introFrame(big,true,i));
-  }
+  const f=[0,1,2,3,4].map(i=>introFrame(false,false,i)),b=[0,1,2,3,4].map(i=>introFrame(false,true,i));
+  INTRO.front[0]=f;INTRO.front[1]=f;INTRO.back[0]=b;INTRO.back[1]=b;
 }
-
 /* ---------- perros con rabia ---------- */
 const DPAL=[
  {b:'#c99a5c',l:'#ecc688',s:'#8c5c30',d:'#3c2412',bl:'#e8d0a0'},
@@ -1656,123 +1694,134 @@ function busDoor(pal){
   return c;
 }
 const BUSES={};
-function buildBuses(){for(const k of Object.keys(BUSPAL)){BUSES[k]={body:busBody(BUSPAL[k]),door:busDoor(BUSPAL[k])};}BUSES.wh=[0,1,2,3,4].map(f=>wheel(8,f));BUSES.wc=[0,1,2,3,4].map(f=>wheel(5,f));}
-function carSprite(main,light,dark){
-  const w=76,h=30,{c,g}=mk(w,h);
-  const edge='#17171b',glass='#28445a',glassHi='#66879a';
-  // Silueta limpia: un solo cuerpo, sin una línea horizontal por cada fila.
-  FP(g,2,8,72,19,(i,j,x,y)=>{
-    const roof=4+Math.abs(x-38)*.045;
-    const side=24+Math.max(0,(Math.abs(x-38)-25)*.18);
-    if(y<roof||y>side)return null;
-    if(y===Math.floor(roof))return edge;
-    if(y>=22)return dark;
-    return y===Math.floor(roof)+1?light:main;
-  });
-  R(g,edge,15,18,48,8);R(g,main,16,19,46,5);
-  FP(g,22,7,34,10,(i,j)=>j<2?glassHi:glass);
-  R(g,edge,20,7,2,12);R(g,edge,38,6,2,13);R(g,edge,56,7,2,12);
-  R(g,'#9aaab0',18,13,4,2);R(g,'#9aaab0',56,13,4,2);
-  R(g,'#f6e7aa',68,16,5,4);R(g,'#e34a42',3,16,5,4);
-  R(g,'#25262b',7,25,12,3);R(g,'#25262b',57,25,12,3);
-  R(g,'#101116',11,25,10,4);R(g,'#101116',55,25,10,4);
-  return c;
-}
-function kiaSoul(main='#d94b3e'){
-  const w=96,h=38,{c,g}=mk(w,h);
-  const edge='#17151a',glass='#263f54',glass2='#55758a',trim='#5a2020',dark='#7e2c2a',hi='#ef7663';
-  // Kia Soul: carrocería alta y cuadrada, techo casi plano, nariz corta y trasera vertical.
-  const rows=[
-    [3,18,90],[5,15,92],[8,13,92],[11,11,90],[14,9,88],[17,7,84],[20,6,80],[23,5,77],
-    [26,5,74],[29,5,71],[32,5,69]
-  ];
-  for(const [y,x1,x2] of rows){R(g,edge,x1-1,y,x2-x1+3,1);R(g,main,x1,y,x2-x1+1,1);}
-  for(let y=18;y<=31;y++){
-    const x1=y<21?3:y<27?5:7, x2=y<21?93:y<27?92:90;
-    R(g,main,x1,y,x2-x1+1,1);
+function buildBuses(){for(const k of Object.keys(BUSPAL)){BUSES[k]={body:busBody(BUSPAL[k]),door:busDoor(BUSPAL[k])};}BUSES.wh=[0,1,2,3,4].map(f=>wheel(8,f));BUSES.wc=[0,1,2,3,4].map(f=>wheel(5,f));BUSES.wm=[0,1,2,3,4].map(f=>wheel(6,f));}
+const CK='#17161b';
+function polyMask(w,h,pts){
+  const m=new Uint8Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const px=x+.5,py=y+.5;let ins=false;
+    for(let i=0,j=pts.length-1;i<pts.length;j=i++){
+      const xi=pts[i][0],yi=pts[i][1],xj=pts[j][0],yj=pts[j][1];
+      if((yi>py)!==(yj>py)&&px<(xj-xi)*(py-yi)/(yj-yi)+xi)ins=!ins;
+    }
+    m[y*w+x]=ins?1:0;
   }
-  R(g,hi,12,19,59,2);R(g,mix(main,'#fff',.18),17,22,48,1);
-  // techo negro + parabrisas y ventanas bien separadas
-  R(g,edge,25,5,48,2);
-  FP(g,25,8,20,11,(i,j)=>j<2?glass2:j<5?glass:'#1e3345');
-  FP(g,47,8,24,11,(i,j)=>j<2?glass2:j<5?glass:'#1e3345');
-  R(g,edge,23,7,2,14);R(g,edge,45,7,2,14);R(g,edge,71,8,2,13);
-  // espejos
-  R(g,edge,20,14,4,3);R(g,'#8ea4ad',20,14,2,1);
-  R(g,edge,71,14,4,3);R(g,'#8ea4ad',73,14,2,1);
-  // manijas / molduras
-  R(g,trim,30,23,7,1);R(g,trim,55,23,7,1);
-  R(g,'#26272c',25,28,43,2);
-  // frente
-  R(g,'#202329',84,18,7,10);R(g,'#111317',88,20,5,6);
-  R(g,'#f4ead0',91,18,3,4);R(g,'#dbe8e8',91,23,3,2);
-  // trasera vertical característica
-  R(g,'#611d24',3,17,4,12);R(g,'#e14b42',4,18,2,6);R(g,'#202329',2,27,7,3);
-  // parachoques
-  R(g,'#25262b',7,30,15,3);R(g,'#25262b',80,30,12,3);
-  // base para ruedas animadas
-  R(g,'#111217',12,32,72,2);
-  return c;
+  return m;
 }
-function toyotaHilux(main='#c9ced1'){
-  const w=104,h=38,{c,g}=mk(w,h);
-  const edge='#17171b',glass='#263e51',glass2='#668194',bed='#56616a',hi='#e8ecee',dark='#6c747b';
-  // Hilux: cabina doble alta al frente + cofre largo + caja trasera abierta.
-  // caja
-  R(g,edge,4,12,32,2);R(g,main,5,14,31,15);R(g,bed,7,12,27,3);R(g,'#3c464e',7,15,26,8);
-  R(g,hi,7,14,25,1);R(g,dark,5,27,32,4);
-  // cabina y cofre
-  const rows=[[4,35,78],[6,33,80],[8,30,84],[10,27,91],[12,24,96],[15,5,98],[18,4,100],[21,4,100],[24,4,98],[27,5,96],[30,8,94]];
-  for(const [y,x1,x2] of rows){R(g,edge,x1-1,y,x2-x1+3,1);R(g,main,x1,y,x2-x1+1,1);}
-  R(g,hi,18,17,69,2);
-  // parabrisas + dos ventanillas
-  FP(g,35,8,17,10,(i,j)=>j<2?glass2:j<5?glass:'#1f3445');
-  FP(g,54,8,20,10,(i,j)=>j<2?glass2:j<5?glass:'#1f3445');
-  R(g,edge,33,7,2,13);R(g,edge,52,7,2,13);R(g,edge,74,8,2,12);
-  // espejos
-  R(g,edge,30,13,4,3);R(g,'#9aaab0',30,13,2,1);R(g,edge,74,13,4,3);R(g,'#9aaab0',76,13,2,1);
-  // manijas
-  R(g,'#30343a',58,23,7,1);R(g,'#30343a',80,23,7,1);
-  // parrilla y faros delanteros
-  R(g,'#20242a',91,18,8,9);R(g,'#0f1216',94,20,5,5);
-  R(g,'#f5efd0',97,18,3,4);R(g,'#d7e6e9',97,23,3,2);
-  // pilotos traseros
-  R(g,'#8b1e24',3,18,4,8);R(g,'#d8443c',4,18,2,4);
-  R(g,'#24262b',6,29,92,4);
-  // borde de caja
-  R(g,'#252a2f',5,12,30,1);R(g,hi,8,13,23,1);
-  return c;
+function polyPaint(g,w,h,pts,fn){
+  const m=polyMask(w,h,pts);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y*w+x]){const c=fn(x,y,m);if(c)P(g,c,x,y);}
+  return m;
 }
-function hondaFit(main='#d94a38'){
-  const w=94,h=38,{c,g}=mk(w,h);
-  const edge='#17161b',glass='#233e52',glass2='#6f8c9b',hi='#ef7662',dark='#7d2828';
-  // Fit: monocasco pequeño, nariz corta, parabrisas muy inclinado y trasera alta.
-  const rows=[[7,15,78],[9,12,82],[11,10,87],[13,8,90],[15,6,91],[18,5,92],[21,4,92],[24,5,91],[27,6,89],[30,9,87]];
-  for(const [y,x1,x2] of rows){R(g,edge,x1-1,y,x2-x1+3,1);R(g,main,x1,y,x2-x1+1,1);}
-  R(g,hi,12,18,65,2);R(g,mix(main,'#fff',.16),16,22,52,1);
-  // gran parabrisas inclinado + puerta trasera
-  FP(g,29,9,19,10,(i,j)=>j<2?glass2:j<5?glass:'#1e3446');
-  FP(g,49,8,22,11,(i,j)=>j<2?glass2:j<5?glass:'#1e3446');
-  R(g,edge,27,8,2,13);R(g,edge,48,8,2,13);R(g,edge,71,9,2,12);
-  // pilar trasero ancho, espejo y manijas
-  R(g,edge,21,14,4,3);R(g,'#9aaab0',21,14,2,1);
-  R(g,edge,70,14,4,3);R(g,'#9aaab0',72,14,2,1);
-  R(g,'#642321',34,22,6,1);R(g,'#642321',57,22,6,1);
-  // nariz corta, faro triangular y parrilla
-  R(g,'#24262b',81,18,10,9);R(g,'#101216',86,21,5,5);
-  R(g,'#fff1cf',87,18,4,4);R(g,'#d9edf0',88,22,3,2);
-  // piloto trasero vertical, distintivo del Fit
-  R(g,'#7c1d26',5,17,4,11);R(g,'#e34c43',6,18,2,6);
-  R(g,'#24262b',8,29,79,4);
-  return c;
+/* silueta rellena y sombreada: luz arriba y a la izquierda, zona baja oscura */
+function carBody(g,w,h,pts,main,lowY){
+  const L=mix(main,'#ffffff',.34),D=mix(main,'#000000',.34),M=mix(main,'#000000',.14);
+  polyPaint(g,w,h,pts,(x,y,m)=>{
+    const up=y===0||!m[(y-1)*w+x],lf=x===0||!m[y*w+x-1];
+    if(y>=lowY+1)return D;
+    if(y===lowY)return ((x+y)&1)?D:M;
+    if(up||lf)return L;
+    return main;
+  });
+  return {L,D,M};
+}
+function glassPane(g,w,h,pts,ytop){
+  const m=polyMask(w,h,pts);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(m[y*w+x]){
+    const t=y-ytop;let c=t<=0?'#8fb3c8':t<2?'#4a7089':'#243e55';
+    if(t>0&&((x*2+y*3)%13)<2)c='#5f8aa6';
+    P(g,c,x,y);}
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++)if(!m[y*w+x]){
+    const n=(y>0&&m[(y-1)*w+x])||(y<h-1&&m[(y+1)*w+x])||(x>0&&m[y*w+x-1])||(x<w-1&&m[y*w+x+1]);
+    if(n)P(g,'#1b1a20',x,y);}
+}
+function wheelArch(g,cx,cy,r,maxY){
+  for(let y=cy-Math.ceil(r);y<=maxY;y++)for(let x=cx-Math.ceil(r);x<=cx+Math.ceil(r);x++)
+    if(Math.hypot(x-cx,y-cy)<=r)P(g,'#0b0a0f',x,y);
+}
+function carSprite(main,light,dark){
+  // sedán compacto genérico
+  const w=82,h=28,{c,g}=mk(w,h);
+  const body=[[2,12],[5,10],[22,10],[28,3],[30,2],[50,2],[62,10],[74,11],[79,14],[81,18],[81,23],[3,23],[2,19]];
+  const k=carBody(g,w,h,body,main,19);
+  R(g,k.L,6,11,52,1);
+  glassPane(g,w,h,[[28,4],[36,4],[36,9],[24,9]],4);
+  glassPane(g,w,h,[[38,4],[50,4],[59,9],[38,9]],4);
+  R(g,k.D,37,10,1,10);R(g,k.D,60,11,1,9);
+  R(g,k.L,30,12,3,1);R(g,k.L,45,12,3,1);
+  R(g,k.D,53,8,4,3);R(g,k.M,53,8,4,1);
+  wheelArch(g,17,22,6.7,23);wheelArch(g,64,22,6.7,23);
+  R(g,'#26272d',3,20,8,3);R(g,'#26272d',72,20,9,3);
+  R(g,'#c9202f',2,12,2,5);R(g,'#ff6a70',2,12,1,2);
+  R(g,'#fff4c8',76,13,4,2);R(g,'#101014',79,17,2,3);
+  const o=outline(c,CK,false);o.wx=[18,65];o.wy=23;o.wr=5;return o;
+}
+function kiaSoul(main='#e8782e'){
+  // Kia Soul: caja alta y cuadrada, techo plano, parabrisas parado, trasera casi vertical, nariz corta.
+  const w=66,h=29,{c,g}=mk(w,h);
+  const body=[[7,1],[44,1],[53,8],[61,11],[64,14],[65,19],[65,24],[4,24],[3,19],[3,9],[5,3]];
+  const k=carBody(g,w,h,body,main,20);
+  R(g,k.L,6,10,41,1);                                    // línea de cintura
+  glassPane(g,w,h,[[6,3],[9,3],[8,9],[5,9]],3);
+  glassPane(g,w,h,[[12,3],[23,3],[23,9],[10,9]],3);
+  glassPane(g,w,h,[[26,3],[44,3],[52,9],[26,9]],3);
+  for(const sx of [24,46])R(g,k.D,sx,10,1,11);            // costuras de puertas
+  R(g,k.L,17,12,3,1);R(g,k.L,36,12,3,1);                 // manijas
+  R(g,k.D,47,8,4,3);R(g,k.M,47,8,4,1);                   // espejo
+  wheelArch(g,14,23,6.7,24);wheelArch(g,51,23,6.7,24);
+  R(g,'#26272d',4,21,7,3);R(g,'#26272d',59,21,6,3);      // parachoques
+  R(g,'#c9202f',3,10,2,9);R(g,'#ff6a70',3,10,1,3);       // luz trasera vertical
+  R(g,'#fff4c8',59,13,4,2);R(g,'#ffffff',63,16,1,2);     // faro
+  R(g,'#101014',63,18,2,3);                              // parrilla
+  const o=outline(c,CK,false);o.wx=[15,52];o.wy=24;o.wr=5;return o;
+}
+function toyotaHilux(main='#e4e8ea'){
+  // Toyota Hilux doble cabina: cabina corta al frente, capó largo y caja abierta atrás, ruedas grandes.
+  const w=94,h=33,{c,g}=mk(w,h);
+  const body=[[2,11],[38,11],[40,6],[44,2],[62,2],[72,10],[88,11],[92,14],[93,18],[93,25],[2,25]];
+  const k=carBody(g,w,h,body,main,21);
+  R(g,k.D,2,12,36,1);                                    // borde interior de la caja
+  R(g,CK,38,12,1,12);R(g,k.L,39,12,1,12);                // hueco caja/cabina
+  R(g,k.D,5,14,1,8);                                     // tapa trasera
+  glassPane(g,w,h,[[44,4],[55,4],[55,10],[41,10]],4);
+  glassPane(g,w,h,[[57,4],[64,4],[71,10],[57,10]],4);
+  R(g,k.D,56,11,1,13);R(g,k.D,71,11,1,8);                // costuras
+  R(g,k.L,47,13,3,1);R(g,k.L,60,13,3,1);                 // manijas
+  R(g,k.D,65,9,4,3);R(g,k.M,65,9,4,1);                   // espejo
+  wheelArch(g,18,26,7.6,25);wheelArch(g,76,26,7.6,25);   // pasos de rueda grandes
+  R(g,'#9aa2ac',2,22,8,3);R(g,'#d4dae0',2,22,8,1);       // defensa trasera
+  R(g,'#aab1ba',87,22,7,3);R(g,'#e4e9ee',87,22,7,1);     // defensa delantera
+  R(g,'#c9202f',2,13,2,5);R(g,'#ff6a70',2,13,1,2);       // luz trasera
+  R(g,'#fff4c8',88,12,4,2);R(g,'#ffffff',91,13,2,1);     // faro
+  R(g,'#101014',90,16,3,4);R(g,'#c9d0d8',90,15,3,1);     // parrilla
+  const o=outline(c,CK,false);o.wx=[19,77];o.wy=27;o.wr=6;return o;
+}
+function hondaFit(main='#6f9bd0'){
+  // Honda Fit: monovolumen compacto. Techo alto que cae suave hacia atrás, parabrisas muy inclinado
+  // que arranca casi sobre la rueda delantera, capó cortísimo, trasera alta y corta.
+  const w=72,h=29,{c,g}=mk(w,h);
+  const body=[[10,3],[20,1],[38,1],[54,9],[60,11],[66,13],[69,16],[70,20],[70,24],[4,24],[2,21],[2,12],[4,7]];
+  const k=carBody(g,w,h,body,main,20);
+  R(g,k.L,6,10,50,1);                                    // pliegue de la carrocería
+  glassPane(g,w,h,[[11,3],[24,3],[24,9],[7,9]],3);       // puerta trasera + ventanilla
+  glassPane(g,w,h,[[26,3],[41,3],[53,9],[26,9]],3);      // puerta delantera
+  R(g,k.D,25,10,1,11);R(g,k.D,47,10,1,10);               // costuras de puertas
+  R(g,k.L,17,13,3,1);R(g,k.L,33,13,3,1);                 // manijas
+  R(g,k.D,49,9,4,3);R(g,k.M,49,9,4,1);                   // espejo
+  wheelArch(g,15,23,6.7,24);wheelArch(g,55,23,6.7,24);
+  R(g,'#26272d',4,21,6,3);R(g,'#26272d',61,21,9,3);      // parachoques
+  R(g,'#c9202f',2,11,2,8);R(g,'#ff6a70',2,11,1,3);       // luz trasera vertical
+  R(g,'#fff4c8',63,13,5,2);R(g,'#ffffff',67,15,3,1);     // faro alargado
+  R(g,'#101014',68,18,2,3);                              // parrilla
+  const o=outline(c,CK,false);o.wx=[16,56];o.wy=24;o.wr=5;return o;
 }
 const CARS=[];
 function buildCars(){
   CARS.push(
-    carSprite('#d8322a','#ff7a6a','#8a1a18'), // carro típico que ya tenía
-    kiaSoul('#d84a3e'),                       // Kia Soul
-    toyotaHilux('#bfc5c9'),                   // Toyota Hilux
-    hondaFit('#d94838')                       // Honda Fit
+    carSprite('#d8322a','#ff7a6a','#8a1a18'), // sedán genérico rojo
+    kiaSoul('#e8782e'),                       // Kia Soul naranja
+    toyotaHilux('#e4e8ea'),                   // Toyota Hilux blanca
+    hondaFit('#6f9bd0')                       // Honda Fit azul claro
   );
 }
 /* ---------- puestos ---------- */
@@ -1916,7 +1965,7 @@ function initLevel(){
    COINL=declutterCoins(COINL);
   {const rr=RNG(555);COINL=COINL.filter(()=>rr()<.5);} // menos monedas
   DOGL=DOGDATA.map(([x,a,b,p])=>({x,y:GY,vx:0,vy:0,dir:-1,st:'patrol',a,b,pal:p,t:0,home:x,cool:0,lunged:0,anim:0,stun:0,fl:0,sitPhase:0,sitT:0}));
-  CARL=[];const cr=RNG(8);for(let i=0;i<7;i++)CARL.push({img:Math.floor(cr()*CARS.length),wx:i*170,lane:i%2,sp:LANESPD[i%2]});
+  CARL=[];const cr=RNG(8);for(let i=0;i<5;i++)CARL.push({img:pickCar(null,cr),wx:i*200,lane:i%2,sp:LANESPD[i%2]});
   ROCKS=ROCKDATA.map(x=>({x,got:false}));
   PROJ=[];
   const claimedDoors=new Set();
@@ -2041,6 +2090,9 @@ function updateRocks(){
     if(hit||pr.y>GY+8||pr.t>150||pr.x<G.cam-40||pr.x>G.cam+W+40)PROJ.splice(i,1);
   }
 }
+const DOORT=40; // frames de la animación de entrar/salir por la puerta
+function doorEnv(t){const tt=Math.min(1,t/DOORT);return tt<.2?tt/.2:tt>.8?(1-tt)/.2:1;}
+function pedDoorU(p){const tt=Math.min(1,p.t/DOORT);let u=clamp((tt-.2)/.65,0,1);return p.st==="leave"?1-u:u;}
 function updatePeds(){
   for(const p of PEDL){
     if(p.watch>0)p.watch--;
@@ -2064,15 +2116,17 @@ function updatePeds(){
       if(p.st==='walk'){
         const dx=p.destX-p.x;
         if(Math.abs(dx)>2){p.face=dx>0?1:-1;p.x+=p.face*.5;}
-        else{p.st='door';p.t=0;}
+        else if(p.returning){p.st='wait';p.t=0;}          // volvió a su lugar: espera, NO "entra" a media calle
+        else{p.x=p.destX;p.st='door';p.t=0;}
+      }else if(p.st==='wait'){
+        if(p.t>200){p.returning=false;p.destX=p.door.x+p.door.w/2;p.st='walk';p.t=0;}
       }else if(p.st==='door'){
         if(p.t===1)dust(p.x,GY,3);
-        if(p.t>24){p.st='inside';p.t=0;} // entra a la tienda (animación de encogerse)
+        if(p.t>DOORT){p.st='inside';p.t=0;}
       }else if(p.st==='inside'){
-        if(p.t>240){p.st='leave';p.t=0;p.face=p.x0>=p.x?1:-1;} // empieza a salir, ahora sí mirando hacia donde va a caminar
+        if(p.t>240){p.st='leave';p.t=0;p.face=p.x0>=p.x?1:-1;}
       }else if(p.st==='leave'){
-        if(p.t===1)dust(p.x,GY,3);
-        if(p.t>24){p.st='walk';p.t=0;p.destX=p.x0;} // ya salió, vuelve a caminar
+        if(p.t>DOORT){p.st='walk';p.t=0;p.returning=true;p.destX=p.x0;}
       }
     }
   }
@@ -2264,10 +2318,34 @@ function updateFx(){
   // puestos
   for(const s of STANDS)if(s.act>0)s.act--;
 }
+/* modelos: 0 sedán, 1 Soul, 2 Hilux, 3 Fit. Los grises/azules (Hilux, Fit) salen menos
+   y nunca se repite el mismo modelo seguido ni se juntan dos iguales a la vista. */
+const CAR_WT=[.40,.36,.14,.10];
+function pickCar(c,rnd){
+  const w=CAR_WT.map((v,i)=>{let n=0;for(const o of CARL)if(o!==c&&o.img===i)n++;return(c&&c.img===i)?0:v*(n?(i>=2?.04:.7):1);});
+  let r=rnd()*w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<w.length;i++){r-=w[i];if(r<=0)return i;}
+  return 0;
+}
 function updateTraffic(){
+  // al reaparecer, un carro busca un hueco libre en su carril. side<0: detrás de la cámara; side>0: por delante.
+  const respawn=(c,side)=>{
+    let nx=0;
+    for(let k=0;k<20;k++){
+      nx=side<0?G.cam-160-Math.random()*320:G.cam+W+60+Math.random()*320;
+      if(!CARL.some(o=>o!==c&&o.lane===c.lane&&Math.abs(o.wx-nx)<170))break;
+    }
+    c.wx=nx;c.img=pickCar(c,Math.random);
+  };
   for(const c of CARL){const dir=c.lane?-1:1;c.wx+=dir*c.sp;
-    if(dir>0&&c.wx>G.cam+W+90){c.wx=G.cam-160-Math.random()*260;c.img=Math.floor(Math.random()*CARS.length);}
-    if(dir<0&&c.wx<G.cam-160){c.wx=G.cam+W+50+Math.random()*260;c.img=Math.floor(Math.random()*CARS.length);}}
+    if(dir>0){
+      if(c.wx>G.cam+W+90)respawn(c,-1);        // se pasó de largo hacia adelante
+      else if(c.wx<G.cam-420)respawn(c,1);     // el jugador lo dejó atrás: vuelve a salir adelante
+    }else{
+      if(c.wx<G.cam-160)respawn(c,1);
+      else if(c.wx>G.cam+W+700)respawn(c,1);
+    }
+  }
 }
 function updateCam(){
   if(G.bus&&(G.bus.st==='go'||G.bus.st==='idle'||G.bus.st==='close'))return;
@@ -2285,7 +2363,7 @@ function update0(){
   G.time++;
   updatePlayer();updateBus();updateDogs();updateCoins();updateFx();updateTraffic();updateRocks();updatePeds();updateCam();
   G.prog=clamp((PL.x-150)/(XBUS+BUSDOOR-150),0,1);
-  G.hint=G.time<780?1:0;
+  G.hint=G.time<300?1:0;
   if(G.missionMs/1000>=MISSION_SEC&&PL.st!=='board'&&PL.st!=='enter'&&PL.st!=='in'&&G.state==='play'){
     startLateScene();
   }
@@ -2402,15 +2480,14 @@ function drawRocks(cx){
 function drawPedDoors(cx){
   for(const p of PEDL){
     if(p.role!=='enter'||!p.door)continue;
-    let open=0;
-    if(p.st==='door')open=Math.sin(Math.PI*Math.min(1,p.t/24));
-    else if(p.st==='leave')open=Math.sin(Math.PI*Math.min(1,p.t/24));
-    else continue;
+    if(p.st!=='door'&&p.st!=='leave')continue;
+    const open=doorEnv(p.t);
     const dw=p.door.w,dh=36,dx=Math.round(p.door.x-cx),dy=WB-dh;
     if(dx<-dw-10||dx>W+10)continue;
-    const leafW=Math.max(1,Math.round(dw*(1-open*.82)));
+    const leafW=Math.max(2,Math.round(dw*(1-open*.85)));
     R(ctx,'#0c0806',dx,dy,dw,dh);
-    const lx=p.face>0?dx:dx+dw-leafW;
+    R(ctx,'#1c1210',dx,dy,dw,5);
+    const lx=dx+dw-leafW;                       // la hoja siempre articulada en el mismo lado
     R(ctx,'#8a4a26',lx,dy,leafW,dh);R(ctx,'#b4703c',lx,dy,Math.max(1,Math.floor(leafW*.4)),dh);
   }
 }
@@ -2424,22 +2501,26 @@ function drawPeds(cx){
     if(p.watch>0)img=S.shock;
     else if(moving)img=(Math.floor(G.t*.15+p.seed)%2)?S.w0:S.w1;
     else img=S.idle;
-    // entra al local: dos pasos hacia el marco y luego se hunde en la sombra de la puerta;
-    // al salir hace lo inverso, apareciendo primero y terminando de caminar hacia la calle
-    let scale=1,stepIn=0;
-    if(p.st==='door'){const tt=Math.min(1,p.t/24);stepIn=Math.sin(tt*Math.PI*.5)*3*p.face;scale=Math.max(0,1-Math.pow(tt,1.6));}
-    else if(p.st==='leave'){const tt=Math.min(1,p.t/24);stepIn=(1-Math.sin(tt*Math.PI*.5))*3*p.face;scale=Math.min(1,Math.pow(tt,.55));}
-    if(scale<=.02)continue;
-    const sx2=sx+stepIn;
-    shadow(sx2,12*scale,.24*scale);
-    ctx.save();ctx.globalAlpha=Math.max(.2,scale);
-    const feetY=GY+1,imgX=sx2-img.width/2,imgY=GY-img.height+1;
-    ctx.translate(sx2,feetY);ctx.scale(scale,scale);ctx.translate(-sx2,-feetY);
-    spriteAt(img,imgX,imgY,p.face<0);
+    // entrar/salir: la puerta se abre, el NPC avanza hacia el fondo (sube 10px hasta el umbral),
+    // se achica un poco y se desvanece dentro del marco; al salir es lo inverso.
+    let u=0,al=1,sc=1,yo=0,clipDoor=false;
+    if((p.st==='door'||p.st==='leave')&&p.door){
+      u=pedDoorU(p);
+      yo=-(GY-WB)*u;sc=1-.18*u;al=u<.6?1:1-(u-.6)/.4;
+      clipDoor=u>.05;
+      if(al<=.02)continue;
+    }
+    shadow(sx,12,.24*(1-u));
+    ctx.save();
+    if(clipDoor){ctx.beginPath();ctx.rect(Math.round(p.door.x-cx)-1,0,p.door.w+2,H);ctx.clip();}
+    ctx.globalAlpha=al;
+    const fy=GY+1+yo;
+    ctx.translate(sx,fy);ctx.scale(sc,sc);ctx.translate(-sx,-fy);
+    spriteAt(img,sx-img.width/2,GY-img.height+1+yo,p.face<0);
     ctx.restore();
     if(p.watch>110)T(ctx,'!',sx,GY-img.height-8,'#ffe45a',{a:'c',o:'#3a1c10'});
     if(p.pet){
-      const df=CUTEDOGS[Math.floor(G.t*.15+p.petPh)%2],dsx=sx2-p.face*13;
+      const df=CUTEDOGS[Math.floor(G.t*.15+p.petPh)%2],dsx=sx-p.face*13;
       shadow(dsx,9,.22);
       spriteAt(df,dsx-df.width/2,GY-df.height+1,p.face<0);
     }
@@ -2488,7 +2569,20 @@ function drawBrawl(cx){
     T(ctx,t.s,t.x-cx,t.y-5,'#ffe45a',{s:2,a:'c',o:'#8a1010'});}
 }
 function drawTraffic(cx){
-  for(const c of CARL){const sx=c.wx-cx;if(sx<-110||sx>W+30)continue;const bottom=c.lane?269:262,flip=!!c.lane,im=CARS[c.img],y=bottom-im.height,wheel1=Math.round(im.width*.19),wheel2=Math.round(im.width*.76);ctx.fillStyle='rgba(10,10,20,.35)';ctx.fillRect(Math.round(sx+4),bottom-1,Math.max(60,im.width-8),2);ctx.save();if(flip){ctx.translate(Math.round(sx)+im.width,0);ctx.scale(-1,1);}else ctx.translate(Math.round(sx),0);ctx.drawImage(im,0,y);const f=Math.floor(c.wx*.2)%5,wf=BUSES.wc[((f%5)+5)%5];ctx.drawImage(wf,wheel1,y+im.height-9);ctx.drawImage(wf,wheel2,y+im.height-9);ctx.restore();}}
+  for(const c of CARL.slice().sort((a,b)=>a.lane-b.lane)){
+    const sx=c.wx-cx;if(sx<-110||sx>W+30)continue;
+    const bottom=c.lane?269:255,flip=!!c.lane,im=CARS[c.img];
+    const y=im.wx?bottom-im.height-1:bottom-im.height;
+    ctx.fillStyle='rgba(10,10,20,.35)';ctx.fillRect(Math.round(sx+4),bottom-1,Math.max(40,im.width-8),2);
+    ctx.save();
+    if(flip){ctx.translate(Math.round(sx)+im.width,0);ctx.scale(-1,1);}else ctx.translate(Math.round(sx),0);
+    ctx.drawImage(im,0,y);
+    const f=((Math.floor(c.wx*.2)%5)+5)%5;
+    if(im.wx){const wf=(im.wr===6?BUSES.wm:BUSES.wc)[f];for(const wx of im.wx)ctx.drawImage(wf,wx-im.wr,y+im.wy-im.wr);}
+    else{const wf=BUSES.wc[f],w1=Math.round(im.width*.19),w2=Math.round(im.width*.76);ctx.drawImage(wf,w1,y+im.height-9);ctx.drawImage(wf,w2,y+im.height-9);}
+    ctx.restore();
+  }
+}
 function drawFx(cx){
   for(const f of G.fx){const sx=f.x-cx;
     if(f.k==='txt'){T(ctx,f.txt,sx,f.y,f.col,{a:'c',o:'#1a1424'});}
@@ -2530,7 +2624,7 @@ function drawHUD(){
   R(ctx,'#000',px+12+pf-2,10,5,11);R(ctx,'#f2c81e',px+12+pf-1,11,3,9);R(ctx,'#4a2a16',px+12+pf-1,11,3,3);
   {const elapsed=Math.min(MISSION_SEC,Math.max(0,G.missionMs/1000));const remain=Math.max(0,MISSION_SEC-elapsed);const totalSeconds=Math.min(12*3600,6*3600+58*60+elapsed);const hh=Math.floor(totalSeconds/3600);const mm=Math.floor((totalSeconds%3600)/60);const ss=Math.floor(totalSeconds%60);const urgent=remain<=30,col=urgent?((G.t>>3)%2?'#ff4a3a':'#ffe45a'):'#fff';T(ctx,hh+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')+' AM',W-8,26,col,{a:'r',sh:'#000'});}
   // pista
-  if(G.hint&&G.state==='play'){const msg=G.touch?'¡LLEGA A LA PARADA!  JUNTA MONEDAS':'← →: MOVER   ESPACIO: SALTAR   SHIFT: CORRER   E: COMPRAR';const w=TW(msg,1)+14;panel((W-w)/2|0,H-30,w,16,'#1a1424','#f4e8c8');T(ctx,msg,W/2,H-26,'#fff',{a:'c'});}
+  if(G.hint&&G.state==='play'){const msg=G.touch?'¡LLEGA A LA PARADA!  JUNTA MONEDAS':'← →: MOVER   ESPACIO: SALTAR   SHIFT: CORRER   E: COMPRAR';const w=TW(msg,1)+14;ctx.globalAlpha=clamp((300-G.time)/40,0,1);panel((W-w)/2|0,H-30,w,16,'#1a1424','#f4e8c8');T(ctx,msg,W/2,H-26,'#fff',{a:'c'});ctx.globalAlpha=1;}
   // ubicación
   if(G.cap){const t=G.cap.t,al=t<20?t/20:t>190?(220-t)/30:1;const y=Math.round(52-(1-Math.min(1,t/14))*20);const w=TW(G.cap.txt,1)+22;ctx.globalAlpha=clamp(al,0,1);panel((W-w)/2|0,y,w,17,'#12203a','#f2c81e');T(ctx,G.cap.txt,W/2,y+5,'#fff',{a:'c'});ctx.globalAlpha=1;}
 }
@@ -2548,42 +2642,42 @@ function drawMushroom(x,y,sc){
 }
 function drawIntro(){
   renderWorld();
-  const t=G.introT,doorX=114,doorW=26,doorY=WB-50;let open=0;
-  if(t<45)open=Math.min(1,t/24);
-  else if(t<120)open=1;
-  else if(t<160)open=1-Math.min(1,(t-120)/28);
+  const t=G.introT,doorX=114,doorW=26,doorY=WB-50;
+  // 0-24 abre · 24-118 abierta · 118-146 se cierra
+  let open=0;
+  if(t<24)open=t/24;else if(t<118)open=1;else if(t<146)open=1-(t-118)/28;
   const leafW=Math.max(2,Math.round(doorW*(1-open*.88)));
   R(ctx,'#0c0806',doorX,doorY,doorW,50);
   if(open<.98){
-    const lx=t<160?doorX+doorW-leafW:doorX;
+    const lx=doorX+doorW-leafW;
     R(ctx,'#8a4a26',lx,doorY,leafW,50);
     R(ctx,'#b4703c',lx,doorY,Math.max(1,Math.floor(leafW*.4)),50);
     R(ctx,'#d8b080',lx+Math.max(1,leafW-5),doorY+24,2,2);
   }
-  const x=127;let y=GY,img,scale=1;
-  if(t<45){
-    y=GY-18;img=INTRO.front[0][Math.floor(t/7)%4];scale=.98;
-  }else if(t<120){
-    const q=(t-45)/75;
-    y=GY-18+q*18;
-    img=INTRO.front[0][Math.floor(t/8)%4];
-  }else if(t<160){
-    // se gira y queda de espaldas para cerrar la puerta
-    y=GY;img=INTRO.back[0][Math.floor((t-120)/8)%4];
-  }else{
-    // ya de perfil, como el sprite real jugable
-    y=GY;img=BOY.s.w1;
-  }
-  shadow(x,14,.28);
-  ctx.save();ctx.translate(x,GY);ctx.scale(scale,scale);ctx.translate(-x,-GY);
-  spriteAt(img,x-img.width/2,y-img.height+1,false);ctx.restore();
-  if(t>=120&&t<160){
+  // Secuencia: aparece en el umbral (frente) -> baja a la banqueta (frente) -> se detiene ->
+  // gira de perfil -> queda de espaldas cerrando la puerta -> gira de perfil -> camina a la derecha.
+  let x=127,y=GY,img,alpha=1,clip=false;
+  const wf=Math.floor(t/8)%4;
+  if(t<30){y=WB;img=INTRO.front[0][4];alpha=clamp((t-6)/18,0,1);clip=true;}
+  else if(t<90){y=WB+(GY-WB)*((t-30)/60);img=INTRO.front[0][wf];}
+  else if(t<110){img=INTRO.front[0][4];}
+  else if(t<118){img=BOY.s.idle;}
+  else if(t<150){img=INTRO.back[0][4];}
+  else if(t<158){img=BOY.s.idle;}
+  else{const q=clamp((t-158)/37,0,1);x=127+23*q;img=BOY.s['w'+(Math.floor((t-158)/6)%4)];}
+  if(t>=30)shadow(x,14,.28);
+  ctx.save();
+  if(clip){ctx.beginPath();ctx.rect(doorX,0,doorW,H);ctx.clip();}
+  ctx.globalAlpha=alpha;
+  spriteAt(img,x-img.width/2,y-img.height+1,false);
+  ctx.restore();
+  if(t>=118&&t<150){
     const w=TW('CERRANDO LA PUERTA...',1)+12;
     panel((W-w)/2|0,18,w,15,'#1a1424','#f4e8c8');
     T(ctx,'CERRANDO LA PUERTA...',W/2,22,'#fff',{a:'c'});
   }
-  if(t>=160&&t<195){
-    const a=(t-160)/35;ctx.globalAlpha=a;
+  if(t>=158&&t<195){
+    const a=(t-158)/37;ctx.globalAlpha=a;
     const w=TW('VAMOS...',2)+16;panel((W-w)/2|0,18,w,17,'#12203a','#ffe45a');
     T(ctx,'VAMOS...',W/2,23,'#ffe45a',{a:'c',s:2});ctx.globalAlpha=1;
   }
