@@ -2646,7 +2646,7 @@ function drawPlayer(cx){
   if(PL.grow>0&&PL.grow%6<3){ctx.globalAlpha=.55;spriteAt(tint(img,'#ffffff',1),dx,dy,PL.face<0);}
   ctx.restore();
   if(PL.st==='eat'&&PL.t<36){const f=PL.shroom?ART.mush:(PL.eatStand&&PL.eatStand.t==='pup'?ART.pup:(PL.eatStand&&PL.eatStand.t==='fre'?ART.cup:ART.min)),p=PL.t/36;
-    const hx=sx+PL.face*(10-3*p)-f.width/2,hy=PL.y-(PL.big?24:18)-p*(PL.big?14:11)-f.height/2;spriteAt(f,hx,hy,false);}
+    if(PL.shroom){mushItem(sx+PL.face*(10-3*p),PL.y-15-(PL.big?4:0)-p*7,0);}else{const hx=sx+PL.face*(10-3*p)-f.width/2,hy=PL.y-(PL.big?24:18)-p*(PL.big?14:11)-f.height/2;spriteAt(f,hx,hy,false);}}
   if(G.state==='late'&&G.lateT>=48&&G.lateT<88&&!PL.hitLate){
     // Mano levantada: misma paleta de piel/camiseta del protagonista.
     R(ctx,PAL.Y,Math.round(sx-10),Math.round(PL.y-img.height+15),4,7);
@@ -2732,15 +2732,34 @@ function drawHUD(){
 }
 function veil(a){ctx.fillStyle='rgba(12,8,28,'+a+')';ctx.fillRect(0,0,W,H);}
 function bigText(s,y,sc,col,ol){T(ctx,s,W/2,y,col,{s:sc,a:'c',o:ol||'#1a1030',sh:'#000'});}
-function drawMushroom(x,y,sc){
-  sc=sc||1;
-  const rr=(c,ox,oy,w,h)=>R(ctx,c,x+ox*sc,y+oy*sc,w*sc,h*sc);
-  rr('#1c1218',-8,-14,17,15); // contorno base (se dibuja detrás)
-  rr('#e83c30',-7,-13,15,9);rr('#ff5a44',-7,-13,15,2);
-  rr('#c8241c',-7,-4,15,2);
-  for(const [dx,dy] of [[-4,-11],[1,-12],[-1,-8],[4,-9],[-6,-6]])rr('#fff6e0',dx,dy,2,2);
-  rr('#f6e6c8',-4,-2,9,7);rr('#d9c39c',-4,3,9,2);
-  rr('#c8ae82',-2,-2,1,7);rr('#c8ae82',2,-2,1,7);
+const MUSH_ROWS=[
+"....kkk....",
+"...kCCCk...",
+"..kCCCCCk..",
+".kCCcCCDDk.",
+".kccccccDk.",
+"kclcccccllk",
+"klllllllllk",
+".kkkkkkkkk.",
+"....ksk....",
+"....ksk....",
+"....ksk....",
+"....kSk....",
+"...ksk.....",
+"...ksk.....",
+"...kSk.....",
+"..ksk......",
+"..kSk......",
+"..ksk......"];
+const MUSH_PAL={k:'#1c1218',C:'#8a6a3c',c:'#c4a46c',D:'#6a4e2c',l:'#ece0c0',s:'#d8c8a0',S:'#a89468'};
+function drawMushroom(x,y,sc){ // (x,y) = base del tallo
+  sc=sc||1;const m=ART.mush;if(!m)return;ctx.imageSmoothingEnabled=false;
+  ctx.drawImage(m,Math.round(x-m.width*sc/2),Math.round(y-m.height*sc),m.width*sc,m.height*sc);
+}
+/* hongo dibujado con su centro en (x,y), con giro opcional (para cuando lo lanzan) */
+function mushItem(x,y,rot){
+  const m=ART.mush;ctx.save();ctx.translate(Math.round(x),Math.round(y));if(rot)ctx.rotate(rot);
+  ctx.drawImage(m,-(m.width>>1),-(m.height>>1));ctx.restore();
 }
 function drawIntro(){
   renderWorld();
@@ -2791,7 +2810,7 @@ function drawTitle(){
   veil(.4);
   const bob=Math.sin(G.t*.05)*2;
   bigText('SIVAR TRIP',40+bob,6,'#ffe45a','#9a2a14');
-  drawMushroom(W/2+118,54+bob,1.3);
+  drawMushroom(446,86+bob,2);
   bigText('UNA AVENTURA PIXEL POR EL SALVADOR',96,1,'#f4e8c8','#1a1030');
   if((G.t>>5)%2===0)bigText(G.touch?'TOCA LA PANTALLA PARA JUGAR':'PRESIONA ENTER O ESPACIO',150,2,'#ffffff','#1a1030');
   panel(60,176,360,52);
@@ -3124,7 +3143,7 @@ function buildLevel2Art(){
   ART.bd2=c;ART.shadows=SHL;buildGround2();
   ART.backdrop=ART.bd1;ART.ground=ART.gr1;
   TB=mk(W,H);TB2=mk(W,H);buildHand();
-  {const m=mk(20,20),real=ctx;ctx=m.g;drawMushroom(10,14,1);ctx=real;ART.mush=m.c;}
+  ART.mush=spr(MUSH_ROWS,MUSH_PAL);
   {const k=mk(48,48);FP(k.g,0,0,48,48,(i,j)=>{const d=Math.abs((i%24)-12)+Math.abs((j%24)-12);if(d<2)return '#fff6a0';return(d%2===0&&d<12)?['#ff2a8a','#ffe45a','#2affb0','#2a8aff','#c82aff'][(d>>1)%5]:null;});
    ART.kene=k.c;ART.kpat=MCTX.createPattern(k.c,'repeat');}
   {const s=mk(32,32);for(let a=0;a<16;a++){const an=a/16*6.283;for(let q=11;q<=15;q++)P(s.g,a%2?'#ff8a2a':'#ffe45a',16+Math.cos(an)*q,16+Math.sin(an)*q);}
@@ -3536,7 +3555,7 @@ function startLevel2(){
   setLevel(2);initLevel2();
   const b=G.bus=newBus();b.x=-170;b.st='l2';b.open=0;b.dy=50;
   Object.assign(PL,{x:-100,y:GY,vx:0,vy:0,face:1,onG:true,st:'walk',t:0,wt:0,hidden:true,inv:0,stun:0,dizzy:0,power:false,shroom:false,eatStand:null,big:false,rocks:0,hp:Math.max(PL.hp,3)});
-  Object.assign(G,{cam:0,shake:0,fx:[],cap:null,capSeen:{},hint:0,brawl:null,flash:0,winT:0,overT:0,dogWarned:1,pitWarned:1,roofHint:0,trip:0,time:0,missionMs:0,state:'l2intro',l2t:0,taken:false,talk:null,pov:0,l2post:0});
+  Object.assign(G,{cam:0,shake:0,fx:[],cap:null,capSeen:{},hint:0,brawl:null,flash:0,winT:0,overT:0,dogWarned:1,pitWarned:1,roofHint:0,trip:0,time:0,missionMs:0,state:'l2intro',l2t:0,taken:false,rasRise:0,tossT:0,eaten:0,talk:null,pov:0,l2post:0});
   AU.on=true;
 }
 function restartLevel2(){
@@ -3558,6 +3577,8 @@ function tapAction(){
 }
 function updateL2Intro(){
   G.t++;const b=G.bus;
+  if(G.l2t>=360)G.rasRise=Math.min(1,(G.rasRise||0)+.05);
+  if(G.rasRise>=1&&G.l2t>=366&&!G.talk&&G.tossT<18){G.tossT++;if(G.tossT===1)sfx('jump');}
   if(G.pov){G.pov++;if(G.pov%11===0)tn(260+Math.sin(G.pov*.12)*140,.3,'sine',.07,180);
     if(G.pov>=300){G.pov=0;G.trip=.2;G.l2post=1;G.flash=10;PL.power=true;spark(PL.x,PL.y-24,16,['#ff2a8a','#2affb0','#ffe45a','#2a8aff']);}
     updateFx();return;}
@@ -3573,9 +3594,9 @@ function updateL2Intro(){
   else if(t>=280&&t<362&&PL.x<372){PL.x+=1.6;PL.vx=1.6;PL.wt+=.16;}
   else if(PL.st!=='eat')PL.vx=0;
   if(t>=240){b.open=Math.max(0,b.open-.05);if(t>=265){b.vx=Math.min(4.4,b.vx+.07);b.x+=b.vx;b.rot+=b.vx*.12;if(t%3===0)G.fx.push({k:'sm',x:b.x+2,y:GY+36,vx:-.7,vy:-.3,t:0,life:26});}}
-  if(t===380){PL.st='eat';PL.shroom=true;PL.t=0;PL.vx=0;}
-  if(t>380&&PL.st==='eat'){PL.t++;
-    if(PL.t===36){spark(PL.x+8,PL.y-28,8,['#ff5a44','#fff6e0','#ffe45a']);sfx('pop');G.taken=true;}
+  if(G.tossT>=18&&!G.eaten){G.eaten=1;PL.st='eat';PL.shroom=true;PL.t=0;PL.vx=0;PL.face=1;sfx('pop');}
+  if(G.eaten&&PL.st==='eat'){PL.t++;
+    if(PL.t===36){spark(PL.x+8,PL.y-28,8,['#c4a46c','#ece0c0','#8a6a3c']);sfx('pop');G.taken=true;}
     if(PL.t>=52){PL.st='walk';PL.shroom=false;G.pov=1;sfx('grow');}}
   if(t>=550)finishL2Intro();
   updateFx();
@@ -3596,9 +3617,23 @@ function updateL2(){
 function drawRasta(cx){
   const sx=RX-cx;if(sx<-70||sx>W+70)return;
   const S=PEDS[RASTA_I].idle,rx=sx+52;shadow(rx,14,.25);drawPerson(S,rx-S.width/2,GY-S.height+1,true,7);
+  // morral tejado colgado de su cadera (de ahí saca el hongo)
+  const intro=G.state==='l2intro',rise=intro?(G.rasRise||0):0,tt=intro?(G.tossT||0):0;
+  const ez=k=>k*k*(3-2*k),bagX=Math.round(rx-8),bagTop=GY-20;
+  const hxH=rx-3+(-12)*ez(clamp((rise-.35)/.65,0,1)),ybH=GY-12-rise*10;       // posición del hongo en su mano
+  if(rise>0&&tt===0){mushItem(hxH,ybH-9,0);}
+  if(tt>0&&tt<18){
+    const u=tt/18,ex=PL.x-cx+PL.face*10,ey=PL.y-15,x0=rx-15,y0=GY-31;
+    mushItem(x0+(ex-x0)*u,y0+(ey-y0)*u-26*Math.sin(Math.PI*u),-u*Math.PI*2);
+  }
+  R(ctx,'#1c1218',bagX-1,bagTop-1,12,12);
+  for(let j=0;j<10;j++)R(ctx,['#e8382c','#f2c81e','#3aa040'][Math.floor(j/2)%3],bagX,bagTop+j,10,1);
+  R(ctx,'#3a2410',bagX,bagTop,10,2);R(ctx,'#8a5a30',bagX,bagTop+10,10,1);
+  for(let i=0;i<8;i++)R(ctx,'#5a3a1c',bagX+8-Math.floor(i*.5),bagTop-i,1,1);   // correa
+  if(rise>.35&&tt===0){armTo(ctx,rx-3,GY-23,hxH,ybH-1,'#e8382c','#7a4a2a',.5);}   // brazo estirado con el hongo
+
   R(ctx,'#5a3a20',sx,GY-14,42,3);R(ctx,'#8a5a34',sx,GY-14,42,1);R(ctx,'#5a3a20',sx+3,GY-11,3,11);R(ctx,'#5a3a20',sx+36,GY-11,3,11);
   const cs=['#e8382c','#f2c81e','#3aa040','#ff8aa0','#2a8ad8'];for(let i=0;i<7;i++)R(ctx,cs[i%5],sx+3+i*4,GY-19-(i%2),3,5);
-  if(!G.taken)spriteAt(ART.mush,sx+30,GY-33,false);
   T(ctx,'PULSERAS',sx+20,GY-44,'#ffe45a',{a:'c',o:'#2a1c10'});
 }
 function dlg(who,txt,k){
@@ -3691,19 +3726,42 @@ function buildPOV(){
   ART.povT=tb.c;ART.povV=[mkV(0),mkV(1),mkV(2)];
   ART.pov=c;ART.povX=px;
 }
+/* la mano también vive el efecto: respira y ondula (los dedos se mueven solos), deja estelas de colores,
+   su contorno brilla y su piel cambia de tono; luego pasa por la misma deformación que el resto de la escena */
+function povHand(f,t,a){
+  const up=Math.min(1,t/28),e=1-Math.pow(1-up,3);
+  const ox=392+Math.sin(t*.08)*(4+7*a),oy=H+34+(1-e)*170+Math.sin(t*.12)*(3+5*a),rot=-.32+Math.sin(t*.05)*(.03+.04*a);
+  const sc=1+Math.sin(t*.06)*.05*a;                                         // la mano late: crece y se encoge
+  const pass=(img,dx,dy,wv,al)=>{
+    f.save();f.globalAlpha=al;f.translate(ox+dx,oy+dy);f.rotate(rot);f.scale(sc,sc);
+    for(let sx=0;sx<48;sx++){const off=Math.sin(sx*.42+t*.14)*wv*(1+Math.sin(t*.05)*.4);f.drawImage(img,sx,0,1,40,-120+sx*5,-200+off,5,200);}   // ondulación de dedos
+    f.restore();};
+  // estelas: copias desfasadas con otro color
+  const hv=(t*2.2)%360;
+  if(a>0){
+    f.save();f.globalCompositeOperation='lighter';
+    for(let i=3;i>=1;i--){const k=((Math.floor(t/6)+i*2)%6+6)%6;pass(auraSil(ART.hand,k),Math.sin(t*.07+i)*8*i*a,-i*5*a,2*a,.2*a);}
+    f.restore();
+    // aura: contorno de color que viaja alrededor de la mano
+    const k=Math.floor(t/7)%6;
+    for(const [dx,dy] of [[7,0],[-7,0],[0,7],[0,-7]])pass(auraSil(ART.hand,k),dx,dy,1.5*a,.55*a);
+  }
+  // la mano en sí, con la piel cambiando de tono
+  if('filter' in f&&a>0)f.filter='hue-rotate('+Math.round(hv)+'deg) saturate('+(1+.8*a)+')';
+  pass(ART.hand,0,0,(.8+3.2*a),1);
+  if('filter' in f)f.filter='none';
+}
 function drawPOV(k){
   const a=clamp((k-.22)/.6,0,1),t=G.pov,g2=TB2.g;
   if(ART.povX!==Math.round(PL.x))buildPOV();
   g2.setTransform(1,0,0,1,0,0);g2.fillStyle='#000';g2.fillRect(0,0,W,H);
   if(!POVF)POVF=mk(W,H);const f=POVF.g;f.setTransform(1,0,0,1,0,0);f.clearRect(0,0,W,H);f.drawImage(ART.pov,0,0);
   const bl=t%90<5,vi=bl?1:(t>40?2:0),bob=Math.round(Math.sin(t*.07)*1.5);
-  f.drawImage(ART.povV[vi],0,0,34,36,146,98+bob,88,94);f.drawImage(ART.povT,0,0);       // el vendedor te mira desde atrás de su puesto: sonríe y parpadea
+  f.drawImage(ART.povV[vi],0,0,34,36,146,98+bob,88,94);f.drawImage(ART.povT,0,0);povHand(f,t,a);       // el vendedor te mira desde atrás de su puesto: sonríe y parpadea
   g2.drawImage(POVF.c,0,0);
   if(a>0)for(let x=0;x<W;x+=4){const dy=Math.round(Math.sin(x*.045+t*.08)*7*a),dx=Math.round(Math.sin(t*.05)*6*a);g2.drawImage(POVF.c,x,0,4,H,x+dx,dy,4,H);}
   tripFx(a,TB2.c);
   const c=MCTX;c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;c.globalCompositeOperation='source-over';
-  const up=Math.min(1,t/28),e=1-Math.pow(1-up,3);
-  c.save();c.translate(392+Math.sin(t*.08)*(4+7*a),H+34+(1-e)*170+Math.sin(t*.12)*(3+5*a));c.rotate(-.32+Math.sin(t*.05)*(.03+.04*a));c.drawImage(ART.hand,-120,-200,240,200);c.restore();
   const vg=c.createRadialGradient(W/2,H/2,H*.35,W/2,H/2,W*.62);vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,'+(.35+.3*a)+')');c.fillStyle=vg;c.fillRect(0,0,W,H);
   if(t<10){c.fillStyle='rgba(255,255,255,'+(1-t/10)+')';c.fillRect(0,0,W,H);}
   if(k>.9){c.fillStyle='rgba(255,255,255,'+Math.min(1,(k-.9)*10)+')';c.fillRect(0,0,W,H);}
