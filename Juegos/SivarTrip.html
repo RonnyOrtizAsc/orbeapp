@@ -1433,7 +1433,15 @@ function tiendaFacade(g,x,w,h,pi,r){
   SHOPGIRLPOS.push({x:dX+dw/2-6,y:WB-44,seed:dX*.13,cox:dX,cow:dw,coy:WB-18});
 }
 function shop(g,x,w,h,pi,name,r){
-  if(name==='TIENDA'){tiendaFacade(g,x,w,h,pi,r);return;}
+  if(name==='TIENDA'&&!shop._sil){
+    // El mapa se arma con un solo generador aleatorio: para que casas y edificios queden repartidos EXACTAMENTE como en la
+    // versión anterior, primero se "dibuja" la tienda vieja en un lienzo descartable (solo para gastar los mismos números),
+    // se deshacen sus efectos, y luego se dibuja la tienda nueva con su propio generador.
+    const L=[ROOFPLAT.length,ROOFOBS.length,SHOPDOORPOS.length,SHOPGIRLPOS.length];
+    shop._dum=shop._dum||mk(4,4).g;shop._sil=1;shop(shop._dum,x,w,h,pi,name,r);shop._sil=0;
+    ROOFPLAT.length=L[0];ROOFOBS.length=L[1];SHOPDOORPOS.length=L[2];SHOPGIRLPOS.length=L[3];
+    tiendaFacade(g,x,w,h,pi,RNG(x*131+w*7+pi));return;
+  }
   const pal=BPAL[pi];
   bld(g,x,w,h,pi,{roof:'flat',door:-1,zh:10},r);
   // borrar planta baja para colocar la abertura
@@ -1702,7 +1710,7 @@ function buildBackdrop(){
       if(nearPup){gd(x,w);}
       else{
         const h=70+Math.floor(r()*50),pi=Math.floor(r()*8);
-        if(r()<.3){const shN=names[ni++%names.length],shH=Math.max(84,Math.min(h,96));if(shN==='TIENDA'&&w<160){w=Math.min(160,rem);if(rem-w<80)w=rem;}shop(g,x,w,shH,pi,shN,r);}
+        if(r()<.3){const shN=names[ni++%names.length],shH=Math.max(84,Math.min(h,96));shop(g,x,w,shH,pi,shN,r);}
         else bld(g,x,w,h,pi,{roof:['flat','flat','lamina','teja'][Math.floor(r()*4)],ac:r()<.3,plant:r()<.4},r);
       }
     }
