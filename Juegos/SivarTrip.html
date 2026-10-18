@@ -2250,14 +2250,14 @@ function updatePlayer(){
   // --- movimiento normal ---
   const locked=PL.stun>0||PL.st==='fall';
   const ax=locked?0:(KEY.right?1:0)-(KEY.left?1:0);
-  const maxV=((KEY.run||G.touch)?2.7:1.55)*(G.level===2&&PL.power?1.3:1); // en táctil siempre corre: un botón menos que sostener
+  const maxV=((KEY.run||G.touch)?2.7:1.55); // en táctil siempre corre: un botón menos que sostener
   if(ax){PL.vx+=ax*(PL.onG?.32:.2);PL.face=ax;if(PL.vx>maxV)PL.vx=maxV;if(PL.vx<-maxV)PL.vx=-maxV;}else PL.vx*=PL.onG?.76:.95;
   if(!locked){if(PL.vx>maxV)PL.vx=Math.max(maxV,PL.vx-.15);if(PL.vx<-maxV)PL.vx=Math.min(-maxV,PL.vx+.15);}
   if(Math.abs(PL.vx)<.04)PL.vx=0;
   if(PL.st==='fall')PL.vx=0;
   if(KEY.jumpP&&!locked)PL.jbuf=7;
   if(PL.onG)PL.coy=6;else if(PL.coy>0)PL.coy--;
-  if(PL.jbuf>0){PL.jbuf--;if(PL.coy>0&&!locked){PL.vy=-(big?7.4:7.1)*(G.level===2&&PL.power?1.1:1);PL.onG=false;PL.coy=0;PL.jbuf=0;sfx('jump');dust(PL.x,PL.y,3);}}
+  if(PL.jbuf>0){PL.jbuf--;if(PL.coy>0&&!locked){PL.vy=-(big?7.4:7.1); PL.onG=false;PL.coy=0;PL.jbuf=0;sfx('jump');dust(PL.x,PL.y,3);}}
   PL.vy+=(PL.vy<0&&!KEY.jump&&!locked)?.72:.36;if(PL.vy>9)PL.vy=9;if(PL.st==='fall'&&PL.vy>4.5)PL.vy=4.5;
   // X
   const prevX=PL.x;PL.x+=PL.vx;
@@ -2458,6 +2458,7 @@ function update0(){
   if(G.state==='intro'){updateIntro();return;}
   if(G.state==='l2intro'){updateL2Intro();return;}
   if(G.state==='late'){updateLate2();return;}
+  if(G.state==='class'){updateClass();return;}
   if(G.state==='over'){G.overT++;return;}
   if(G.state==='win'){G.winT++;updateFx();return;}
   if(G.state==='pause')return;
@@ -2468,7 +2469,7 @@ function update0(){
   G.prog=clamp((PL.x-150)/((G.level===2?XU:XBUS+BUSDOOR)-150),0,1);
   G.hint=G.time<300?1:0;
   if(G.missionMs/1000>=MSEC()&&PL.st!=='board'&&PL.st!=='enter'&&PL.st!=='in'&&G.state==='play'){
-    if(G.level===2){G.overMsg='¡LLEGASTE TARDE A CLASES!';G.state='over';G.overT=0;sfx('over');}else startLateScene2('time');
+    if(G.level===2)startClass();else startLateScene2('time');
   }
 }
 function update(){update0();KEY.jumpP=0;KEY.actP=0;}
@@ -2723,6 +2724,7 @@ function drawHUD(){
   R(ctx,'#f6f6f2',px+110,11,16,8);R(ctx,'#1f57c9',px+110,15,16,2);R(ctx,'#22384e',px+112,12,3,3);R(ctx,'#22384e',px+117,12,3,3);R(ctx,'#22384e',px+122,12,3,3);
   R(ctx,'#000',px+12+pf-2,10,5,11);R(ctx,'#f2c81e',px+12+pf-1,11,3,9);R(ctx,'#4a2a16',px+12+pf-1,11,3,3);
   {const elapsed=Math.min(MSEC(),Math.max(0,G.missionMs/1000));const remain=Math.max(0,MSEC()-elapsed);const totalSeconds=Math.min(12*3600,CLK0()+elapsed);const hh=Math.floor(totalSeconds/3600);const mm=Math.floor((totalSeconds%3600)/60);const ss=Math.floor(totalSeconds%60);const urgent=remain<=30,col=urgent?((G.t>>3)%2?'#ff4a3a':'#ffe45a'):'#fff';T(ctx,hh+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0')+' AM',W-8,26,col,{a:'r',sh:'#000'});}
+  if(G.level===2)T(ctx,'CLASE: 7:20 AM',W-8,36,'#c8c0d8',{a:'r',sh:'#000'});
   // pista
   if(G.hint&&G.state==='play'){const msg=G.touch?(G.level===2?'¡LLEGA A LA UTEC!  JUNTA MONEDAS':'¡LLEGA A LA PARADA!  JUNTA MONEDAS'):'← →: MOVER   ESPACIO: SALTAR   SHIFT: CORRER   E: COMPRAR';const w=TW(msg,1)+14;ctx.globalAlpha=clamp((300-G.time)/40,0,1);panel((W-w)/2|0,H-30,w,16,'#1a1424','#f4e8c8');T(ctx,msg,W/2,H-26,'#fff',{a:'c'});ctx.globalAlpha=1;}
   // ubicación
@@ -2816,14 +2818,15 @@ function drawWin(){
   if(G.winT>20){
     const tm=Math.floor(G.missionMs/1000),score=PL.coins*10+PL.hp*50+Math.max(0,(MSEC()-tm))*5;
     panel(90,44,300,182,'#1a1c3a','#ffe45a');
-    bigText(G.level===2?'¡LLEGASTE A LA UTEC!':'¡NIVEL 1 COMPLETADO!',56,2,'#ffe45a','#7a2a10');
-    bigText(G.level===2?'¡JUEGO COMPLETADO!':'LLEGASTE A LA PARADA',82,1,'#fff');
+    bigText(G.level===2?'¡PASASTE EL NIVEL 2!':'¡NIVEL 1 COMPLETADO!',56,2,'#ffe45a','#7a2a10');
+    bigText(G.level===2?'LLEGASTE A TIEMPO A LA CLASE DE LAS 7:20':'LLEGASTE A LA PARADA',82,1,'#fff');
     T(ctx,'MONEDAS',120,108,'#c8c0d8');T(ctx,fmtMoney(PL.coins),360,108,'#ffe45a',{a:'r'});
     T(ctx,'TIEMPO',120,124,'#c8c0d8');T(ctx,Math.floor(tm/60)+':'+String(tm%60).padStart(2,'0'),360,124,'#fff',{a:'r'});
     T(ctx,'VIDAS',120,140,'#c8c0d8');T(ctx,'♥ '+PL.hp,360,140,'#ff8aa0',{a:'r'});
     R(ctx,'#f4e8c8',120,170,240,1);
     T(ctx,'PUNTAJE',120,180,'#fff');T(ctx,String(score),360,180,'#8aff9a',{a:'r',s:2});
-    if((G.t>>4)%2===0)bigText(G.level===2?(G.touch?'TOCA PARA JUGAR OTRA VEZ':'ENTER: JUGAR OTRA VEZ'):(G.touch?'TOCA: SIGUIENTE NIVEL':'ENTER: NIVEL 2'),206,1,'#fff');
+    if(G.level===2)bigText('PRÓXIMAMENTE: NIVEL 3',194,1,'#8ad0ff');
+    if((G.t>>4)%2===0)bigText(G.level===2?(G.touch?'TOCA PARA JUGAR OTRA VEZ':'ENTER: JUGAR OTRA VEZ'):(G.touch?'TOCA: SIGUIENTE NIVEL':'ENTER: NIVEL 2'),210,1,'#fff');
   }
 }
 function renderScene(){
@@ -2845,6 +2848,7 @@ function render(){
   if(G.state==='intro'){drawIntro();return;}
   if(G.state==='l2intro'){drawL2Intro();return;}
   if(G.state==='late'){renderScene();drawLate2();return;}
+  if(G.state==='class'){drawClass();return;}
   if(G.state==='over'){drawOver();return;}
   if(G.state==='win'){drawWin();return;}
   renderScene();drawHUD();
@@ -2879,14 +2883,14 @@ const PLAN2=[
 ];
 const SEG2=[];let LEN2=0,XU=0,UTEC_X=0;
 {let x=0;for(const s of PLAN2){const w=s[2],o={k:s[0],t:s[1],x0:x,x1:x+w,n:s[3]||null};SEG2.push(o);if(o.t==='utec'){UTEC_X=x;XU=x+300;}x+=w;}LEN2=x;}
-const RX=400,M2=225;
+const RX=400,M2=180;
 const MSEC=()=>G.level===2?M2:MISSION_SEC;
-const CLK0=()=>G.level===2?7*3600+16*60+15:6*3600+58*60; // 7:16:15 + 3:45 = 7:20:00 (empieza la clase)
+const CLK0=()=>G.level===2?7*3600+17*60:6*3600+58*60; // nivel 1: 6:58 + 2:00 = 7:00 (sale el bus) · nivel 2: 7:17 + 3:00 = 7:20 (empieza la clase)
 const LOCS2=SEG2.filter(s=>s.n).map(s=>({a:s.x0-(s.t==='utec'?60:0),b:s.x1+(s.t==='utec'?40:0),n:s.n}));
 const IN_DETER2=x=>SEG2.some(s=>s.t==='deter'&&x>s.x0&&x<s.x1);
 const STD2=[['fre',1950],['pup',2500],['min',3350],['fre',3950],['pup',4450],['fre',5300],['min',6300],['pup',7900],['fre',8500],['min',9300],['pup',10700],['fre',11100],['fre',12300],['pup',13300],['min',14300]];
 const COPX2=[2100,3400,4300,6500,7900,8800,10900,12400,14000];
-const TALK2=[[210,0,'LEO','¡TENGO QUE ESTAR A LA MIERDEC!'],[360,0,'RASTA','¡HEY, VOS, BICHO! VENI...TENGO PULSERAS...|Y ESTE HONGO SI QUERES PODERES.'],[362,0,'LEO','¡SÍIII! ME CAE BIEN,NECESITO LLEGAR RÁPIDO A LA U,|VOY TARDE A CLASES.']];
+const TALK2=[[210,0,'LEO','¡TENGO QUE ESTAR A LA MIERDEC!'],[360,0,'RASTA','¡HEY, VOS, BICHO! VENI...TENGO PULSERAS...|Y ESTE HONGO SI QUERES VIAJAR.'],[362,0,'LEO','¡SÍIII! ME CAE BIEN,NECESITO LLEGAR RÁPIDO A LA U,|VOY TARDE A CLASES.']];
 let TB=null,TB2=null,L1S=null,COP_I=0,RASTA_I=0,SOL_I=0,ELD_I=0,ELD_N=1,ROOF2={p:[],o:[]};
 
 /* ---------- edificios del centro ---------- */
@@ -3144,6 +3148,157 @@ function buildLevel2Art(){
   {const t=mk(24,66);t.g.drawImage(ART.crate[2],0,22);t.g.drawImage(ART.crate[0],0,0);ART.tall=t.c;SOLDEF.tall=[24,66];}
   ART.bench=benchSpr();ART.pig=[0,1,2,3,4].map(pigSpr);
 }
+
+/* =====================================================================
+   ESCENA DEL SALÓN · si Leo no llega a las 7:20
+   Plano general -> primer plano del profe "Leo..." -> plano general (nadie responde) -> "PUC, COMA MIE"
+   ===================================================================== */
+const CLS={A:0,B:210,C:380,D:520,END:720};
+const CLS_BG_HAIR=['#1c1218','#3a2410','#14101c','#5a3a1c','#241a12','#6a4526','#1c1720','#8a6a3a'];
+const CLS_BG_SHIRT=['#3a6a9a','#c8382c','#48b848','#f08a2a','#8a4a8a','#e0d0a0','#2a8a6a','#d8b040','#4a4a58','#e8388a'];
+let CLSART=null,CLSP={};
+function profSpr(look,mouth,angry){
+  const key=look+'_'+mouth+'_'+(angry?1:0);if(CLSP[key])return CLSP[key];
+  const {c,g}=mk(44,46),x=14,y=4,SK='#c68a5c';
+  bust(g,x,y,{shirt:'#d8d0b8',shirtS:'#a8a088',apron:null,hat:'bald',sk:SK},[[17,30],[26,28]]);
+  R(g,'#8a8a8a',x-1,y+4,2,5);R(g,'#8a8a8a',x+11,y+4,2,5);              // canas a los lados
+  R(g,'#a02828',x+5,y+14,2,9);R(g,'#701818',x+5,y+14,2,1);              // corbata
+  // ojos: miran a un lado u otro
+  R(g,'#fff',x+2,y+6,3,2);R(g,'#fff',x+7,y+6,3,2);
+  R(g,'#2a1810',x+2+look,y+6,2,2);R(g,'#2a1810',x+7+look,y+6,2,2);
+  // lentes
+  R(g,'#1c1c22',x+1,y+5,5,1);R(g,'#1c1c22',x+1,y+8,5,1);R(g,'#1c1c22',x+1,y+5,1,4);R(g,'#1c1c22',x+5,y+5,1,4);
+  R(g,'#1c1c22',x+6,y+5,5,1);R(g,'#1c1c22',x+6,y+8,5,1);R(g,'#1c1c22',x+6,y+5,1,4);R(g,'#1c1c22',x+10,y+5,1,4);
+  // cejas
+  if(angry){R(g,'#2a1810',x+1,y+3,4,1);P(g,'#2a1810',x+4,y+4);R(g,'#2a1810',x+7,y+3,4,1);P(g,'#2a1810',x+7,y+4);P(g,'#e8382c',x+11,y+1);P(g,'#e8382c',x+12,y+2);}
+  // bigote gris y boca
+  R(g,'#8a8a8a',x+3,y+9,6,1);
+  if(mouth){R(g,'#3a0a0a',x+4,y+10,4,2);R(g,'#e8707e',x+5,y+11,2,1);}
+  else if(angry){R(g,'#5a2a20',x+4,y+11,4,1);}
+  // libreta (mano izquierda) y lápiz (mano derecha)
+  R(g,'#1c1218',8,24,13,12);R(g,'#f6f0e0',9,25,11,10);R(g,'#2a5ab0',9,25,1,10);
+  for(let i=0;i<4;i++)R(g,'#9ab0d0',11,27+i*2,7,1);
+  R(g,SK,14,29,3,3);R(g,'#8a5a38',14,31,3,1);
+  for(let i=0;i<10;i++){P(g,'#f2c81e',26+(i>>1),28-i);P(g,'#c28418',27+(i>>1),28-i);}
+  P(g,'#e8707e',31,18);P(g,'#4a4a52',26,29);
+  R(g,SK,25,27,3,3);
+  CLSP[key]=outline(c,K,false);return CLSP[key];
+}
+function buildClassBg(){
+  const {c,g}=mk(W,H),r=RNG(404);
+  // pared y piso
+  vgrad(g,0,0,W,176,['#d8d2b4','#cfc8a6','#bdb590']);
+  R(g,'#8a7a5a',0,166,W,10);R(g,'#a89a74',0,166,W,2);
+  FP(g,0,176,W,H-176,(i,j,ax,ay)=>{const row=Math.floor((ay-176)/14),col=Math.floor((ax+(row%2)*30)/60);const base=(row+col)%2?'#a87a48':'#b8884e';
+    if((ay-176)%14===0)return '#7a5430';if((ax+(row%2)*30)%60===0)return '#7a5430';return r()<.05?'#98703e':base;});
+  // ventanas
+  for(const wx of [18,402]){R(g,'#5a4a30',wx-3,26,66,92);vgrad(g,wx,29,60,86,['#7ab8ee','#a8d8f4','#d8f0f0']);R(g,'#5a4a30',wx+29,29,2,86);R(g,'#5a4a30',wx,70,60,2);
+    for(let q=0;q<4;q++)R(g,'#ffffff',wx+4+q*6,36+q*4,8,3);}
+  // pizarra
+  R(g,'#6a4a28',146,22,188,86);R(g,'#8a6a3c',146,22,188,2);R(g,'#26453a',152,28,176,74);R(g,'#2e5646',152,28,176,2);
+  T(g,'PROGRAMACION',240,38,'#e8e8e0',{a:'c'});T(g,'ASISTENCIA',240,54,'#e8e8e0',{a:'c'});
+  for(let i=0;i<5;i++)R(g,'#c8d8d0',166+i*4,70,2,1);
+  R(g,'#e8e8e0',206,66,60,1);R(g,'#c8d8d0',166,80,100,1);R(g,'#c8d8d0',166,88,70,1);
+  R(g,'#d8d8d0',152,101,176,4);R(g,'#f6f6f0',176,98,10,3);R(g,'#e8d890',200,98,6,3);
+  // reloj de pared: 7:20
+  const cx=366,cy=44;disc(g,'#1c1218',cx,cy,9);disc(g,'#f6f6ee',cx,cy,8);
+  for(let a=0;a<12;a++){const an=a/12*6.2832;P(g,'#2a2a34',Math.round(cx+Math.sin(an)*7),Math.round(cy-Math.cos(an)*7));}
+  const hand=(deg,len,col)=>{const an=deg/360*6.2832;for(let q=0;q<=len;q++)P(g,col,Math.round(cx+Math.sin(an)*q),Math.round(cy-Math.cos(an)*q));};
+  hand(220,4,'#1c1218');hand(120,6,'#c8281e');
+  // puerta
+  R(g,'#4a3018',470,60,10,106);R(g,'#6a4628',470,60,3,106);
+  // escritorio del profesor (se dibuja por encima de él al componer)
+  ART.cls=c;
+}
+/* alumnos de espaldas: filas lejanas (chicas, arriba) a cercanas (grandes, abajo) */
+function drawClassStudents(t,quiet){
+  const rows=[[152,.8],[190,1],[238,1.25]],cols=[55,129,203,277,351,425];
+  rows.forEach(([y,s],ri)=>{cols.forEach((x0,ci)=>{
+    const hs=ri*7+ci,x=x0+(ri%2?0:0),empty=(ri===1&&ci===2); // el asiento vacío es el de Leo
+    const w=Math.round(24*s),h=Math.round(16*s);
+    // mesa
+    R(ctx,'#7a5230',x-Math.round(21*s),y-Math.round(18*s),Math.round(42*s),Math.round(7*s));R(ctx,'#a67a48',x-Math.round(21*s),y-Math.round(18*s),Math.round(42*s),Math.max(1,Math.round(2*s)));
+    if(empty){ // silla vacía
+      R(ctx,'#3a2c20',x-Math.round(11*s),y-Math.round(6*s),Math.round(22*s),Math.round(16*s));R(ctx,'#5a4630',x-Math.round(11*s),y-Math.round(6*s),Math.round(22*s),2);
+      if(!quiet||t%60<30){}
+      return;}
+    // hombros y cabeza
+    const sh=CLS_BG_SHIRT[(hs*3+1)%CLS_BG_SHIRT.length],hr=CLS_BG_HAIR[(hs*5+2)%CLS_BG_HAIR.length];
+    const look=Math.round(Math.sin(t*.03+hs*1.7)*(quiet?2.4:.8)*s);
+    R(ctx,sh,x-w/2,y,w,h);R(ctx,mix(sh,'#ffffff',.25),x-w/2,y,w,Math.max(1,Math.round(2*s)));R(ctx,mix(sh,'#000000',.3),x+w/2-Math.round(3*s),y,Math.round(3*s),h);
+    const hr0=Math.round(6.5*s);disc(ctx,hr,x+look,y-Math.round(3*s),hr0);disc(ctx,mix(hr,'#ffffff',.2),x+look-Math.round(2*s),y-Math.round(5*s),Math.max(1,Math.round(2*s)));
+    R(ctx,mix('#c68a5c','#000',.2),x+look-Math.round(3*s),y+Math.round(2*s),Math.round(6*s),Math.round(2*s)); // nuca
+  });});
+}
+function startClass(){
+  if(!ART.cls)buildClassBg();
+  G.state='class';G.classT=0;G.classTyped=0;G.overMsg='¡NO PASASTE EL NIVEL 2!';
+  G.brawl=null;G.fx=[];G.shake=0;
+  PL.st='walk';PL.hidden=true;
+  sfx('horn');
+}
+function endClass(){G.state='over';G.overT=0;sfx('over');}
+const CLS_L1='LEO...',CLS_L2='PUC, COMA MIE...';
+function clsTyped(){
+  const t=G.classT;
+  if(t>=CLS.B&&t<CLS.C)return Math.max(0,Math.min(CLS_L1.length,Math.floor((t-CLS.B-16)/8)));
+  if(t>=CLS.D)return Math.max(0,Math.min(CLS_L2.length,Math.floor((t-CLS.D-16)/5)));
+  return 0;
+}
+function updateClass(){
+  G.t++;G.classT++;
+  const n=clsTyped(),key=G.classT<CLS.D?'a':'b';
+  if(n!==G.classTyped&&n>0){tn(key==='a'?190:140,.05,'square',.06);}
+  G.classTyped=n;
+  if(G.classT===CLS.D){G.flash=6;sfx('bark');}
+  if(G.flash>0)G.flash--;
+  if(G.classT>=CLS.END)endClass();
+}
+function speechBubble(x,y,w,txt,n,sc){
+  panel(x,y,w,sc===2?34:20,'#fff6e0','#1c1218');
+  R(ctx,'#fff6e0',x-6,y+20,10,6);R(ctx,'#fff6e0',x-12,y+26,10,4);R(ctx,'#1c1218',x-13,y+26,1,5);
+  T(ctx,txt.slice(0,n),x+10,y+(sc===2?10:6),'#2a1810',{s:sc||1});
+}
+function drawClass(){
+  const t=G.classT,c=ctx;c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;c.imageSmoothingEnabled=false;
+  const n=clsTyped();
+  if(t<CLS.B||(t>=CLS.C&&t<CLS.D)){
+    // PLANO GENERAL
+    c.drawImage(ART.cls,0,0);
+    const quiet=t>=CLS.C;
+    const look=Math.floor(t/45)%2,prof=profSpr(look,0,false);
+    c.drawImage(prof,Math.round(W/2-prof.width),26,prof.width*2,prof.height*2);
+    // escritorio del profesor al frente
+    R(c,'#5a3a1c',186,106,108,28);R(c,'#a67a48',184,104,112,5);R(c,'#c89a62',184,104,112,1);R(c,'#3a2410',186,132,108,2);
+    R(c,'#2a1c10',190,112,100,1);
+    drawClassStudents(t,quiet);
+    // letterbox
+    R(c,'#000',0,0,W,12);R(c,'#000',0,H-12,W,12);
+    if(t<CLS.B&&t>30){const a=Math.min(1,(t-30)/20);c.globalAlpha=a;panel(8,16,114,17,'#12203a','#f2c81e');T(c,'7:20 AM - CLASE',65,21,'#fff',{a:'c'});c.globalAlpha=1;}
+    if(quiet&&t>CLS.C+40){const a=Math.min(1,(t-CLS.C-40)/20);c.globalAlpha=a;const m='...NADIE LEVANTA LA MANO...',w=TW(m,1)+16;panel((W-w)/2|0,H-34,w,16,'#1a1424','#f4e8c8');T(c,m,W/2,H-30,'#fff',{a:'c'});c.globalAlpha=1;}
+    if(quiet&&t>CLS.C+10)T(c,'...',W/2,52,'#3a3a44',{a:'c',s:2});
+    if(t<14){c.fillStyle='rgba(0,0,0,'+(1-t/14)+')';c.fillRect(0,0,W,H);}
+    if(t>=CLS.C&&t<CLS.C+6){c.fillStyle='rgba(0,0,0,'+(1-(t-CLS.C)/6)+')';c.fillRect(0,0,W,H);}
+  }else{
+    // PRIMER PLANO DEL PROFESOR (libreta y lápiz en las manos)
+    const angry=t>=CLS.D,d=angry?CLS.D:CLS.B,lt=t-d;
+    c.drawImage(ART.cls,150,24,180,101,0,0,W,H);
+    c.fillStyle='rgba(20,16,28,.55)';c.fillRect(0,0,W,H);
+    const talking=n>0&&n<(angry?CLS_L2.length:CLS_L1.length)&&(t>>2)%2===0;
+    const look=angry?1:(Math.floor(lt/50)%2),prof=profSpr(look,talking?1:0,angry);
+    const sh=angry?Math.round(Math.sin(t*.9)*2):0,bob=Math.round(Math.sin(t*.05)*2);
+    c.drawImage(prof,26+sh,48+bob,prof.width*5,prof.height*5);
+    // burbuja de diálogo
+    const txt=angry?CLS_L2:CLS_L1,sc=2,bw=TW(txt,2)+28;
+    speechBubble(258,60,Math.max(120,bw),txt,n,sc);
+    R(c,'#000',0,0,W,12);R(c,'#000',0,H-12,W,12);
+    if(lt<8){c.fillStyle='rgba(0,0,0,'+(1-lt/8)+')';c.fillRect(0,0,W,H);}
+    if(angry&&t>CLS.END-40){c.fillStyle='rgba(0,0,0,'+Math.min(1,(t-(CLS.END-40))/40)+')';c.fillRect(0,0,W,H);}
+  }
+  if(t>40&&(G.t>>5)%2){T(c,G.touch?'TOCA: SALTAR':'ENTER: SALTAR',W-8,H-9,'#c8c0d8',{a:'r',sh:'#000'});}
+  if(G.flash>0){c.fillStyle='rgba(255,255,255,'+(G.flash/9)+')';c.fillRect(0,0,W,H);}
+}
+
 /* ---------- se te fue el bus (nivel 1) ---------- */
 const FARE=30;
 function driverFrame(open){
@@ -3387,13 +3542,13 @@ function startLevel2(){
 function restartLevel2(){
   initLevel2();
   Object.assign(PL,{x:470,y:GY,vx:0,vy:0,face:1,hp:3,coins:0,onG:true,inv:120,st:'walk',t:0,wt:0,stun:0,dizzy:0,hidden:false,eatStand:null,rocks:0,big:false,power:true,shroom:false});
-  Object.assign(G,{cam:280,shake:0,fx:[],brawl:null,flash:0,capSeen:{},cap:{txt:'¡LLEGA A LA UTEC ANTES DE QUE EMPIECE LA CLASE!',t:0,dur:240},time:0,missionMs:0,overT:0,hint:0,state:'play',trip:1,taken:true});
+  Object.assign(G,{cam:280,shake:0,fx:[],brawl:null,flash:0,capSeen:{},cap:{txt:'¡LLEGA A LA UTEC ANTES DE LAS 7:20!',t:0,dur:240},time:0,missionMs:0,overT:0,hint:0,state:'play',trip:1,taken:true});
 }
 function finishL2Intro(){
   G.pov=0;G.l2post=0;G.bus.st='gone';G.bus.x=-999;CARL.forEach((c,i)=>{c.wx=c.lane?G.cam+W+80+i*220:G.cam-200-i*200;});
   Object.assign(PL,{x:380,y:GY,vx:0,vy:0,face:1,st:'walk',t:0,hidden:false,power:true,shroom:false,inv:60});
   G.talk=null;G.trip=Math.max(G.trip,.3);G.taken=true;G.state='play';G.time=0;G.missionMs=0;G.cam=0;
-  G.cap={txt:'NIVEL 2 - CENTRO HISTÓRICO - ¡LLEGA A LA UTEC!',t:0,dur:260};
+  G.cap={txt:'NIVEL 2 - ¡LA CLASE EMPIEZA A LAS 7:20!',t:0,dur:260};
 }
 function advanceTalk(){const k=G.talk;if(!k)return;const total=k.txt.replace('|','').length;if(Math.floor(k.k/1.5)<total)k.k=total*1.5+2;else G.talk=null;}
 let lastTapT=0;
@@ -3458,7 +3613,7 @@ function drawL2Intro(){
   renderScene();const t=G.l2t;
   if(t<30){ctx.fillStyle='rgba(12,8,28,'+(1-t/30)+')';ctx.fillRect(0,0,W,H);}
   if(G.talk)dlg(G.talk.who,G.talk.txt,G.talk.k);
-  if(t>=440&&t<550){const m='¡PODERES! MÁS VELOCIDAD Y SALTO',w=TW(m,1)+22;panel((W-w)/2|0,20,w,17,'#3a1040','#ff8aff');T(ctx,m,W/2,25,'#fff',{a:'c'});}
+  if(t>=440&&t<550){const m='¡EL HONGO ESTÁ HACIENDO EFECTO!',w=TW(m,1)+22;panel((W-w)/2|0,20,w,17,'#3a1040','#ff8aff');T(ctx,m,W/2,25,'#fff',{a:'c'});}
   hint();
 }
 function buildHand(){
@@ -3635,6 +3790,7 @@ function confirmAction(){
   if(G.state==='title'){resetGame();G.state='intro';G.introT=0;AU.on=true;KEY.jumpP=0;}
   else if(G.state==='over'&&G.overT>25){if(G.level===2)restartLevel2();else{restartGame();G.state='intro';G.introT=0;AU.on=true;KEY.jumpP=0;}}
   else if(G.state==='l2intro')advanceTalk();
+  else if(G.state==='class'&&G.classT>40)endClass();
   else if(G.state==='win'&&G.winT>70){if(G.level===1)startLevel2();else{resetGame();G.state='intro';G.introT=0;AU.on=true;KEY.jumpP=0;}}
 }
 function togglePause(){
