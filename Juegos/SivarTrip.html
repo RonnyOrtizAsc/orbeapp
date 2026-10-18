@@ -1087,7 +1087,19 @@ const SHOPGIRLPOS=[];
 const GSP={};
 function buildShopGirlSprite(){
   const bx=20,by=6;const {c,g}=mk(50,52);
+  // piernas y zapatos (se dibujan primero; la falda los tapa hasta la rodilla)
+  {const sk='#c68a5c',skS=mix(sk,'#5a2a10',.3);
+   R(g,sk,22,44,3,2);R(g,skS,24,44,1,2);R(g,sk,28,44,3,2);R(g,skS,30,44,1,2);
+   R(g,'#2a1c14',21,46,5,2);R(g,'#5a4030',21,46,5,1);R(g,'#2a1c14',27,46,5,2);R(g,'#5a4030',27,46,5,1);}
   bust(g,bx,by,{shirt:'#3aa060',shirtS:'#1e6a40',apron:'#e8e0c8',apronS:'#b8b090',sk:'#c68a5c',hair:'#2a1c14'},[[bx-9,by+28],[bx+17,by+25]]);
+  // falda estampada que se ensancha hacia abajo
+  for(let y=36;y<=43;y++){const t=(y-36)/7,hw=Math.round(8+t*4);
+    for(let x=26-hw;x<26+hw;x++){let col=((x*3+y*5)%7===0)?'#f2c81e':((x+y*2)%9===0)?'#e8688a':'#7a3a8a';
+      if(x<26-hw+2)col=mix(col,'#ffffff',.18);else if(x>=26+hw-3)col=mix(col,'#000000',.28);
+      if(y===43)col=mix(col,'#000000',.35);P(g,col,x,y);}}
+  // delantal al frente, hasta casi el borde de la falda
+  for(let y=36;y<=42;y++){const hw=y<38?5:6;R(g,'#e8e0c8',26-hw,y,hw*2,1);R(g,'#b8b090',26+hw-2,y,2,1);R(g,'#fff6e0',26-hw,y,1,1);}
+  R(g,'#b8b090',20,42,12,1);R(g,'#b8b090',24,38,4,1);
   GSP.girl=outline(c,K,false);GSP.bx=bx;GSP.by=by;
 }
 function drawShopGirls(cx){
@@ -1335,12 +1347,35 @@ function poster(g,x,y,w,h,r){
   }
   P(g,'#d8d0b0',x,y);P(g,'#d8d0b0',x+w-1,y);
 }
-function postersIn(g,x0,y0,x1,y1,avoid,n,r){
+function posterFits(placed,x,y,w,h){
+  // se permite tapar parcialmente a UN solo cartel (poco); nunca 3 en el mismo lugar
+  let n=0;
+  for(const q of placed){
+    const ox=Math.min(x+w,q.x+q.w)-Math.max(x,q.x),oy=Math.min(y+h,q.y+q.h)-Math.max(y,q.y);
+    if(ox>0&&oy>0){if(ox*oy>.25*Math.min(w*h,q.w*q.h))return false;n++;}
+  }
+  return n<=1;
+}
+let _DUM=null;
+function postersIn(g,x0,y0,x1,y1,avoid,n,r,placed,r2){
+  // 'r' (el generador del nivel) se consume EXACTAMENTE como antes para no mover el resto del mapa;
+  // lo que realmente se dibuja se decide aparte, con 'r2'.
+  _DUM=_DUM||mk(8,8).g;placed=placed||[];let ok=0;
   for(let i=0;i<n;i++){
     const w=12+Math.floor(r()*18),h=16+Math.floor(r()*20);
     const px=x0+Math.floor(r()*Math.max(1,x1-x0-w)),py=y0+Math.floor(r()*Math.max(1,y1-y0-h));
     if(avoid.some(a=>px<a[2]&&px+w>a[0]&&py<a[3]&&py+h>a[1]))continue;
-    poster(g,px,py,w,h,r);
+    poster(_DUM,px,py,w,h,r);                 // solo gasta números aleatorios, no dibuja nada visible
+    if(!posterFits(placed,px,py,w,h))continue;
+    poster(g,px,py,w,h,r2);placed.push({x:px,y:py,w,h});ok++;
+  }
+  // intentos extra para que no queden paredes vacías (solo con r2)
+  for(let i=0;i<n*4&&ok<Math.floor(n*.6);i++){
+    const w=12+Math.floor(r2()*18),h=16+Math.floor(r2()*20);
+    const px=x0+Math.floor(r2()*Math.max(1,x1-x0-w)),py=y0+Math.floor(r2()*Math.max(1,y1-y0-h));
+    if(avoid.some(a=>px<a[2]&&px+w>a[0]&&py<a[3]&&py+h>a[1]))continue;
+    if(!posterFits(placed,px,py,w,h))continue;
+    poster(g,px,py,w,h,r2);placed.push({x:px,y:py,w,h});ok++;
   }
 }
 function tiendaFacade(g,x,w,h,pi,r){
@@ -1381,10 +1416,11 @@ function tiendaFacade(g,x,w,h,pi,r){
   R(g,'#1c1218',pcx-pw/2-1,dy-19,pw+2,14);R(g,'#1f57c9',pcx-pw/2,dy-18,pw,12);R(g,'#5b92ee',pcx-pw/2,dy-18,pw,1);T(g,'TIENDA',pcx,dy-15,'#fff',{a:'c'});
   // ---- carteles por todas partes ----
   const avoid=[[dX-4,dy-3,dX+dw+4,WB],[wX-6,wy-6,wX+ww+6,wy+wh+6],[pcx-pw/2-2,dy-20,pcx+pw/2+2,dy-4]];
-  postersIn(g,x+1,WB-h+13,x+w-1,WB-11,avoid,Math.floor(w*h/38),r);
+  const placed=[],r2=RNG(x*31+w);
+  postersIn(g,x+1,WB-h+13,x+w-1,WB-11,avoid,Math.floor(w*h/38),r,placed,r2);
   // pegados sobre la reja (arriba a un lado) y bajo la repisa
-  for(let px=wX+1;px<wX+ww-10;px+=13+Math.floor(r()*5)){const pwid=11+Math.floor(r()*5);poster(g,px,wy+Math.floor(r()*3),pwid,12+Math.floor(r()*5),r);}   // carteles pegados en la reja
-  postersIn(g,dX-3,dy-1,dX+dw+3,dy+18,[],3,r);                                            // y alguno en la hoja de la puerta / marco
+  for(let px=wX+1;px<wX+ww-10;px+=13+Math.floor(r()*5)){const pwid=11+Math.floor(r()*5),py2=wy+Math.floor(r()*3),ph2=12+Math.floor(r()*5);_DUM=_DUM||mk(8,8).g;poster(_DUM,px,py2,pwid,ph2,r);if(!posterFits(placed,px,py2,pwid,ph2))continue;poster(g,px,py2,pwid,ph2,r2);placed.push({x:px,y:py2,w:pwid,h:ph2});}   // carteles pegados en la reja
+  postersIn(g,dX-3,dy-1,dX+dw+3,dy+18,[],3,r,placed,r2);                                            // y alguno en la hoja de la puerta / marco
   // ---- banderines de colores atravesando la fachada ----
   const sag=u=>Math.round(5*Math.sin(Math.PI*u)),yb=WB-h+10;
   for(let xx=x+1;xx<x+w-1;xx++)P(g,'#3a2e22',xx,yb+sag((xx-x)/w)-1);
