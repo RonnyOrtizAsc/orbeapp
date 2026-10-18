@@ -1310,7 +1310,90 @@ function smallSign(g,x,y,kind){
   else if(kind===1){R(g,ac,x+3,y+2,5,6);R(g,fg,x+4,y+3,3,1);}
   else{for(let i=0;i<3;i++)P(g,ac,x+2+i*3,y+4);R(g,ac,x+4,y+2,3,1);R(g,ac,x+4,y+6,3,1);}
 }
+
+/* ---------- TIENDA de barrio: puerta abierta con la señora adentro, ventana con reja-balcón y repisa para pasar
+   la mercadería, y las paredes forradas de carteles (inventados) + banderines de colores arriba ---------- */
+const POSTER_WORDS=['RECARGA','OFERTA','BINGO','HELADOS','FRESCO','BEBIDAS','DULCES','LECHE','PAN','TODO $1','AQUI'];
+function poster(g,x,y,w,h,r){
+  const bgs=['#e8382c','#f2c81e','#2a5ab8','#3aa040','#f08a2a','#e858a0','#f6f0e0','#2aa8c8','#8a3a9a'];
+  const bg=bgs[Math.floor(r()*bgs.length)],k=Math.floor(r()*5),m=Math.min(w,h);
+  R(g,'#1c1218',x-1,y-1,w+2,h+2);R(g,bg,x,y,w,h);R(g,mix(bg,'#ffffff',.35),x,y,w,1);R(g,mix(bg,'#000000',.3),x,y+h-1,w,1);
+  if(k===0){
+    const cand=POSTER_WORDS.filter(q=>q.length*6-1<=w-2);
+    if(cand.length){R(g,'#fff6e0',x,y+2,w,9);T(g,cand[Math.floor(r()*cand.length)],x+w/2,y+3,mix(bg,'#000000',.5),{a:'c'});}
+    disc(g,'#fff6e0',x+w/2,y+h-7,Math.max(3,m/4));
+  }else if(k===1){
+    disc(g,'#fff6e0',x+w/2,y+h/2,m/3);disc(g,mix(bg,'#000000',.2),x+w/2,y+h/2,m/5);
+  }else if(k===2){
+    const n=Math.max(1,Math.floor((w-2)/7));
+    for(let i=0;i<n;i++){const bx=x+2+i*7,c=['#6a1a10','#2a5a3a','#d8a020','#2a2a6a'][Math.floor(r()*4)];R(g,c,bx,y+h-17,4,13);R(g,'#c8ccd4',bx+1,y+h-20,2,3);R(g,'#f6f0e0',bx,y+h-11,4,3);}
+  }else if(k===3){
+    R(g,mix(bg,'#000000',.25),x+3,y+4,w-6,Math.max(4,h-14));R(g,'#fff6e0',x+4,y+6,w-8,5);disc(g,'#ffe45a',x+w-5,y+h-6,4);
+  }else{
+    const rr=m/4.2;disc(g,['#e0a06c','#c68a5c','#f0c8a0'][Math.floor(r()*3)],x+w/2,y+h*.42,rr);
+    R(g,['#1c1218','#5a3a1c','#c8a850'][Math.floor(r()*3)],Math.floor(x+w/2-rr),Math.floor(y+h*.42-rr),Math.floor(rr*2),3);R(g,'#fff6e0',x+2,y+h-7,w-4,4);
+  }
+  P(g,'#d8d0b0',x,y);P(g,'#d8d0b0',x+w-1,y);
+}
+function postersIn(g,x0,y0,x1,y1,avoid,n,r){
+  for(let i=0;i<n;i++){
+    const w=12+Math.floor(r()*18),h=16+Math.floor(r()*20);
+    const px=x0+Math.floor(r()*Math.max(1,x1-x0-w)),py=y0+Math.floor(r()*Math.max(1,y1-y0-h));
+    if(avoid.some(a=>px<a[2]&&px+w>a[0]&&py<a[3]&&py+h>a[1]))continue;
+    poster(g,px,py,w,h,r);
+  }
+}
+function tiendaFacade(g,x,w,h,pi,r){
+  const pal=BPAL[pi];
+  bld(g,x,w,h,pi,{roof:'flat',door:-1,noWin:true,zh:10},r);
+  const flip=r()<.5,dw=Math.max(32,Math.min(40,Math.floor(w*.27))),ww=Math.max(42,Math.min(70,Math.floor(w*.42)));
+  const dX=flip?x+w-4-dw:x+4,wX=flip?x+4:x+w-4-ww,dy=WB-52,wy=WB-66,wh=30;
+  // ---- ventana (se dibuja primero: los carteles la rodean) ----
+  R(g,pal.d,wX-3,wy-3,ww+6,wh+3);R(g,pal.t,wX-2,wy-2,ww+4,wh+2);
+  vgrad(g,wX,wy,ww,wh,['#1e1416','#34262a','#46322e']);
+  for(const sy of [wy+4,wy+15]){R(g,'#5a3e2a',wX+1,sy+8,ww-2,1);
+    for(let px=wX+3;px<wX+ww-7;px+=6){const c=['#e8382c','#f2c81e','#3aa0e8','#48b848','#f08a2a','#e858a0'][(px*7+sy)%6];R(g,mix(c,'#000000',.2),px,sy+1,4,7);R(g,mix(c,'#ffffff',.35),px,sy+1,4,1);}}
+  for(const hx of [wX+8,wX+ww-14]){R(g,'#2a2028',hx+2,wy,1,3);R(g,['#e8382c','#f2c81e','#3aa0e8'][hx%3],hx,wy+3,5,7);R(g,'#fff',hx,wy+3,5,1);}   // bolsitas colgando
+  // abertura baja sin barrotes, por donde se pasa lo que se vende
+  for(let bx=wX+2;bx<wX+ww-1;bx+=4){R(g,'#14141a',bx,wy,2,wh-11);P(g,'#6a6a78',bx,wy);}
+  R(g,'#14141a',wX,wy+wh-12,ww,2);R(g,'#14141a',wX,wy+10,ww,1);
+  // reja saliente tipo balcón: marco, techito y laterales más gruesos
+  R(g,'#14141a',wX-4,wy-5,ww+8,3);R(g,'#3a3a46',wX-4,wy-5,ww+8,1);R(g,'#14141a',wX-4,wy-5,2,wh-6);R(g,'#14141a',wX+ww+2,wy-5,2,wh-6);
+  R(g,'#14141a',wX-4,wy+wh-12,ww+8,2);
+  // repisa de madera que sobresale, con cosas encima
+  R(g,'#4a2e16',wX-6,wy+wh,ww+12,5);R(g,'#b07a44',wX-6,wy+wh,ww+12,1);R(g,'#2a1808',wX-6,wy+wh+4,ww+12,1);
+  R(g,'#3a2410',wX-3,wy+wh+5,2,5);R(g,'#3a2410',wX+ww+1,wy+wh+5,2,5);
+  for(let px=wX+2,i=0;px<wX+ww-6;px+=9+(i%2)*3,i++){const k=(px*5)%4;
+    if(k===0){R(g,'#2a5a3a',px,wy+wh-9,3,9);R(g,'#c8ccd4',px,wy+wh-11,3,2);}
+    else if(k===1){R(g,['#e8382c','#f2c81e','#3aa0e8'][i%3],px,wy+wh-8,6,8);R(g,'#fff',px,wy+wh-8,6,1);}
+    else if(k===2){R(g,'#6a1a10',px,wy+wh-10,3,10);R(g,'#d8b868',px,wy+wh-6,3,2);}
+    else{R(g,'#f6f0e0',px,wy+wh-6,7,6);R(g,'#e8382c',px,wy+wh-6,7,1);}}
+  // ---- puerta abierta con la señora adentro ----
+  R(g,pal.d,dX-3,dy-3,dw+6,55);R(g,pal.t,dX-2,dy-2,dw+4,54);
+  vgrad(g,dX,dy,dw,52,['#0e0a0c','#1c1214','#2e201c']);
+  for(const sy of [dy+8,dy+22]){R(g,'#4a3224',dX+1,sy+8,dw-2,1);
+    for(let px=dX+3;px<dX+dw-5;px+=5){const c=['#e8382c','#f2c81e','#3aa0e8','#48b848','#e858a0'][(px*3+sy)%5];R(g,mix(c,'#000000',.55),px,sy+2,3,6);}}
+  R(g,'#fff0b0',dX+dw-9,dy+2,2,2);FP(g,dX,dy,dw,30,(i,j,ax,ay)=>{const d=Math.hypot(ax-(dX+dw-8),ay-(dy+3));return d<14&&bay(ax,ay)<(1-d/14)*.4?'#6a4a2a':null;});   // bombillo
+  const lx=flip?dX+dw-5:dX;R(g,'#3a6a8c',lx,dy,5,52);R(g,'#5a90b4',lx+(flip?0:4),dy,1,52);R(g,'#284a66',lx+(flip?4:0),dy,1,52);   // hoja de la puerta abierta
+  R(g,'#b8b2a2',dX-4,WB-3,dw+8,3);R(g,'#8a8478',dX-4,WB-1,dw+8,1);
+  // rótulos: placa TIENDA sobre la puerta y un cartel chico colgando
+  const pw=Math.max(dw+4,41),pcx=dX+dw/2;
+  R(g,'#1c1218',pcx-pw/2-1,dy-19,pw+2,14);R(g,'#1f57c9',pcx-pw/2,dy-18,pw,12);R(g,'#5b92ee',pcx-pw/2,dy-18,pw,1);T(g,'TIENDA',pcx,dy-15,'#fff',{a:'c'});
+  // ---- carteles por todas partes ----
+  const avoid=[[dX-4,dy-3,dX+dw+4,WB],[wX-6,wy-6,wX+ww+6,wy+wh+6],[pcx-pw/2-2,dy-20,pcx+pw/2+2,dy-4]];
+  postersIn(g,x+1,WB-h+13,x+w-1,WB-11,avoid,Math.floor(w*h/38),r);
+  // pegados sobre la reja (arriba a un lado) y bajo la repisa
+  for(let px=wX+1;px<wX+ww-10;px+=13+Math.floor(r()*5)){const pwid=11+Math.floor(r()*5);poster(g,px,wy+Math.floor(r()*3),pwid,12+Math.floor(r()*5),r);}   // carteles pegados en la reja
+  postersIn(g,dX-3,dy-1,dX+dw+3,dy+18,[],3,r);                                            // y alguno en la hoja de la puerta / marco
+  // ---- banderines de colores atravesando la fachada ----
+  const sag=u=>Math.round(5*Math.sin(Math.PI*u)),yb=WB-h+10;
+  for(let xx=x+1;xx<x+w-1;xx++)P(g,'#3a2e22',xx,yb+sag((xx-x)/w)-1);
+  for(let i=x+3;i<x+w-9;i+=9){const yy=yb+sag((i-x)/w);R(g,'#1c1218',i-1,yy-1,10,8);R(g,'#f2c81e',i,yy,8,6);R(g,'#ffe680',i,yy,8,1);R(g,'#c8281e',i+2,yy+2,4,2);R(g,'#f2c81e',i+2,yy+6,4,1);}
+  // la señora (se anima en drawShopGirls): detrás del mostrador pegado a la puerta
+  SHOPGIRLPOS.push({x:dX+dw/2-6,y:WB-44,seed:dX*.13,cox:dX,cow:dw,coy:WB-18});
+}
 function shop(g,x,w,h,pi,name,r){
+  if(name==='TIENDA'){tiendaFacade(g,x,w,h,pi,r);return;}
   const pal=BPAL[pi];
   bld(g,x,w,h,pi,{roof:'flat',door:-1,zh:10},r);
   // borrar planta baja para colocar la abertura
@@ -1579,7 +1662,7 @@ function buildBackdrop(){
       if(nearPup){gd(x,w);}
       else{
         const h=70+Math.floor(r()*50),pi=Math.floor(r()*8);
-        if(r()<.3){const shN=names[ni++%names.length],shH=Math.max(84,Math.min(h,96));shop(g,x,w,shH,pi,shN,r);}
+        if(r()<.3){const shN=names[ni++%names.length],shH=Math.max(84,Math.min(h,96));if(shN==='TIENDA'&&w<160){w=Math.min(160,rem);if(rem-w<80)w=rem;}shop(g,x,w,shH,pi,shN,r);}
         else bld(g,x,w,h,pi,{roof:['flat','flat','lamina','teja'][Math.floor(r()*4)],ac:r()<.3,plant:r()<.4},r);
       }
     }
